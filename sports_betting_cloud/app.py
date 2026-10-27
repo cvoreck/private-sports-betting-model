@@ -8,7 +8,7 @@ import streamlit as st
 from storage import init, add, all_picks, grade, baseline, set_baseline, import_rows
 from analytics import stats, format_record
 
-st.set_page_config(page_title="Today's Sports Betting Analytics", page_icon="🏟️", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Today's Sports Betting Analytics", page_icon="📊", layout="wide", initial_sidebar_state="collapsed")
 PT = ZoneInfo("America/Los_Angeles")
 TODAY = datetime.now(PT).date()
 SPORTS = ['NFL', 'NBA', 'MLB', 'College Football', 'NHL', 'College Basketball']
@@ -216,7 +216,36 @@ if page == 'Dashboard':
         today_df = df[df['date'].astype(str) == TODAY.isoformat()].sort_values('rank', na_position='last')
         ranked = today_df[today_df['rank'].notna()].head(5)
         if ranked.empty:
-            st.info('No ranked picks published for today. The automation requires verified events and independent model probabilities; it does not invent picks.')
+            st.info('No verified Top 5 has been published today. The publisher needs independently modeled probabilities and verified game eligibility.')
+            with st.expander('Preview the Top 5 layout (illustrative only)', expanded=False):
+                st.warning('DESIGN PREVIEW ONLY — these are fictional placeholders, not live games, odds, predictions, or betting recommendations. Nothing here is saved to your ledger.')
+                examples = [
+                    ('NFL', 'Example Away @ Example Home', 'Example moneyline', -110, 0.56),
+                    ('NBA', 'Example Away @ Example Home', 'Example spread −2.5', -110, 0.55),
+                    ('MLB', 'Example Away @ Example Home', 'Example total Over 8.5', -105, 0.54),
+                    ('College Football', 'Example Away @ Example Home', 'Example spread +3.5', -110, 0.55),
+                    ('NHL', 'Example Away @ Example Home', 'Example moneyline', 120, 0.48),
+                ]
+                for i, (sport_name, matchup, selection, odds, probability) in enumerate(examples, 1):
+                    with st.container(border=True):
+                        st.markdown(f'### {i}. {selection} ({odds:+d})')
+                        st.caption(f'{sport_name} • {matchup} • Illustrative time only')
+                        x,y,z = st.columns(3)
+                        be = odds_break_even(odds)
+                        x.metric('Break-even probability', f'{be:.1f}%')
+                        y.metric('Example model probability', f'{probability*100:.1f}%')
+                        z.metric('Example edge', f'{probability*100-be:+.1f} pp')
+                        st.markdown('**Why this pick**')
+                        st.write('This is where the independently sourced matchup analysis, last-10 evidence, injury context, and price requirement will appear.')
+                st.markdown('**Final Card — illustrative preview**')
+                st.dataframe(pd.DataFrame([{
+                    'Rank': i, 'Pick': selection, 'Odds': f'{odds:+d}',
+                    'Break-even': f'{odds_break_even(odds):.1f}%',
+                    'Estimated probability': f'{probability*100:.1f}%',
+                    'Estimated edge': f'{probability*100-odds_break_even(odds):+.1f} pp'
+                } for i, (_, _, selection, odds, probability) in enumerate(examples, 1)]),
+                hide_index=True, use_container_width=True)
+            st.caption('To retry live generation now: GitHub → Actions → Daily Top 5 (06:00 Pacific) → Run workflow. Refresh this dashboard after the job completes. A successful job can still publish zero picks when verification or model data is missing.')
         else:
             if len(ranked) != 5 or sorted(ranked['rank'].astype(int).tolist()) != [1,2,3,4,5]:
                 st.warning('Today’s card is incomplete; only verified, recorded picks are shown.')

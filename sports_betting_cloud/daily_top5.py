@@ -139,12 +139,14 @@ def main():
     local = now.astimezone(PT)
     manual_run = os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
 
-if not manual_run and local.hour != 6:
-    logging.info('Not 06:00 Pacific; exiting (%s)', local.isoformat())
-    return
+    if not manual_run and local.hour != 6:
+        logging.info('Not 06:00 Pacific; exiting (%s)', local.isoformat())
+        return
+
     today = local.date()
     database_url = os.environ['DATABASE_URL']
     api_key = os.environ['ODDS_API_KEY']
+
     with psycopg.connect(database_url, row_factory=dict_row, connect_timeout=15) as conn:
         with conn.transaction():
             # Don't create picks table here: existing app/storage.py owns its schema.

@@ -145,7 +145,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
     now = datetime.now(timezone.utc)
     local = now.astimezone(PT)
-    if os.environ.get('REQUIRE_SIX_AM', '1') == '1' and local.hour != 6:
+    if os.environ.get('REQUIRE_SIX_AM', '0') == '1' and local.hour != 6:
         logging.info('Not 06:00 Pacific; exiting (%s). Set REQUIRE_SIX_AM=0 for a manual run.', local.isoformat())
         return
     today = local.date()

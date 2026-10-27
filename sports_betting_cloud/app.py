@@ -259,7 +259,7 @@ if page == 'Dashboard':
                 ]
                 for i, (sport_name, matchup, selection, odds, probability) in enumerate(examples, 1):
                     preview = pd.Series(dict(rank=i, sport=sport_name, matchup=matchup,
-                        selection=selection, odds=odds, estimated_prob=prob,
+                        selection=selection, odds=odds, estimated_prob=probability,
                         start_pt='Illustrative time only', source='DESIGN PREVIEW — not live odds',
                         notes='Why: Example layout only; no independently verified analysis is available.\nWatch out for: No injury or lineup research is available for this illustrative example.'))
                     show_pick_card(preview)

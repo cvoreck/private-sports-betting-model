@@ -91,6 +91,6 @@ def make_table(data):
         prob=number(r.get('estimated_prob'), None)
         edge=(prob*100-be) if prob is not None and be is not None and prob>0 else None
         p=profit(r)
-        rows.append({'#':int(r['rank']) if pd.notna(r.get('rank')) else '—',
+        row = {'#': int(r['rank']) if pd.notna(r.get('rank')) else '—',
                      'Sport':r.get('sport',''), 'Matchup':r.get('matchup',''),
                      'Pick':r.get('selection',''), 'Odds':f"{int(r['odds']):+d}" if pd.notna(r.get('odds')) else '—',

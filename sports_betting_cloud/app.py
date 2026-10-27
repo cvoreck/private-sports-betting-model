@@ -8,11 +8,10 @@ import streamlit as st
 from storage import init, add, all_picks, grade, baseline, set_baseline, import_rows
 from analytics import stats, format_record
 
-st.set_page_config(page_title="Today's Sports Betting Analytics", page_icon="📊", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Sports Betting Analytics", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
 PT = ZoneInfo("America/Los_Angeles")
 TODAY = datetime.now(PT).date()
 SPORTS = ['NFL', 'NBA', 'MLB', 'College Football', 'NHL', 'College Basketball']
-SPORT_ICONS = ['🏈', '🏀', '⚾', '🏈', '🏒', '🏀']
 
 st.markdown('''<style>
 :root {color-scheme:dark}
@@ -116,32 +115,64 @@ def header(text, caption=None):
     st.subheader(text)
     if caption: st.caption(caption)
 
-st.title("Today's Sports Betting Analytics")
+st.title("Sports Betting Analytics")
 st.caption(f"Performance tracking and research ledger • {TODAY:%A, %B %d, %Y} • Pacific Time")
+
+def clean_text(value):
+    """Keep missing database fields from appearing as 'nan' in the UI."""
+    return str(value).strip() if pd.notna(value) and str(value).strip() else ''
+
+
+def pick_analysis(r):
+    """Use only recorded analysis; never manufacture injury or form information."""
+    notes = clean_text(r.get('notes'))
+    rationale, warnings = [], []
+    for line in notes.splitlines():
+        item = line.strip().lstrip('-• ').strip()
+        lower = item.lower()
+        if lower.startswith(('watch out for:', 'watch out:', 'risks:', 'injuries:', 'injury news:', 'suspensions:')):
+            warnings.append(item.split(':', 1)[1].strip())
+        elif lower.startswith(('why:', 'rationale:', 'analysis:')):
+            rationale.append(item.split(':', 1)[1].strip())
+        elif item:
+            rationale.append(item)
+    return '\n\n'.join(rationale), '\n\n'.join(warnings)
+
 
 def show_pick_card(r):
     rank = int(r['rank']) if pd.notna(r.get('rank')) else '—'
     odds = number(r.get('odds'), None)
     prob = number(r.get('estimated_prob'), None)
     be = odds_break_even(odds) if odds is not None else None
-    edge = (prob*100-be) if prob is not None and prob > 0 and be is not None else None
-    label = str(r.get('selection') or 'Unspecified selection')
+    edge = (prob * 100 - be) if prob is not None and 0 < prob < 1 and be is not None else None
+    label = clean_text(r.get('selection')) or 'Unspecified selection'
     price = f' ({int(odds):+d})' if odds is not None else ''
+    rationale, warnings = pick_analysis(r)
+
     with st.container(border=True):
         st.markdown(f"### {rank}. {label}{price}")
-        st.caption(f"{r.get('sport','')} • {r.get('matchup','')} • {r.get('start_pt') or 'Time not sourced'}")
-        a,b,c = st.columns(3)
+        st.caption(f"{clean_text(r.get('sport'))} • {clean_text(r.get('matchup'))} • {clean_text(r.get('start_pt')) or 'Start time not sourced'}")
+        a, b, c = st.columns(3)
         a.metric('Break-even probability', f'{be:.1f}%' if be is not None else '—')
-        b.metric('Estimated win probability', f'{prob*100:.1f}%' if prob is not None and prob > 0 else 'Not available')
+        b.metric('Estimated win probability', f'{prob * 100:.1f}%' if prob is not None and 0 < prob < 1 else 'Not available')
         c.metric('Estimated edge', f'{edge:+.1f} pp' if edge is not None else 'Not available')
-        notes = str(r.get('notes') or '').strip()
-        st.markdown('**Why this pick**')
-        st.write(notes if notes else 'No sourced rationale has been recorded yet.')
-        st.caption(f"Odds / research source: {r.get('source') or 'Not recorded'}")
+
+        st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
+        why_col, watch_col = st.columns([1.7, 1], gap='large')
+        with why_col:
+            st.markdown('**Why this pick**')
+            st.write(rationale if rationale else 'No independently sourced matchup analysis has been recorded for this pick yet.')
+            if not rationale or 'last-10' not in rationale.lower():
+                st.caption('Last-10 form has not been documented or verified for this pick.')
+        with watch_col:
+            st.markdown('**Watch out for**')
+            st.write(warnings if warnings else 'Injury, suspension, lineup, and breaking-news checks have not yet been documented. Verify before placing a wager.')
+
+        st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
+        st.caption(f"Odds / research source: {clean_text(r.get('source')) or 'Not recorded'}")
         if odds is not None:
             st.caption(f"Price requirement: {int(odds):+d} or better at a traditional sportsbook. Confirm the current line before betting.")
-        if not notes or 'last-10' not in notes.lower():
-            st.caption('Last-10 performance and injury context have not been independently verified for this card.')
+    st.markdown('<div style="height:26px"></div>', unsafe_allow_html=True)
 
 
 def final_card_table(data):
@@ -200,19 +231,19 @@ if page == 'Dashboard':
     with st.container(border=True):
         header('Record by Sport')
         cols = st.columns(3)
-        for i, (name, emoji) in enumerate(zip(SPORTS, SPORT_ICONS)):
+        for i, name in enumerate(SPORTS):
             q = df[df['sport'] == name]
             sq = stats(q)
             sr = sq.get('roi')
             with cols[i % 3]:
-                st.markdown(f"""<div class="sportcard"><div class="name">{emoji} {name}</div>
+                st.markdown(f"""<div class="sportcard"><div class="name">{name}</div>
                 <div class="detail">Picks <strong>{len(q)}</strong><br>W–L–P <strong>{format_record(sq)}</strong><br>
                 Profit <strong>{number(sq.get('net')):+.2f}u</strong><br>
                 ROI <strong>{f'{sr:.1f}%' if sr is not None else '—'}</strong></div></div>""",
                 unsafe_allow_html=True)
 
     with st.container(border=True):
-        header("Today's Top 5 Picks", f'{TODAY.isoformat()}')
+        header("Today's Top 5", f'{TODAY.isoformat()}')
         today_df = df[df['date'].astype(str) == TODAY.isoformat()].sort_values('rank', na_position='last')
         ranked = today_df[today_df['rank'].notna()].head(5)
         if ranked.empty:
@@ -227,16 +258,11 @@ if page == 'Dashboard':
                     ('NHL', 'Example Away @ Example Home', 'Example moneyline', 120, 0.48),
                 ]
                 for i, (sport_name, matchup, selection, odds, probability) in enumerate(examples, 1):
-                    with st.container(border=True):
-                        st.markdown(f'### {i}. {selection} ({odds:+d})')
-                        st.caption(f'{sport_name} • {matchup} • Illustrative time only')
-                        x,y,z = st.columns(3)
-                        be = odds_break_even(odds)
-                        x.metric('Break-even probability', f'{be:.1f}%')
-                        y.metric('Example model probability', f'{probability*100:.1f}%')
-                        z.metric('Example edge', f'{probability*100-be:+.1f} pp')
-                        st.markdown('**Why this pick**')
-                        st.write('This is where the independently sourced matchup analysis, last-10 evidence, injury context, and price requirement will appear.')
+                    preview = pd.Series(dict(rank=i, sport=sport_name, matchup=matchup,
+                        selection=selection, odds=odds, estimated_prob=prob,
+                        start_pt='Illustrative time only', source='DESIGN PREVIEW — not live odds',
+                        notes='Why: Example layout only; no independently verified analysis is available.\nWatch out for: No injury or lineup research is available for this illustrative example.'))
+                    show_pick_card(preview)
                 st.markdown('**Final Card — illustrative preview**')
                 st.dataframe(pd.DataFrame([{
                     'Rank': i, 'Pick': selection, 'Odds': f'{odds:+d}',

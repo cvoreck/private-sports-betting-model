@@ -8,7 +8,7 @@ import streamlit as st
 from storage import init, add, all_picks, grade, baseline, set_baseline, import_rows
 from analytics import stats, format_record
 
-st.set_page_config(page_title="Sports Betting Analytics", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Sports Betting Analytics", page_icon="🏟️", layout="wide", initial_sidebar_state="collapsed")
 PT = ZoneInfo("America/Los_Angeles")
 TODAY = datetime.now(PT).date()
 SPORTS = ['NFL', 'NBA', 'MLB', 'College Football', 'NHL', 'College Basketball']
@@ -248,7 +248,7 @@ if page == 'Dashboard':
         ranked = today_df[today_df['rank'].notna()].head(5)
         if ranked.empty:
             st.info('No verified Top 5 has been published today. The publisher needs independently modeled probabilities and verified game eligibility.')
-            with st.expander('Preview the Top 5 layout (illustrative only)', expanded=False):
+            with st.container(border=False):
                 st.warning('DESIGN PREVIEW ONLY — these are fictional placeholders, not live games, odds, predictions, or betting recommendations. Nothing here is saved to your ledger.')
                 examples = [
                     ('NFL', 'Example Away @ Example Home', 'Example moneyline', -110, 0.56),
@@ -278,11 +278,9 @@ if page == 'Dashboard':
             for _, pick in ranked.iterrows():
                 show_pick_card(pick)
 
-    with st.container(border=True):
-        header('Final Card', 'Quick summary of today’s ranked selections')
-        if ranked.empty:
-            st.info('No qualifying picks have been published today.')
-        else:
+    if not ranked.empty:
+        with st.container(border=True):
+            header('Final Card', 'Quick summary of today’s ranked selections')
             st.dataframe(final_card_table(ranked), hide_index=True, use_container_width=True)
 
     header('Performance Trends')

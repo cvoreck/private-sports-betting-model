@@ -59,8 +59,7 @@ for col in ['date','sport','market','matchup','selection','kind','result','sourc
 for col in ['odds','stake','rank','estimated_prob']:
     if col not in all_df.columns: all_df[col] = pd.Series(dtype='float64')
 
-page = st.radio('Navigation', ['Dashboard','Top 5 card','Add pick','Grade results','Import / backup','Rules'],
-                horizontal=True, label_visibility='collapsed')
+page = 'Dashboard'  # Single-page dashboard; no top navigation
 kind = 'Hypothetical'
 if page in ('Add pick', 'Grade results', 'Import / backup'):
     kind = st.selectbox('Pick type', ['Hypothetical','Actual'],

@@ -137,9 +137,11 @@ def main():
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
     now = datetime.now(timezone.utc)
     local = now.astimezone(PT)
-    if os.environ.get('REQUIRE_SIX_AM', '1') == '1' and local.hour != 6:
-        logging.info('Not 06:00 Pacific; exiting (%s)', local.isoformat())
-        return
+    manual_run = os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
+
+if not manual_run and local.hour != 6:
+    logging.info('Not 06:00 Pacific; exiting (%s)', local.isoformat())
+    return
     today = local.date()
     database_url = os.environ['DATABASE_URL']
     api_key = os.environ['ODDS_API_KEY']

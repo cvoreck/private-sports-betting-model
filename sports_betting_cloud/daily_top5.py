@@ -61,6 +61,7 @@ def odds_events(key, api_key):
 
 def find_candidates(conn, api_key, today, now):
     candidates = []
+    counts = dict(events=0, upcoming_today=0, verified=0, predictions=0, positive_ev=0)
     for key, sport in SPORT_KEYS.items():
         try:
             events = odds_events(key, api_key)
@@ -68,6 +69,8 @@ def find_candidates(conn, api_key, today, now):
             # Missing subscription coverage is visible in logs, not silently invented.
             logging.warning('Odds unavailable for %s: %s', sport, exc)
             continue
+        logging.info('%s: fetched %s odds events', sport, len(events))
+        counts['events'] += len(events)
         for event in events:
             event_id = event.get('id')
             try:
@@ -76,6 +79,7 @@ def find_candidates(conn, api_key, today, now):
                 continue
             if start.astimezone(PT).date() != today or start <= now:
                 continue
+            counts['upcoming_today'] += 1
             verified = conn.execute('''SELECT * FROM verified_events WHERE event_id=%s
               AND sport=%s AND is_preseason=FALSE AND verified_at >= %s''',
               (event_id, sport, now - timedelta(days=7))).fetchone()
@@ -83,6 +87,7 @@ def find_candidates(conn, api_key, today, now):
                 continue
             if sport in COLLEGE and verified['ap_top25_team_in_match'] is not True:
                 continue
+            counts['verified'] += 1
             matchup = f"{event.get('away_team','Away')} @ {event.get('home_team','Home')}"
             for bookmaker in event.get('bookmakers', []):
                 for market in bookmaker.get('markets', []):
@@ -102,10 +107,12 @@ def find_candidates(conn, api_key, today, now):
                           (event_id, mkey, selection, str(point) if point is not None else '', now - timedelta(hours=24))).fetchone()
                         if not prediction:
                             continue
+                        counts['predictions'] += 1
                         p = prediction['estimated_prob']
                         ev = expected_value(p, odds)
                         if ev <= 0:
                             continue
+                        counts['positive_ev'] += 1
                         candidates.append({
                             'event_id': event_id, 'sport': sport, 'matchup': matchup,
                             'market': mkey, 'selection': selection, 'point': point,
@@ -114,6 +121,7 @@ def find_candidates(conn, api_key, today, now):
                             'model_version': prediction['model_version'],
                             'verification_source': verified['verification_source']
                         })
+    logging.info('Candidate funnel: %s', json.dumps(counts, sort_keys=True))
     return candidates
 
 def rank_candidates(candidates):
@@ -138,7 +146,7 @@ def main():
     now = datetime.now(timezone.utc)
     local = now.astimezone(PT)
     if os.environ.get('REQUIRE_SIX_AM', '1') == '1' and local.hour != 6:
-        logging.info('Not 06:00 Pacific; exiting (%s)', local.isoformat())
+        logging.info('Not 06:00 Pacific; exiting (%s). Set REQUIRE_SIX_AM=0 for a manual run.', local.isoformat())
         return
     today = local.date()
     database_url = os.environ['DATABASE_URL']

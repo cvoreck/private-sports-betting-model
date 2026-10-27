@@ -8,7 +8,7 @@ import streamlit as st
 from storage import init, add, all_picks, grade, baseline, set_baseline, import_rows
 from analytics import stats, format_record
 
-st.set_page_config(page_title="Today's Sports Betting Analytics", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Today's Sports Betting Analytics", page_icon="🏟️", layout="wide", initial_sidebar_state="collapsed")
 PT = ZoneInfo("America/Los_Angeles")
 TODAY = datetime.now(PT).date()
 SPORTS = ['NFL', 'NBA', 'MLB', 'College Football', 'NHL', 'College Basketball']
@@ -61,8 +61,10 @@ for col in ['odds','stake','rank','estimated_prob']:
 
 page = st.radio('Navigation', ['Dashboard','Top 5 card','Add pick','Grade results','Import / backup','Rules'],
                 horizontal=True, label_visibility='collapsed')
-kind = st.segmented_control('Ledger', ['Hypothetical','Actual'], default='Hypothetical',
-                            help='Model recommendations and actual wagers are tracked separately.')
+kind = 'Hypothetical'
+if page in ('Add pick', 'Grade results', 'Import / backup'):
+    kind = st.selectbox('Pick type', ['Hypothetical','Actual'],
+                        help='Actual wagers remain separate from hypothetical recommendations.')
 df = all_df[all_df['kind'].eq(kind)].copy()
 
 
@@ -115,8 +117,8 @@ def header(text, caption=None):
     st.subheader(text)
     if caption: st.caption(caption)
 
-st.title("📈 Today's Sports Betting Analytics")
-st.caption(f"Performance tracking and research ledger • {TODAY:%A, %B %d, %Y} • Pacific Time • {kind} picks")
+st.title("Today's Sports Betting Analytics")
+st.caption(f"Performance tracking and research ledger • {TODAY:%A, %B %d, %Y} • Pacific Time")
 
 def show_pick_card(r):
     rank = int(r['rank']) if pd.notna(r.get('rank')) else '—'
@@ -142,6 +144,24 @@ def show_pick_card(r):
         if not notes or 'last-10' not in notes.lower():
             st.caption('Last-10 performance and injury context have not been independently verified for this card.')
 
+
+def final_card_table(data):
+    rows = []
+    for _, r in data.iterrows():
+        odds = number(r.get('odds'), None)
+        prob = number(r.get('estimated_prob'), None)
+        be = odds_break_even(odds) if odds is not None else None
+        edge = prob*100-be if prob is not None and prob>0 and be is not None else None
+        rows.append({
+            'Rank': int(r['rank']) if pd.notna(r.get('rank')) else '—',
+            'Pick': str(r.get('selection') or '—'),
+            'Odds': f'{int(odds):+d}' if odds is not None else '—',
+            'Break-even': f'{be:.1f}%' if be is not None else '—',
+            'Estimated probability': f'{prob*100:.1f}%' if prob is not None and prob>0 else '—',
+            'Estimated edge': f'{edge:+.1f} pp' if edge is not None else '—'
+        })
+    return pd.DataFrame(rows)
+
 if page == 'Dashboard':
     # The headline figures always describe the complete selected ledger.
     summary = stats(df)
@@ -150,7 +170,7 @@ if page == 'Dashboard':
     settled = int(df['result'].isin(['Win','Loss','Push','Void']).sum())
     pending = int(df['result'].eq('Pending').sum())
     with st.container(border=True):
-        header('Running Record', 'All recorded picks in the selected ledger; ungraded picks excluded from W–L–P')
+        header('Running Record', 'Hypothetical picks • ungraded picks excluded from W–L–P')
         a,b,c,d,e = st.columns(5)
         a.metric('W–L–P', format_record(summary))
         b.metric('Net units', f'{net:+.2f}u')
@@ -163,7 +183,7 @@ if page == 'Dashboard':
                    f"{hist['net']:+.2f}u (separate from pick-level totals; not double counted).")
 
     with st.container(border=True):
-        header("Yesterday's Recap", f'{(TODAY-timedelta(days=1)).isoformat()} • {kind}')
+        header("Yesterday's Recap", f'{(TODAY-timedelta(days=1)).isoformat()}')
         yesterday = TODAY - timedelta(days=1)
         y = df[df['date'].astype(str) == yesterday.isoformat()]
         if y.empty:
@@ -193,7 +213,7 @@ if page == 'Dashboard':
                 unsafe_allow_html=True)
 
     with st.container(border=True):
-        header("Today's Top 5 Picks", f'{TODAY.isoformat()} • {kind} ledger')
+        header("Today's Top 5 Picks", f'{TODAY.isoformat()}')
         today_df = df[df['date'].astype(str) == TODAY.isoformat()].sort_values('rank', na_position='last')
         ranked = today_df[today_df['rank'].notna()].head(5)
         if ranked.empty:
@@ -203,6 +223,13 @@ if page == 'Dashboard':
                 st.warning('Today’s card is incomplete; only verified, recorded picks are shown.')
             for _, pick in ranked.iterrows():
                 show_pick_card(pick)
+
+    with st.container(border=True):
+        header('Final Card', 'Quick summary of today’s ranked selections')
+        if ranked.empty:
+            st.info('No qualifying picks have been published today.')
+        else:
+            st.dataframe(final_card_table(ranked), hide_index=True, use_container_width=True)
 
     header('Performance Trends')
     filtered = df.copy()
@@ -243,7 +270,7 @@ if page == 'Dashboard':
 
 
     with st.container(border=True):
-        header('Filters & Historical Ledger', 'Filters affect the table below, not the running record or daily Top 5.')
+        header('Filters & Pick History', 'Filters affect only the history below.')
         a,b,c,d = st.columns([2,1.25,1.25,1.25])
         date_range = a.date_input('Date range', value=(TODAY-timedelta(days=30), TODAY), key='filter_dates')
         sport = b.selectbox('Sport', ['All'] + SPORTS)
@@ -268,6 +295,10 @@ elif page=='Top 5 card':
             st.warning('A complete card needs five unique ranks from 1 to 5.')
         for _, pick in card.head(5).iterrows():
             show_pick_card(pick)
+        with st.container(border=True):
+            header('Final Card')
+            st.dataframe(final_card_table(card.head(5)), hide_index=True, use_container_width=True)
+
 
 elif page=='Add pick':
     header('Add a Sourced Pick')

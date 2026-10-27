@@ -1,0 +1,1 @@
+Replace sports_betting_cloud/app.py in GitHub to apply the latest UI. Other files are provided for completeness. Keep your existing .github/workflows/daily-top5.yml and secrets unchanged. Do not upload DATABASE_URL or ODDS_API_KEY into repository. The automated Top 5 requires verified_events and model_predictions; no synthetic picks are generated.

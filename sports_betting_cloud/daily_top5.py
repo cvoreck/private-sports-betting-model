@@ -128,27 +128,77 @@ def find_candidates(conn, today, now):
     logging.info('Candidate funnel: %s', json.dumps(counts, sort_keys=True))
     return candidates
 
-def rank_candidates(candidates):
-    # One bet per event, avoid correlated outcomes; best available bookmaker quote.
+def rank_candidates(candidates, card_date=None):
+    """Choose a varied Top 5, with modest game-day preferences.
+
+    Selection bonuses never change model probabilities, odds, EV or the
+    confidence order displayed on the published card.
+    """
+    card_date = card_date or datetime.now(PT).date()
+    weekday = card_date.weekday()  # Monday=0, Sunday=6
+    preferred_sport = ('NFL' if weekday in (0, 3, 6) else
+                       'College Football' if weekday in (4, 5) else None)
+
+    # Keep the best available sportsbook quote for each distinct bet.
     best = {}
     for c in candidates:
         k = (c['event_id'], c['market'], c['selection'], str(c['point']))
         if k not in best or c['ev'] > best[k]['ev']:
             best[k] = c
-    # All markets compete equally. Prefer -200..+200; balance win chance, edge and EV.
-    # EV and edge are estimated from uncalibrated models, not guaranteed profit.
+
+    def confidence(c):
+        # Existing scoring formula, kept intact for displayed ordering.
+        return (0.45*c['prob'] +
+                0.35*min(c['edge_pp']/20, 1) +
+                0.20*min(c['ev'], 1))
+
     def score(c):
-        in_range = -200 <= c['odds'] <= 200
-        return (in_range, 0.45*c['prob'] + 0.35*min(c['edge_pp']/20, 1) + 0.20*min(c['ev'],1))
-    ordered = sorted(best.values(), key=score, reverse=True)
-    result, used_events = [], set()
-    for c in ordered:
-        if c['event_id'] not in used_events:
-            result.append(c)
-            used_events.add(c['event_id'])
-        if len(result) == 5:
+        # Preserve the existing preference for moderate American odds.
+        return (-200 <= c['odds'] <= 200, confidence(c))
+
+    pool = list(best.values())
+    selected = []
+    used_events = set()
+    sport_counts = {}
+    while len(selected) < 5:
+        eligible = [c for c in pool if c['event_id'] not in used_events]
+        if not eligible:
             break
-    return result
+        strongest = max(eligible, key=score)
+        # Never sacrifice the existing moderate-odds preference just to
+        # achieve a sport mix.
+        comparable = [c for c in eligible
+                      if score(c)[0] == score(strongest)[0]
+                      and confidence(c) >= confidence(strongest) - 0.06]
+        available_sports = {c['sport'] for c in comparable}
+        selected_sports = set(sport_counts)
+        # Aim for at least two sports when similarly strong options exist.
+        if len(selected_sports) == 1 and len(selected) >= 2:
+            diverse = [c for c in comparable if c['sport'] not in selected_sports]
+            if diverse:
+                comparable = diverse
+        # Soft three-per-sport cap; allow more when alternatives are weak.
+        under_cap = [c for c in comparable if sport_counts.get(c['sport'], 0) < 3]
+        if under_cap:
+            comparable = under_cap
+
+        def selection_score(c):
+            bonus = 0.025 if c['sport'] == preferred_sport else 0.0
+            # Small nudge toward variety, only among close candidates.
+            variety = 0.012 if c['sport'] not in selected_sports else 0.0
+            return confidence(c) + bonus + variety
+
+        chosen = max(comparable, key=selection_score)
+        selected.append(chosen)
+        used_events.add(chosen['event_id'])
+        sport_counts[chosen['sport']] = sport_counts.get(chosen['sport'], 0) + 1
+
+    # The published ranks reflect the original confidence score, not the
+    # day-of-week/variety bonuses used to decide which picks make the card.
+    selected.sort(key=score, reverse=True)
+    logging.info('Top 5 selection: day=%s preferred=%s sport_mix=%s',
+                 card_date, preferred_sport, json.dumps(sport_counts, sort_keys=True))
+    return selected
 
 
 def research_notes(context, selection, market, model_version=None, edge_pp=None, ev=None, bookmaker=None, verification_source=None):
@@ -308,7 +358,7 @@ def main():
                 logging.info('Already have %s ranked hypothetical picks for %s; refreshed research on %s, preserved picks', existing, today, refreshed)
                 return
         candidates = find_candidates(conn, today, now)
-        top = rank_candidates(candidates)
+        top = rank_candidates(candidates, today)
         status = 'published' if top else 'insufficient_verified_candidates'
         # Publish only independently modeled positive-EV picks; fewer than five is allowed.
         with conn.transaction():

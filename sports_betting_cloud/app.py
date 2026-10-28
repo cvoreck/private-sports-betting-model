@@ -279,85 +279,127 @@ def _team_key(name):
 
 @st.cache_data(ttl=600, show_spinner=False)
 def market_events(sport_key, api_key):
-    """Fetch US sportsbook spreads and totals; cache 10 minutes to limit API usage."""
+    """Fetch current spread/total markets. Returns events and an explicit status."""
     params = urlencode({'apiKey': api_key, 'regions': 'us',
                         'markets': 'spreads,totals', 'oddsFormat': 'american',
                         'dateFormat': 'iso'})
     url = f'https://api.the-odds-api.com/v4/sports/{sport_key}/odds/?{params}'
     try:
-        with urlopen(Request(url, headers={'User-Agent': 'SportsEdgeDashboard/1.0'}), timeout=7) as response:
+        with urlopen(Request(url, headers={'User-Agent': 'SportsEdgeDashboard/1.1'}), timeout=10) as response:
             payload = json.load(response)
-        return payload if isinstance(payload, list) else []
-    except Exception:
-        return []
+        if not isinstance(payload, list):
+            return [], 'Odds API returned an unexpected response'
+        return payload, ''
+    except Exception as exc:
+        # Do not reveal the URL: it contains the private API key.
+        return [], f'Odds API request failed ({type(exc).__name__})'
+
+
+def _format_outcome(outcome, include_team=False):
+    try:
+        point = float(outcome['point'])
+        price = int(outcome['price'])
+    except (KeyError, TypeError, ValueError):
+        return ''
+    prefix = str(outcome.get('name', '')).strip() if include_team else ''
+    point_text = f'{point:+g}' if include_team else f'{point:g}'
+    return f'{prefix} {point_text} ({price:+d})'.strip()
+
+
+def _market_from_book(book, market_key):
+    return next((m for m in (book.get('markets') or []) if m.get('key') == market_key), None)
 
 
 def current_market_lines(r):
-    """Match a saved matchup and date to an upcoming odds event; never guess lines."""
+    """Return spread and total quotes independently, even from different books.
+
+    Current-odds API only lists offered games. Never substitute lines from
+    another matchup or present old prices as live.
+    """
     sport = clean_text(r.get('sport'))
     key = ODDS_SPORT_KEYS.get(sport)
+    if not key:
+        return {'status': 'Sport not supported by the current odds feed'}
     api_key = st.secrets.get('ODDS_API_KEY', '')
-    if not key or not api_key:
-        return None
+    if not api_key:
+        return {'status': 'ODDS_API_KEY missing in Streamlit secrets'}
+
     matchup = clean_text(r.get('matchup'))
-    # Publisher uses 'Away @ Home'; alternate 'Away vs. Home' is supported.
     pieces = re.split(r'\s+@\s+|\s+vs\.?\s+', matchup, maxsplit=1, flags=re.I)
     if len(pieces) != 2:
-        return None
+        return {'status': 'Could not identify the teams in this matchup'}
     away, home = map(_team_key, pieces)
     day = clean_text(r.get('date'))[:10]
-    for event in market_events(key, api_key):
+    events, error = market_events(key, api_key)
+    if error:
+        return {'status': error}
+
+    matching = []
+    for event in events:
         if _team_key(event.get('away_team')) != away or _team_key(event.get('home_team')) != home:
             continue
         try:
             event_day = datetime.fromisoformat(event['commence_time'].replace('Z', '+00:00')).astimezone(PT).date().isoformat()
         except (KeyError, TypeError, ValueError):
             continue
-        if event_day != day:
-            continue
+        if event_day == day:
+            matching.append(event)
+    if not matching:
+        return {'status': 'Game not listed in current odds feed; historical quotes not saved'}
+
+    preferred = BOOK_KEYS.get(recorded_bookmaker(r.get('source')).casefold())
+    for event in matching:
         books = event.get('bookmakers') or []
-        preferred = BOOK_KEYS.get(recorded_bookmaker(r.get('source')).casefold())
-        book = next((b for b in books if b.get('key') == preferred), None)
-        if book is None:
-            book = next((b for b in books if any(m.get('key') in ('spreads', 'totals') for m in b.get('markets', []))), None)
-        if not book:
-            return None
-        markets = {m.get('key'): m.get('outcomes', []) for m in book.get('markets', [])}
-        spread = markets.get('spreads', [])
-        total = markets.get('totals', [])
-        spread_out = []
-        for side in (event.get('home_team'), event.get('away_team')):
-            found = next((o for o in spread if _team_key(o.get('name')) == _team_key(side)), None)
-            if found and found.get('point') is not None:
-                try:
-                    spread_out.append(f"{side} {float(found['point']):+g} ({int(found['price']):+d})")
-                except (TypeError, ValueError, KeyError):
-                    pass
-        total_out = []
-        for side in ('Over', 'Under'):
-            found = next((o for o in total if str(o.get('name', '')).casefold() == side.casefold()), None)
-            if found and found.get('point') is not None:
-                try:
-                    total_out.append(f"{side} {float(found['point']):g} ({int(found['price']):+d})")
-                except (TypeError, ValueError, KeyError):
-                    pass
-        if spread_out or total_out:
-            return {'spread': ' · '.join(spread_out), 'total': ' · '.join(total_out),
-                    'book': book.get('title', 'Sportsbook')}
-    return None
+        books = sorted(books, key=lambda b: b.get('key') != preferred)
+        result = {'spread': '', 'total': '', 'spread_book': '', 'total_book': ''}
+        for market_key, result_key in (('spreads', 'spread'), ('totals', 'total')):
+            for book in books:
+                market = _market_from_book(book, market_key)
+                if not market:
+                    continue
+                outcomes = market.get('outcomes') or []
+                if market_key == 'spreads':
+                    selected = []
+                    for team in (event.get('home_team'), event.get('away_team')):
+                        outcome = next((o for o in outcomes if _team_key(o.get('name')) == _team_key(team)), None)
+                        if outcome:
+                            value = _format_outcome(outcome, include_team=True)
+                            if value:
+                                selected.append(value)
+                    formatted = ' · '.join(selected)
+                else:
+                    selected = []
+                    for side in ('Over', 'Under'):
+                        outcome = next((o for o in outcomes if str(o.get('name', '')).casefold() == side.casefold()), None)
+                        if outcome:
+                            value = _format_outcome(outcome)
+                            if value:
+                                selected.append(f'{side} {value}')
+                    formatted = ' · '.join(selected)
+                if formatted:
+                    result[result_key] = formatted
+                    result[result_key + '_book'] = book.get('title') or book.get('key') or 'Sportsbook'
+                    break
+        if result['spread'] or result['total']:
+            result['status'] = ''
+            return result
+    return {'status': 'Matching game found, but spread and total markets are not offered'}
 
 
 def market_lines_html(r):
     quotes = current_market_lines(r)
-    if not quotes:
-        return ('<div class="pick-market-lines pick-market-muted">'
-                'Spread: unavailable · Total: unavailable (no matching current quote)</div>')
-    spread = esc(quotes['spread']) if quotes['spread'] else 'Unavailable'
-    total = esc(quotes['total']) if quotes['total'] else 'Unavailable'
-    book = esc(quotes['book'])
+    spread = esc(quotes.get('spread') or 'Unavailable')
+    total = esc(quotes.get('total') or 'Unavailable')
+    spread_book = quotes.get('spread_book')
+    total_book = quotes.get('total_book')
+    if spread_book:
+        spread += f' <span class="pick-market-muted">· {esc(spread_book)}</span>'
+    if total_book:
+        total += f' <span class="pick-market-muted">· {esc(total_book)}</span>'
+    status = quotes.get('status') or 'Latest available API snapshot; prices can change'
     return (f'<div class="pick-market-lines"><strong>Spread:</strong> {spread}'
-            f'<br><strong>Total:</strong> {total}'
-            f'<br><span class="pick-market-muted">{book} · latest API snapshot, not guaranteed live</span></div>')
+            f'<br><strong>Total O/U:</strong> {total}'
+            f'<br><span class="pick-market-muted">{esc(status)}</span></div>')
 
 
 def matchup_preview(rationale):

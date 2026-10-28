@@ -5,7 +5,10 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import pandas as pd
 import html
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlencode
+from urllib.request import Request, urlopen
+import json
+import re
 import streamlit as st
 from storage import init, add, all_picks, grade, baseline, set_baseline, import_rows
 from analytics import stats, format_record
@@ -52,6 +55,9 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .pick-odds-line {display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin:7px 0 8px;color:#c5d7ec;font-size:.78rem}
 .pick-odds-line strong {font-size:1.05rem;color:#f4f8ff}
 .pick-odds-context {font-size:.7rem;color:#9ebbd7}
+.pick-market-lines {font-size:.76rem;color:#c5d7ec;margin:0 0 10px;line-height:1.5}
+.pick-market-lines strong {color:#f2f8ff;font-weight:750}
+.pick-market-muted {color:#9ebbd7;font-size:.71rem}
 .pick-preview-label {color:#f1f7ff;font-weight:750}
 .pick-preview {color:#c5d7ec;line-height:1.45}
 .pick-kpi-label {font-size:.76rem;color:#bed0e8;line-height:1.45}
@@ -292,6 +298,104 @@ def recorded_bookmaker(source):
     return source if len(source) <= 35 else ''
 
 
+# Live market quotes are display-only. They do not modify the saved pick or its edge.
+ODDS_SPORT_KEYS = {
+    'NFL': 'americanfootball_nfl', 'NBA': 'basketball_nba',
+    'MLB': 'baseball_mlb', 'College Football': 'americanfootball_ncaaf',
+    'NHL': 'icehockey_nhl', 'College Basketball': 'basketball_ncaab',
+}
+BOOK_KEYS = {'draftkings': 'draftkings', 'fanduel': 'fanduel',
+             'betonline.ag': 'betonlineag', 'betrivers': 'betrivers',
+             'betmgm': 'betmgm', 'caesars': 'williamhill_us'}
+
+
+def _team_key(name):
+    return re.sub(r'[^a-z0-9]', '', str(name).casefold())
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def market_events(sport_key, api_key):
+    """Fetch US sportsbook spreads and totals; cache 10 minutes to limit API usage."""
+    params = urlencode({'apiKey': api_key, 'regions': 'us',
+                        'markets': 'spreads,totals', 'oddsFormat': 'american',
+                        'dateFormat': 'iso'})
+    url = f'https://api.the-odds-api.com/v4/sports/{sport_key}/odds/?{params}'
+    try:
+        with urlopen(Request(url, headers={'User-Agent': 'SportsEdgeDashboard/1.0'}), timeout=7) as response:
+            payload = json.load(response)
+        return payload if isinstance(payload, list) else []
+    except Exception:
+        return []
+
+
+def current_market_lines(r):
+    """Match a saved matchup and date to an upcoming odds event; never guess lines."""
+    sport = clean_text(r.get('sport'))
+    key = ODDS_SPORT_KEYS.get(sport)
+    api_key = st.secrets.get('ODDS_API_KEY', '')
+    if not key or not api_key:
+        return None
+    matchup = clean_text(r.get('matchup'))
+    # Publisher uses 'Away @ Home'; alternate 'Away vs. Home' is supported.
+    pieces = re.split(r'\s+@\s+|\s+vs\.?\s+', matchup, maxsplit=1, flags=re.I)
+    if len(pieces) != 2:
+        return None
+    away, home = map(_team_key, pieces)
+    day = clean_text(r.get('date'))[:10]
+    for event in market_events(key, api_key):
+        if _team_key(event.get('away_team')) != away or _team_key(event.get('home_team')) != home:
+            continue
+        try:
+            event_day = datetime.fromisoformat(event['commence_time'].replace('Z', '+00:00')).astimezone(PT).date().isoformat()
+        except (KeyError, TypeError, ValueError):
+            continue
+        if event_day != day:
+            continue
+        books = event.get('bookmakers') or []
+        preferred = BOOK_KEYS.get(recorded_bookmaker(r.get('source')).casefold())
+        book = next((b for b in books if b.get('key') == preferred), None)
+        if book is None:
+            book = next((b for b in books if any(m.get('key') in ('spreads', 'totals') for m in b.get('markets', []))), None)
+        if not book:
+            return None
+        markets = {m.get('key'): m.get('outcomes', []) for m in book.get('markets', [])}
+        spread = markets.get('spreads', [])
+        total = markets.get('totals', [])
+        spread_out = []
+        for side in (event.get('home_team'), event.get('away_team')):
+            found = next((o for o in spread if _team_key(o.get('name')) == _team_key(side)), None)
+            if found and found.get('point') is not None:
+                try:
+                    spread_out.append(f"{side} {float(found['point']):+g} ({int(found['price']):+d})")
+                except (TypeError, ValueError, KeyError):
+                    pass
+        total_out = []
+        for side in ('Over', 'Under'):
+            found = next((o for o in total if str(o.get('name', '')).casefold() == side.casefold()), None)
+            if found and found.get('point') is not None:
+                try:
+                    total_out.append(f"{side} {float(found['point']):g} ({int(found['price']):+d})")
+                except (TypeError, ValueError, KeyError):
+                    pass
+        if spread_out or total_out:
+            return {'spread': ' · '.join(spread_out), 'total': ' · '.join(total_out),
+                    'book': book.get('title', 'Sportsbook')}
+    return None
+
+
+def market_lines_html(r):
+    quotes = current_market_lines(r)
+    if not quotes:
+        return ('<div class="pick-market-lines pick-market-muted">'
+                'Spread: unavailable · Total: unavailable (no matching current quote)</div>')
+    spread = esc(quotes['spread']) if quotes['spread'] else 'Unavailable'
+    total = esc(quotes['total']) if quotes['total'] else 'Unavailable'
+    book = esc(quotes['book'])
+    return (f'<div class="pick-market-lines"><strong>Spread:</strong> {spread}'
+            f'<br><strong>Total:</strong> {total}'
+            f'<br><span class="pick-market-muted">{book} · latest API snapshot, not guaranteed live</span></div>')
+
+
 def matchup_preview(rationale):
     """Summarize facts already stored in the research notes; no invented news."""
     items = [line.strip().lstrip('•- ').strip() for line in rationale.splitlines() if line.strip()]
@@ -333,12 +437,13 @@ def full_pick_card(r):
     odds_line = (f'<div class="pick-odds-line"><span>Recorded odds:</span>'
                  f'<strong>{price_display}</strong><span class="pick-odds-context">'
                  f'{bookmaker_html} · snapshot, not live</span></div>')
+    market_line = market_lines_html(r)
     preview = esc(matchup_preview(rationale))
     description = f'<div class="pick-preview"><span class="pick-preview-label">Matchup preview:</span> {preview}</div>' 
     return f"""<div class="pick-card">
       <div class="pick-rank">{rank}</div>
       <div class="pick-image-cell">{image_html}</div>
-      <div><div class="pick-name">{label}{price}</div><div class="pick-meta">{esc(r.get('sport'))} · {esc(r.get('matchup'))} · {esc(r.get('start_pt')) or 'Start time unverified'}</div>{odds_line}<div class="pick-desc">{description}</div></div>
+      <div><div class="pick-name">{label}{price}</div><div class="pick-meta">{esc(r.get('sport'))} · {esc(r.get('matchup'))} · {esc(r.get('start_pt')) or 'Start time unverified'}</div>{odds_line}{market_line}<div class="pick-desc">{description}</div></div>
       <div><div class="pick-kpi-label">Break-even<br>probability</div><div class="pick-kpi-value">{f'{be:.1f}%' if be is not None else '—'}</div></div>
       <div><div class="pick-kpi-label">Model win<br>probability</div><div class="pick-kpi-value">{f'{prob*100:.1f}%' if prob is not None and 0<prob<1 else '—'}</div></div>
       <div><div class="pick-kpi-label">Model edge</div><div class="pick-kpi-value {('positive' if edge>=0 else 'negative') if edge is not None else ''}">{f'{edge:+.1f} pp' if edge is not None else '—'}</div></div>

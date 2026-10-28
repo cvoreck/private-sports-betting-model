@@ -47,6 +47,9 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .pick-card>div:last-child {border-right:none}
 .pick-image {display:block;width:84px;height:100px;max-width:100%;object-fit:contain;border-radius:7px;background:#12344d;padding:5px}
 .pick-image-cell {display:flex;align-items:flex-start;justify-content:center;padding:9px 4px!important}
+.pick-image-pair {display:flex;flex-direction:column;gap:4px;align-items:center;width:100%}
+.pick-image-pair .pick-image {width:74px;height:48px;padding:3px}
+
 .pick-card .pick-rank {padding-left:4px;padding-right:4px}
 .pick-rank {font-size:1.85rem;font-weight:800;text-align:center;color:#fff}
 .pick-name {font-size:1.02rem;font-weight:800;color:#f4f8ff;line-height:1.35}
@@ -97,7 +100,10 @@ kind = 'Hypothetical'
 if page in ('Add pick', 'Grade results', 'Import / backup'):
     kind = st.selectbox('Pick type', ['Hypothetical','Actual'],
                         help='Actual wagers remain separate from hypothetical recommendations.')
-df = all_df[all_df['kind'].eq(kind)].copy()
+# A fresh public performance ledger begins October 28, 2026. Earlier rows remain
+# untouched in Supabase but do not contribute to the new record or pending counts.
+RECORD_START_DATE = '2026-10-28'
+df = all_df[all_df['kind'].eq(kind) & (all_df['date'].astype(str) >= RECORD_START_DATE)].copy()
 
 
 def number(v, default=0.0):
@@ -237,15 +243,86 @@ TEAM_LOGOS = {
 }
 
 
-def fallback_team_logo(r):
+# Retrieve team images by team identity, never by the bet selection (which may be
+# "Over 225.5" or "Under 6.5"). ESPN team metadata is cached for one day.
+ESPN_LEAGUES = {
+    'NFL': ('football', 'nfl'), 'NBA': ('basketball', 'nba'),
+    'MLB': ('baseball', 'mlb'), 'College Football': ('football', 'college-football'),
+    'NHL': ('hockey', 'nhl'), 'College Basketball': ('basketball', 'mens-college-basketball'),
+}
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def espn_team_logos(sport):
+    if sport not in ESPN_LEAGUES:
+        return {}
+    category, league = ESPN_LEAGUES[sport]
+    url = f'https://site.api.espn.com/apis/site/v2/sports/{category}/{league}/teams?limit=500'
+    try:
+        req = Request(url, headers={'User-Agent': 'SportsEdgeDashboard/1.0'})
+        with urlopen(req, timeout=8) as response:
+            payload = json.load(response)
+        entries = payload.get('sports', [{}])[0].get('leagues', [{}])[0].get('teams', [])
+        found = {}
+        for entry in entries:
+            team = entry.get('team', entry)
+            logo = team.get('logos', [{}])
+            logo_url = (logo[0].get('href') if logo else None) or team.get('logo')
+            if logo_url and str(logo_url).startswith('https://'):
+                for name in (team.get('displayName'), team.get('name'), team.get('shortDisplayName')):
+                    if name:
+                        found[_team_key(name)] = logo_url
+        return found
+    except Exception:
+        return {}
+
+
+def matchup_teams(r):
+    matchup = clean_text(r.get('matchup'))
+    for sep in (' @ ', ' vs. ', ' vs ', ' at '):
+        if sep in matchup:
+            return [part.strip() for part in matchup.split(sep, 1)]
+    return []
+
+
+def team_logo(sport, team):
+    live = espn_team_logos(sport)
+    direct = live.get(_team_key(team))
+    if direct:
+        return direct
+    # Exact full-team fallback for known professional teams.
+    abbr = TEAM_LOGOS.get(sport, {}).get(team)
+    if abbr:
+        league = {'NHL': 'nhl', 'NBA': 'nba', 'MLB': 'mlb'}.get(sport)
+        if league:
+            return f'https://a.espncdn.com/i/teamlogos/{league}/500/{abbr}.png'
+    return ''
+
+
+def card_image_html(r):
     sport = clean_text(r.get('sport'))
     selection = clean_text(r.get('selection'))
-    matchup = clean_text(r.get('matchup'))
-    for team, abbreviation in TEAM_LOGOS.get(sport, {}).items():
-        if team.casefold() in selection.casefold():
-            league = {'NHL': 'nhl', 'NBA': 'nba', 'MLB': 'mlb'}[sport]
-            return f'https://a.espncdn.com/i/teamlogos/{league}/500/{abbreviation}.png'
-    return ''
+    teams = matchup_teams(r)
+    # Totals apply to both teams; show two team logos rather than a blank tile.
+    is_total = bool(re.match(r'^\s*(over|under)\b', selection, re.I)) or clean_text(r.get('market')).lower() in ('total', 'totals')
+    if is_total and len(teams) == 2:
+        images = [team_logo(sport, team) for team in teams]
+        imgs = ''.join(f'<img class="pick-image" src="{esc(url)}" alt="{esc(team)} logo" loading="lazy">'
+                       for team, url in zip(teams, images) if url)
+        if imgs:
+            return f'<div class="pick-image-pair">{imgs}</div>'
+    for team in teams:
+        if _team_key(team) in _team_key(selection):
+            url = team_logo(sport, team)
+            if url:
+                return f'<img class="pick-image" src="{esc(url)}" alt="{esc(team)} logo" loading="lazy">'
+    saved = pick_image(r.get('notes'))
+    if saved:
+        return f'<img class="pick-image" src="{esc(saved)}" alt="Team image" loading="lazy">'
+    if teams:
+        url = team_logo(sport, teams[0])
+        if url:
+            return f'<img class="pick-image" src="{esc(url)}" alt="{esc(teams[0])} logo" loading="lazy">'
+    return '<div class="pick-image" aria-label="Team image unavailable"></div>'
 
 
 def recorded_bookmaker(source):
@@ -435,21 +512,14 @@ def full_pick_card(r):
     rationale,warnings=pick_analysis(r)
     if not rationale: rationale='No independently verified matchup analysis has been recorded for this pick.'
     if not warnings: warnings='Injuries, suspensions, lineups and game-time weather/wind have not been verified. For indoor games, weather is generally irrelevant.'
-    image=pick_image(r.get('notes')) or fallback_team_logo(r)
-    image_html=f'<img class="pick-image" src="{esc(image)}" alt="Team logo" loading="lazy">' if image else '<div class="pick-image" aria-label="No verified image available"></div>'
-    bookmaker = recorded_bookmaker(r.get('source'))
-    price_display = f'{odds:+.0f}' if odds is not None else '—'
-    bookmaker_html = f' · {esc(bookmaker)}' if bookmaker else ''
-    odds_line = (f'<div class="pick-odds-line"><span>Recorded odds:</span>'
-                 f'<strong>{price_display}</strong><span class="pick-odds-context">'
-                 f'{bookmaker_html} · snapshot, not live</span></div>')
+    image_html = card_image_html(r)
     market_line = market_lines_html(r)
     preview = esc(matchup_preview(rationale))
     description = f'<div class="pick-preview"><span class="pick-preview-label">Matchup preview:</span> {preview}</div>' 
     return f"""<div class="pick-card">
       <div class="pick-rank">{rank}</div>
       <div class="pick-image-cell">{image_html}</div>
-      <div><div class="pick-name">{label}{price}</div><div class="pick-meta">{esc(r.get('sport'))} · {esc(r.get('matchup'))} · {esc(r.get('start_pt')) or 'Start time unverified'}</div>{odds_line}{market_line}<div class="pick-desc">{description}</div></div>
+      <div><div class="pick-name">{label}{price}</div><div class="pick-meta">{esc(r.get('sport'))} · {esc(r.get('matchup'))} · {esc(r.get('start_pt')) or 'Start time unverified'}</div>{market_line}<div class="pick-desc">{description}</div></div>
       <div><div class="pick-kpi-label">Break-even<br>probability</div><div class="pick-kpi-value">{f'{be:.1f}%' if be is not None else '—'}</div></div>
       <div><div class="pick-kpi-label">Model win<br>probability</div><div class="pick-kpi-value">{f'{prob*100:.1f}%' if prob is not None and 0<prob<1 else '—'}</div></div>
       <div><div class="pick-kpi-label">Model edge</div><div class="pick-kpi-value {('positive' if edge>=0 else 'negative') if edge is not None else ''}">{f'{edge:+.1f} pp' if edge is not None else '—'}</div></div>
@@ -466,8 +536,8 @@ if page == 'Dashboard':
     pending=int(df['result'].eq('Pending').sum())
     metrics=[('W–L–P',format_record(summary),''),('Net units',signed_units(net),signed_class(net)),('ROI',f'{roi:+.1f}%' if roi is not None else '—',signed_class(roi)),('Settled',str(settled),''),('Pending',str(pending),'')]
     metrics_html=''.join(f'<div class="metric-box"><div class="metric-label">{esc(label)}</div><div class="metric-value {css}">{esc(value)}</div></div>' for label,value,css in metrics)
-    st.markdown(f'<section class="dashboard-section"><div class="section-title">Running Record</div><div class="section-sub">Hypothetical picks · ungraded picks excluded from W–L–P</div><div class="metrics-grid">{metrics_html}</div></section>',unsafe_allow_html=True)
-    hist=baseline() if kind=='Hypothetical' else None
+    st.markdown(f'<section class="dashboard-section"><div class="section-title">Running Record</div><div class="section-sub">Since October 28, 2026 · hypothetical picks · ungraded picks excluded from W–L–P</div><div class="metrics-grid">{metrics_html}</div></section>',unsafe_allow_html=True)
+    hist=None  # Old aggregate baseline excluded from the October 28 fresh start.
     if hist:
         st.caption(f"Historical baseline through {hist['as_of']}: {hist['wins']}–{hist['losses']}–{hist['pushes']}, {hist['net']:+.2f}u (separate from pick-level totals; not double counted).")
 
@@ -477,6 +547,9 @@ if page == 'Dashboard':
     yn=number(ys.get('net'))
     recap=(f'{format_record(ys)} &nbsp; | &nbsp; {signed_units(yn)}' if not y.empty else 'No picks recorded')
     recap_detail=('Some results are awaiting verification.' if y['result'].eq('Pending').any() else f'{len(y)} recorded picks; see history below.') if not y.empty else 'No recorded picks for yesterday.'
+    if yesterday.isoformat() < RECORD_START_DATE:
+        recap = 'New record starts today'
+        recap_detail = 'Earlier selections are archived outside the new running record.'
     st.markdown(f'<section class="dashboard-section"><div class="recap-flex"><div><div class="section-title">Yesterday’s Recap</div><div class="section-sub">{yesterday:%A, %B %d, %Y}</div><div class="section-sub">{esc(recap_detail)}</div></div><div class="recap-result {signed_class(yn)}">{recap}</div></div></section>',unsafe_allow_html=True)
 
     sport_html=''

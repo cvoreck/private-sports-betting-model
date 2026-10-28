@@ -157,7 +157,7 @@ def run(conn, sport):
         'first_test_game': test[0][0].isoformat() if test else None,
         'last_test_game': test[-1][0].isoformat() if test else None,
         'margin_scale': MARGIN_SCALE[sport],
-        'note': 'Team-level home-win model only; not yet connected to daily predictions.',
+        'note': 'Team-level home-win model; daily engine loads compatible promoted models.',
     }
     status, cand, base, inc = 'insufficient_data', None, None, None
     if len(train) >= MIN_TRAIN and len(test) >= MIN_TEST:
@@ -173,8 +173,18 @@ def run(conn, sport):
             old = (incumbent['coefficients'] or {}).get('weights')
             # An incumbent built using a different margin scale is not comparable.
             # Preserve it until it can be evaluated on matching features.
-            if old and len(old) == 3:
+            metadata = incumbent['coefficients'] or {}
+            compatible = (metadata.get('margin_scale') == MARGIN_SCALE[sport]
+                          and metadata.get('features') ==
+                          ['intercept', 'win_rate_diff_last10', 'margin_diff_last10_scaled']
+                          and isinstance(old, list) and len(old) == 3
+                          and all(isinstance(v, (int, float)) and math.isfinite(v) for v in old))
+            if compatible:
                 inc = evaluate(old, test)
+            else:
+                details['incumbent_incompatible'] = True
+                logging.warning('%s: existing model has incompatible or missing feature metadata; '
+                                'will not compare its log loss on different features', sport)
         if cand < base - .005 and (inc is None or cand < inc - .005):
             version = 'rolling-homewin-v2-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
             conn.execute('''INSERT INTO sports_edge_trained_models

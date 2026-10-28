@@ -163,8 +163,8 @@ def main():
                 return
         candidates = find_candidates(conn, api_key, today, now)
         top = rank_candidates(candidates)
-        status = 'published' if len(top) == 5 else 'insufficient_verified_candidates'
-        # All-or-none: never pretend to have five if fewer qualify.
+        status = 'published' if top else 'insufficient_verified_candidates'
+        # Publish only independently modeled positive-EV picks; fewer than five is allowed.
         with conn.transaction():
             conn.execute('SELECT pg_advisory_xact_lock(%s)', (20261027,))
             existing = conn.execute('''SELECT count(*) AS n FROM picks
@@ -172,7 +172,7 @@ def main():
             if existing:
                 logging.info('Another run published; skipping')
                 return
-            if len(top) == 5:
+            if top:
                 for rank, c in enumerate(top, 1):
                     pick_label = c['selection']
                     if c['point'] is not None:
@@ -192,9 +192,9 @@ def main():
               VALUES (%s,%s,%s,%s,%s) ON CONFLICT(card_date) DO UPDATE SET
               status=EXCLUDED.status,candidates=EXCLUDED.candidates,published=EXCLUDED.published,
               detail=EXCLUDED.detail,updated_at=NOW()''',
-              (today,status,len(candidates),len(top) if len(top)==5 else 0,
-               'Independent model probabilities and verified eligibility required.'))
-        logging.info('%s: %s; candidates=%s; published=%s', today,status,len(candidates),5 if len(top)==5 else 0)
+              (today,status,len(candidates),len(top),
+               'Experimental uncalibrated model; moneylines only; independent probabilities and verified eligibility required.'))
+        logging.info('%s: %s; candidates=%s; published=%s', today,status,len(candidates),len(top))
 
 if __name__ == '__main__':
     try:

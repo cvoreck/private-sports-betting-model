@@ -21,6 +21,7 @@ SPORT_KEYS = {
 COLLEGE = {'College Football', 'College Basketball'}
 ODDS_URL = 'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
 SCHEMA = '''
+CREATE TABLE IF NOT EXISTS prediction_context (event_id TEXT PRIMARY KEY, home_team TEXT, away_team TEXT, home_logo TEXT, away_logo TEXT, rationale TEXT, warnings TEXT, updated_at TIMESTAMPTZ NOT NULL);
 CREATE TABLE IF NOT EXISTS model_predictions (
   event_id TEXT NOT NULL, market TEXT NOT NULL, selection TEXT NOT NULL,
   point_key TEXT NOT NULL DEFAULT '', estimated_prob DOUBLE PRECISION NOT NULL CHECK (estimated_prob > 0 AND estimated_prob < 1),
@@ -89,6 +90,7 @@ def find_candidates(conn, api_key, today, now):
                 continue
             counts['verified'] += 1
             matchup = f"{event.get('away_team','Away')} @ {event.get('home_team','Home')}"
+            context = conn.execute('SELECT * FROM prediction_context WHERE event_id=%s', (event_id,)).fetchone()
             for bookmaker in event.get('bookmakers', []):
                 for market in bookmaker.get('markets', []):
                     mkey = market.get('key')
@@ -119,7 +121,8 @@ def find_candidates(conn, api_key, today, now):
                             'odds': int(odds), 'prob': p, 'edge_pp': 100*(p-american_break_even(odds)),
                             'ev': ev, 'start': start, 'bookmaker': bookmaker.get('title','Unknown'),
                             'model_version': prediction['model_version'],
-                            'verification_source': verified['verification_source']
+                            'verification_source': verified['verification_source'],
+                            'context': dict(context) if context else {}
                         })
     logging.info('Candidate funnel: %s', json.dumps(counts, sort_keys=True))
     return candidates
@@ -131,7 +134,12 @@ def rank_candidates(candidates):
         k = (c['event_id'], c['market'], c['selection'], str(c['point']))
         if k not in best or c['ev'] > best[k]['ev']:
             best[k] = c
-    ordered = sorted(best.values(), key=lambda c: (c['ev'], c['prob']), reverse=True)
+    # All markets compete equally. Prefer -200..+200; balance win chance, edge and EV.
+    # EV and edge are estimated from uncalibrated models, not guaranteed profit.
+    def score(c):
+        in_range = -200 <= c['odds'] <= 200
+        return (in_range, 0.45*c['prob'] + 0.35*min(c['edge_pp']/20, 1) + 0.20*min(c['ev'],1))
+    ordered = sorted(best.values(), key=score, reverse=True)
     result, used_events = [], set()
     for c in ordered:
         if c['event_id'] not in used_events:
@@ -177,10 +185,16 @@ def main():
                     pick_label = c['selection']
                     if c['point'] is not None:
                         pick_label += f" ({c['point']:+g})" if isinstance(c['point'], (int,float)) else f" ({c['point']})"
-                    notes = (f"Book: {c['bookmaker']}; model: {c['model_version']}; "
-                             f"EV: {c['ev']:.3f}u per 1u; edge: {c['edge_pp']:.1f} pp; "
-                             f"eligibility: {c['verification_source']}. "
-                             "Last-10/injuries not yet integrated; verify odds before betting.")
+                    ctx = c.get('context') or {}
+                    rationale = ctx.get('rationale') or 'No verified team-performance context was available.'
+                    if c['market'] in ('spreads','totals'):
+                        rationale += '\nExperimental scoring-distribution model uses recent final scores; not backtested or calibrated.'
+                    rationale += (f'\nModel: {c["model_version"]}. Estimated edge {c["edge_pp"]:+.1f} percentage points; '
+                                  f'EV {c["ev"]:+.3f} units per 1u at {c["bookmaker"]}.')
+                    warnings = ctx.get('warnings') or 'Injuries, lineups and weather/wind not verified.'
+                    image = (ctx.get('home_logo') if c['selection']==ctx.get('home_team') else
+                             ctx.get('away_logo') if c['selection']==ctx.get('away_team') else ctx.get('home_logo')) or ''
+                    notes = f'Why: {rationale}\nWatch out for: {warnings}\nImage URL: {image}\nSource: {c["verification_source"]}'
                     conn.execute('''INSERT INTO picks
                       (date,sport,matchup,market,selection,odds,stake,kind,result,source,
                        notes,rank,start_pt,estimated_prob)
@@ -193,7 +207,7 @@ def main():
               status=EXCLUDED.status,candidates=EXCLUDED.candidates,published=EXCLUDED.published,
               detail=EXCLUDED.detail,updated_at=NOW()''',
               (today,status,len(candidates),len(top),
-               'Experimental uncalibrated model; moneylines only; independent probabilities and verified eligibility required.'))
+               'Experimental uncalibrated models; no college/props/injury/weather verification; fewer than five allowed.'))
         logging.info('%s: %s; candidates=%s; published=%s', today,status,len(candidates),len(top))
 
 if __name__ == '__main__':

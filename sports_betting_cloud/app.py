@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import pandas as pd
 import html
+from urllib.parse import urlsplit
 import streamlit as st
 from storage import init, add, all_picks, grade, baseline, set_baseline, import_rows
 from analytics import stats, format_record
@@ -38,9 +39,10 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .sport-profit {font-size:.88rem;font-weight:700;margin-left:8px}
 .recap-flex {display:flex;justify-content:space-between;align-items:center;gap:20px}
 .recap-result {font-size:1.3rem;font-weight:750;white-space:nowrap}
-.pick-card {display:grid;grid-template-columns:42px minmax(190px,2.1fr) minmax(85px,.72fr) minmax(85px,.72fr) minmax(85px,.72fr) minmax(180px,1.65fr) minmax(180px,1.65fr);border:1px solid #164c72;border-radius:7px;background:linear-gradient(110deg,#082841,#061d33);margin:6px 0;overflow:hidden}
+.pick-card {display:grid;grid-template-columns:42px 76px minmax(190px,2.1fr) minmax(85px,.72fr) minmax(85px,.72fr) minmax(85px,.72fr) minmax(180px,1.65fr) minmax(180px,1.65fr);border:1px solid #164c72;border-radius:7px;background:linear-gradient(110deg,#082841,#061d33);margin:6px 0;overflow:hidden}
 .pick-card>div {padding:13px 11px;min-width:0;border-right:1px solid #143b5b}
 .pick-card>div:last-child {border-right:none}
+.pick-image {width:66px;height:66px;object-fit:contain;border-radius:8px;background:#12344d;padding:5px}
 .pick-rank {font-size:1.85rem;font-weight:800;text-align:center;color:#fff}
 .pick-name {font-size:1.02rem;font-weight:800;color:#f4f8ff;line-height:1.35}
 .pick-meta {font-size:.76rem;color:#b9cee7;margin:5px 0 10px}
@@ -56,7 +58,7 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .final-table tr:nth-child(even) {background:#07233a}
 [data-testid="stVerticalBlockBorderWrapper"] {background:#061f34!important;border-color:#174669!important}
 [data-testid="stDataFrame"] {border:1px solid #16486d;border-radius:7px}
-@media(max-width:1150px){.sports-grid{grid-template-columns:repeat(3,1fr)}.pick-card{grid-template-columns:36px 2fr repeat(3,minmax(75px,1fr))}.pick-card .analysis-cell{grid-column:span 2;border-top:1px solid #16486d}.pick-card .watch-cell{grid-column:span 3;border-top:1px solid #16486d}}
+@media(max-width:1150px){.sports-grid{grid-template-columns:repeat(3,1fr)}.pick-card{grid-template-columns:36px 76px 2fr repeat(3,minmax(75px,1fr))}.pick-card .analysis-cell{grid-column:span 2;border-top:1px solid #16486d}.pick-card .watch-cell{grid-column:span 3;border-top:1px solid #16486d}}
 @media(max-width:680px){.block-container{padding:1rem!important}.metrics-grid{grid-template-columns:repeat(2,1fr)}.sports-grid{grid-template-columns:repeat(2,1fr)}.pick-card{display:block}.pick-card>div{border-right:0;border-bottom:1px solid #16486d}.recap-flex{display:block}}
 </style>""", unsafe_allow_html=True)
 
@@ -153,6 +155,8 @@ def pick_analysis(r):
             warnings.append(item.split(':', 1)[1].strip())
         elif lower.startswith(('why:', 'rationale:', 'analysis:')):
             rationale.append(item.split(':', 1)[1].strip())
+        elif lower.startswith(('image url:', 'source:', 'book:', 'model:', 'ev:')):
+            continue
         elif item:
             rationale.append(item)
     return '\n\n'.join(rationale), '\n\n'.join(warnings)
@@ -230,6 +234,15 @@ def html_lines(text):
     return '<ul>'+''.join(f'<li>{esc(item)}</li>' for item in items)+'</ul>'
 
 
+def pick_image(notes):
+    for line in clean_text(notes).splitlines():
+        if line.lower().startswith('image url:'):
+            u=line.split(':',1)[1].strip()
+            parsed=urlsplit(u)
+            if parsed.scheme=='https' and ((parsed.hostname or '').endswith('.espn.com') or (parsed.hostname or '').endswith('.espncdn.com')):
+                return u
+    return ''
+
 def full_pick_card(r):
     odds=number(r.get('odds'),None)
     prob=number(r.get('estimated_prob'),None)
@@ -240,7 +253,9 @@ def full_pick_card(r):
     price=f' ({odds:+.0f})' if odds is not None else ''
     rationale,warnings=pick_analysis(r)
     if not rationale: rationale='No independently verified matchup analysis has been recorded for this pick.'
-    if not warnings: warnings='Injury, lineup, suspension and recent-news checks have not been documented; verify before wagering.'
+    if not warnings: warnings='Injuries, suspensions, lineups and game-time weather/wind have not been verified. For indoor games, weather is generally irrelevant.'
+    image=pick_image(r.get('notes'))
+    image_html=f'<img class="pick-image" src="{esc(image)}" alt="Team logo" loading="lazy">' if image else '<div class="pick-image" aria-label="No verified image available"></div>'
     source=esc(r.get('source')) or 'Source not recorded'
     description=f'Odds / research source: {source}. Confirm the current price before wagering.'
     return f"""<div class="pick-card">

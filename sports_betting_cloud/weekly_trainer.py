@@ -1,3 +1,99 @@
+"""Train six sport-specific home-win models on archived ESPN regular-season games.
+
+No Odds API calls. Chronological holdout, pregame-only rolling features, and
+promotion only when candidate beats a 50/50 baseline and incumbent on the
+same holdout. The daily prediction engine must load promoted models separately.
+"""
+import json
+import logging
+import math
+import os
+import re
+from collections import defaultdict
+from datetime import datetime, timezone
+
+import psycopg
+from psycopg.rows import dict_row
+
+SPORTS = (
+    'basketball_nba',
+    'icehockey_nhl',
+    'americanfootball_nfl',
+    'baseball_mlb',
+    'americanfootball_ncaaf',
+    'basketball_ncaab',
+)
+MIN_TRAIN, MIN_TEST, MIN_PRIOR = 80, 25, 5
+# Margin normalization reflects typical scoring differences by sport.
+MARGIN_SCALE = {
+    'basketball_nba': 15.0,
+    'icehockey_nhl': 2.5,
+    'americanfootball_nfl': 14.0,
+    'baseball_mlb': 3.0,
+    'americanfootball_ncaaf': 17.0,
+    'basketball_ncaab': 12.0,
+}
+SCHEMA = '''
+CREATE TABLE IF NOT EXISTS sports_edge_training_runs (
+ id BIGSERIAL PRIMARY KEY, trained_at TIMESTAMPTZ NOT NULL DEFAULT now(), sport TEXT NOT NULL,
+ status TEXT NOT NULL, train_games INT NOT NULL, test_games INT NOT NULL,
+ candidate_logloss DOUBLE PRECISION, baseline_logloss DOUBLE PRECISION,
+ incumbent_logloss DOUBLE PRECISION, details JSONB NOT NULL DEFAULT '{}'::jsonb);
+CREATE TABLE IF NOT EXISTS sports_edge_trained_models (
+ sport TEXT PRIMARY KEY, version TEXT NOT NULL, trained_at TIMESTAMPTZ NOT NULL,
+ coefficients JSONB NOT NULL, test_logloss DOUBLE PRECISION NOT NULL,
+ train_games INT NOT NULL, test_games INT NOT NULL);
+'''
+
+
+def norm(s):
+    return re.sub('[^a-z0-9]+', '', str(s or '').lower())
+
+
+def sigmoid(x):
+    return 1 / (1 + math.exp(-max(-30, min(30, x))))
+
+
+def clip(p):
+    return min(.999, max(.001, p))
+
+
+def logloss(ys, ps):
+    if not ys:
+        raise ValueError('Cannot evaluate an empty test set')
+    return sum(-y * math.log(clip(p)) - (1-y) * math.log(clip(1-p))
+               for y, p in zip(ys, ps)) / len(ys)
+
+
+def features(home, away, hist, sport):
+    h, a = hist[home][-10:], hist[away][-10:]
+    if len(h) < MIN_PRIOR or len(a) < MIN_PRIOR:
+        return None
+    wr = lambda rows: sum(x[0] for x in rows) / len(rows)
+    margin = lambda rows: sum(x[1] for x in rows) / len(rows)
+    scale = MARGIN_SCALE[sport]
+    return [1.0, wr(h) - wr(a), max(-3.0, min(3.0, (margin(h)-margin(a))/scale))]
+
+
+def parse_game(e, sport):
+    try:
+        season_type = (e.get('season') or {}).get('type')
+        if str(season_type) != '2':
+            return None  # Regular season only; exclude preseason and playoffs.
+        if not ((e.get('status') or {}).get('type') or {}).get('completed'):
+            return None
+        cs = (e.get('competitions') or [{}])[0].get('competitors') or []
+        h = next(x for x in cs if x.get('homeAway') == 'home')
+        a = next(x for x in cs if x.get('homeAway') == 'away')
+        hs, aa = float(h['score']), float(a['score'])
+        if not math.isfinite(hs) or not math.isfinite(aa) or hs == aa:
+            return None  # No draw-class handling in this binary model.
+        ht, at = h.get('team') or {}, a.get('team') or {}
+        # ESPN team IDs are more stable than display names across seasons.
+        hn = str(ht.get('id') or norm(ht.get('displayName')))
+        an = str(at.get('id') or norm(at.get('displayName')))
+        dt = datetime.fromisoformat(e['date'].replace('Z', '+00:00'))
+        if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         if not hn or not an or hn == an or dt > datetime.now(timezone.utc):
             return None

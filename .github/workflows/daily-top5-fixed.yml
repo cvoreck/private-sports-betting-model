@@ -55,27 +55,27 @@ jobs:
 
       - name: Archive historical game, player and market data
         if: steps.gate.outputs.run == 'true'
-        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           ESPN_BACKFILL_DAYS: '7'
-          # Up to two event-specific prop requests per day, subject to quota safeguards.
-          MAX_PROP_EVENT_REQUESTS: '2'
-          MIN_ODDS_CREDITS_REMAINING: '100'
+          # Paid player-prop odds disabled pending plan/credit verification.
+          MAX_PROP_EVENT_REQUESTS: '0'
+          ODDS_MONTHLY_RESERVE: '20'
+          ODDS_MONTHLY_LIMIT: '500'
+          # Set to the actual monthly credit reset day shown in your Odds API account.
+          ODDS_RESET_DAY: '1'
         run: python sports_betting_cloud/historical_collector.py
 
       - name: Generate predictions
         if: steps.gate.outputs.run == 'true'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python sports_betting_cloud/prediction_engine.py
 
       - name: Publish Top 5
         if: steps.gate.outputs.run == 'true'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           REQUIRE_SIX_AM: '0'
         run: python sports_betting_cloud/daily_top5.py

@@ -39,10 +39,12 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .sport-profit {font-size:.88rem;font-weight:700;margin-left:8px}
 .recap-flex {display:flex;justify-content:space-between;align-items:center;gap:20px}
 .recap-result {font-size:1.3rem;font-weight:750;white-space:nowrap}
-.pick-card {display:grid;grid-template-columns:42px 76px minmax(190px,2.1fr) minmax(85px,.72fr) minmax(85px,.72fr) minmax(85px,.72fr) minmax(180px,1.65fr) minmax(180px,1.65fr);border:1px solid #164c72;border-radius:7px;background:linear-gradient(110deg,#082841,#061d33);margin:6px 0;overflow:hidden}
+.pick-card {display:grid;grid-template-columns:36px 94px minmax(230px,2.15fr) minmax(86px,.7fr) minmax(86px,.7fr) minmax(86px,.7fr) minmax(180px,1.65fr) minmax(180px,1.65fr);border:1px solid #164c72;border-radius:7px;background:linear-gradient(110deg,#082841,#061d33);margin:6px 0;overflow:hidden}
 .pick-card>div {padding:13px 11px;min-width:0;border-right:1px solid #143b5b}
 .pick-card>div:last-child {border-right:none}
-.pick-image {width:66px;height:66px;object-fit:contain;border-radius:8px;background:#12344d;padding:5px}
+.pick-image {display:block;width:84px;height:100px;max-width:100%;object-fit:contain;border-radius:7px;background:#12344d;padding:5px}
+.pick-image-cell {display:flex;align-items:flex-start;justify-content:center;padding:9px 4px!important}
+.pick-card .pick-rank {padding-left:4px;padding-right:4px}
 .pick-rank {font-size:1.85rem;font-weight:800;text-align:center;color:#fff}
 .pick-name {font-size:1.02rem;font-weight:800;color:#f4f8ff;line-height:1.35}
 .pick-meta {font-size:.76rem;color:#b9cee7;margin:5px 0 10px}
@@ -58,8 +60,8 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .final-table tr:nth-child(even) {background:#07233a}
 [data-testid="stVerticalBlockBorderWrapper"] {background:#061f34!important;border-color:#174669!important}
 [data-testid="stDataFrame"] {border:1px solid #16486d;border-radius:7px}
-@media(max-width:1150px){.sports-grid{grid-template-columns:repeat(3,1fr)}.pick-card{grid-template-columns:36px 76px 2fr repeat(3,minmax(75px,1fr))}.pick-card .analysis-cell{grid-column:span 2;border-top:1px solid #16486d}.pick-card .watch-cell{grid-column:span 3;border-top:1px solid #16486d}}
-@media(max-width:680px){.block-container{padding:1rem!important}.metrics-grid{grid-template-columns:repeat(2,1fr)}.sports-grid{grid-template-columns:repeat(2,1fr)}.pick-card{display:block}.pick-card>div{border-right:0;border-bottom:1px solid #16486d}.recap-flex{display:block}}
+@media(max-width:1250px){.sports-grid{grid-template-columns:repeat(3,1fr)}.pick-card{grid-template-columns:36px 90px minmax(200px,2fr) repeat(3,minmax(80px,1fr))}.pick-card .analysis-cell{grid-column:1 / span 4;border-top:1px solid #16486d}.pick-card .watch-cell{grid-column:5 / span 2;border-top:1px solid #16486d}}
+@media(max-width:680px){.block-container{padding:1rem!important}.metrics-grid{grid-template-columns:repeat(2,1fr)}.sports-grid{grid-template-columns:repeat(2,1fr)}.pick-card{display:grid;grid-template-columns:40px 94px minmax(0,1fr)}.pick-card>div{border-bottom:1px solid #16486d}.pick-card .analysis-cell,.pick-card .watch-cell{grid-column:1 / -1}.recap-flex{display:block}}
 </style>""", unsafe_allow_html=True)
 
 if 'DATABASE_URL' not in st.secrets:
@@ -243,6 +245,34 @@ def pick_image(notes):
                 return u
     return ''
 
+# ESPN CDN team logos are a display fallback, not evidence of roster availability.
+TEAM_LOGOS = {
+    'NHL': {
+        'San Jose Sharks': 'sj', 'Ottawa Senators': 'ott',
+        'Minnesota Wild': 'min', 'Anaheim Ducks': 'ana',
+        'Buffalo Sabres': 'buf', 'Vegas Golden Knights': 'vgk',
+        'Utah Mammoth': 'utah', 'Vancouver Canucks': 'van',
+    },
+    'NBA': {
+        'Chicago Bulls': 'chi', 'Boston Celtics': 'bos',
+        'Los Angeles Lakers': 'lal', 'Milwaukee Bucks': 'mil',
+        'New York Knicks': 'ny', 'Phoenix Suns': 'phx',
+    },
+    'MLB': {'Los Angeles Dodgers': 'lad', 'New York Yankees': 'nyy'},
+}
+
+
+def fallback_team_logo(r):
+    sport = clean_text(r.get('sport'))
+    selection = clean_text(r.get('selection'))
+    matchup = clean_text(r.get('matchup'))
+    for team, abbreviation in TEAM_LOGOS.get(sport, {}).items():
+        if team.casefold() in selection.casefold():
+            league = {'NHL': 'nhl', 'NBA': 'nba', 'MLB': 'mlb'}[sport]
+            return f'https://a.espncdn.com/i/teamlogos/{league}/500/{abbreviation}.png'
+    return ''
+
+
 def full_pick_card(r):
     odds=number(r.get('odds'),None)
     prob=number(r.get('estimated_prob'),None)
@@ -254,12 +284,13 @@ def full_pick_card(r):
     rationale,warnings=pick_analysis(r)
     if not rationale: rationale='No independently verified matchup analysis has been recorded for this pick.'
     if not warnings: warnings='Injuries, suspensions, lineups and game-time weather/wind have not been verified. For indoor games, weather is generally irrelevant.'
-    image=pick_image(r.get('notes'))
+    image=pick_image(r.get('notes')) or fallback_team_logo(r)
     image_html=f'<img class="pick-image" src="{esc(image)}" alt="Team logo" loading="lazy">' if image else '<div class="pick-image" aria-label="No verified image available"></div>'
     source=esc(r.get('source')) or 'Source not recorded'
     description=f'Odds / research source: {source}. Confirm the current price before wagering.'
     return f"""<div class="pick-card">
       <div class="pick-rank">{rank}</div>
+      <div class="pick-image-cell">{image_html}</div>
       <div><div class="pick-name">{label}{price}</div><div class="pick-meta">{esc(r.get('sport'))} · {esc(r.get('matchup'))} · {esc(r.get('start_pt')) or 'Start time unverified'}</div><div class="pick-desc">{description}</div></div>
       <div><div class="pick-kpi-label">Break-even<br>probability</div><div class="pick-kpi-value">{f'{be:.1f}%' if be is not None else '—'}</div></div>
       <div><div class="pick-kpi-label">Model win<br>probability</div><div class="pick-kpi-value">{f'{prob*100:.1f}%' if prob is not None and 0<prob<1 else '—'}</div></div>
@@ -306,7 +337,7 @@ if page == 'Dashboard':
         picks_html=''.join(full_pick_card(pick) for _,pick in ranked.iterrows())
         if len(ranked)!=5 or sorted(ranked['rank'].astype(int).tolist())!=[1,2,3,4,5]:
             picks_html='<div class="section-sub">Today’s card is incomplete; only verified recorded picks are shown.</div>'+picks_html
-    st.markdown(f'<section class="dashboard-section"><div class="section-title" style="font-size:1.35rem">Today’s Top 5</div><div class="section-sub">Ranked, independently verified selections · Pacific Time · no fictional picks</div>{picks_html}</section>',unsafe_allow_html=True)
+    st.markdown(f'<section class="dashboard-section"><div class="section-title" style="font-size:1.35rem">Today’s Top 5</div><div class="section-sub">Ranked recorded selections · Pacific Time · model estimates are experimental and uncalibrated</div>{picks_html}</section>',unsafe_allow_html=True)
 
     table_rows=''
     for _,r in ranked.iterrows():

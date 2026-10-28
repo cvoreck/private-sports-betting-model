@@ -53,6 +53,17 @@ jobs:
           print('Publishing enabled.' if should_run else 'Skipping duplicate UTC schedule slot.')
           PY
 
+      - name: Archive historical game, player and market data
+        if: steps.gate.outputs.run == 'true'
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          ESPN_BACKFILL_DAYS: '7'
+          # Set to a small positive number only after confirming your API quota.
+          MAX_PROP_EVENT_REQUESTS: '0'
+        run: python sports_betting_cloud/historical_collector.py
+
       - name: Generate predictions
         if: steps.gate.outputs.run == 'true'
         env:

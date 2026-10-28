@@ -106,8 +106,16 @@ def archive_odds(conn, now, stats):
         return
     # Free quotas are finite. We only request main markets by default.
     # Optional player props use event-specific calls and can consume much more quota.
-    prop_budget = max(0, int(os.getenv('MAX_PROP_EVENT_REQUESTS', '0')))
-    prop_markets = os.getenv('PLAYER_PROP_MARKETS', 'player_points,player_rebounds,player_assists')
+    prop_budget = max(0, min(4, int(os.getenv('MAX_PROP_EVENT_REQUESTS', '2'))))
+    min_remaining = max(30, int(os.getenv('MIN_ODDS_CREDITS_REMAINING', '100')))
+    prop_markets_by_sport = {
+        'basketball_nba': 'player_points,player_rebounds,player_assists',
+        'americanfootball_nfl': 'player_pass_yds,player_rush_yds,player_reception_yds',
+        'baseball_mlb': 'batter_hits,pitcher_strikeouts',
+        'icehockey_nhl': 'player_shots_on_goal',
+    }
+    # Only attempt supported event-specific markets; responses can still be unavailable.
+    attempted_props = set()
     for sport in SPORTS:
         try:
             response = get(f'https://api.the-odds-api.com/v4/sports/{sport}/odds/', {
@@ -127,22 +135,41 @@ def archive_odds(conn, now, stats):
                 logging.warning('Stopping odds collection to protect remaining API quota')
                 stats['errors'].append('Odds API remaining quota <=10')
                 break
-            if prop_budget > 0 and sport in ('basketball_nba','americanfootball_nfl','baseball_mlb','icehockey_nhl'):
-                for event in events:
+            if prop_budget > 0 and sport in prop_markets_by_sport and (remaining is None or int(remaining) > min_remaining):
+                prop_markets = prop_markets_by_sport[sport]
+                # Prioritize games starting today, and do not re-request stored props.
+                local_today = now.astimezone(PT).date()
+                eligible_events = sorted((e for e in events if e.get('commence_time') and
+                    datetime.fromisoformat(e['commence_time'].replace('Z','+00:00')).astimezone(PT).date() == local_today and
+                    datetime.fromisoformat(e['commence_time'].replace('Z','+00:00')) > now),
+                    key=lambda e: e['commence_time'])
+                for event in eligible_events:
                     if prop_budget <= 0:
                         break
                     eid = event.get('id')
                     if not eid:
                         continue
+                    # Avoid burning credits on manual reruns on the same Pacific date.
+                    existing = conn.execute("""SELECT 1 FROM historical_snapshots WHERE source='the-odds-api'
+                      AND sport=%s AND event_id=%s AND category='player_prop_odds'
+                      AND collected_at >= %s LIMIT 1""",
+                      (sport, str(eid), datetime.combine(local_today, datetime.min.time(), tzinfo=PT))).fetchone()
+                    if existing or (sport, str(eid)) in attempted_props:
+                        continue
+                    attempted_props.add((sport,str(eid)))
                     try:
                         r = get(f'https://api.the-odds-api.com/v4/sports/{sport}/events/{eid}/odds', {
                             'apiKey': key, 'regions': 'us', 'markets': prop_markets,
                             'oddsFormat': 'american', 'dateFormat': 'iso'})
-                        store(conn, now, 'the-odds-api', sport, eid, 'player_prop_odds', prop_markets, r.json())
-                        stats['prop_events'] += 1
+                        prop_payload = r.json()
+                        if prop_payload.get('bookmakers'):
+                            store(conn, now, 'the-odds-api', sport, eid, 'player_prop_odds', prop_markets, prop_payload)
+                            stats['prop_events'] += 1
+                        else:
+                            logging.info('No player props returned for %s %s', sport, eid)
                         prop_budget -= 1
                         remaining = r.headers.get('x-requests-remaining')
-                        if remaining is not None and int(remaining) <= 10:
+                        if remaining is not None and int(remaining) <= min_remaining:
                             prop_budget = 0
                             break
                     except (requests.RequestException, ValueError) as exc:

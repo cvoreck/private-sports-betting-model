@@ -1,4 +1,4 @@
-"""Experimental independent sports models; no market odds used to estimate probabilities.
+"""Experimental sports model using archived results and market-aware shrinkage.
 ESPN scoreboard regular-season verification and W/L record model for NFL/NBA/NHL.
 NBA/NHL spread and total models require >=4 recent final games per team.
 Research only: not calibrated or backtested; missing data means no prediction.
@@ -67,6 +67,88 @@ def recent_scoring(sport,league,day,days=15):
                 name=(c.get('team') or {}).get('displayName')
                 if name:data.setdefault(norm(name),[]).append((scores[i],scores[1-i]))
     return {k:v[:10] for k,v in data.items()}
+
+def archived_completed_games(conn, sport_key, before, max_games=30):
+    """Read deduplicated, completed regular-season games saved before prediction day.
+
+    ESPN scoreboard game payloads have scores and final status. Exclude today's
+    games to avoid lookahead. This uses game results, not player-prop prices.
+    """
+    data, seen = {}, set()
+    if not conn.execute("SELECT to_regclass('public.historical_snapshots') AS tbl").fetchone()['tbl']:
+        return {}
+    try:
+        rows = conn.execute("""SELECT event_id,payload FROM historical_snapshots
+          WHERE source='espn' AND sport=%s AND category='game'
+          ORDER BY collected_at DESC LIMIT 2500""",
+          (sport_key,)).fetchall()
+    except psycopg.errors.UndefinedTable:
+        conn.rollback()
+        return {}
+    for row in rows:
+        eid = row['event_id']
+        if eid in seen: continue
+        seen.add(eid)
+        e = row['payload']
+        if (e.get('season') or {}).get('type') != 2: continue
+        if not ((e.get('status') or {}).get('type') or {}).get('completed'): continue
+        try:
+            played = datetime.fromisoformat(e['date'].replace('Z','+00:00')).astimezone(PT).date()
+            if played >= before: continue
+            cs = (e.get('competitions') or [{}])[0].get('competitors') or []
+            if len(cs) != 2: continue
+            scores = [float(c['score']) for c in cs]
+        except (ValueError, TypeError, KeyError, IndexError): continue
+        for i, c in enumerate(cs):
+            name = (c.get('team') or {}).get('displayName')
+            if name:
+                data.setdefault(norm(name), []).append({'scored':scores[i], 'allowed':scores[1-i], 'game_id':eid, 'date':played})
+    for key in data:
+        data[key].sort(key=lambda x:x['date'], reverse=True)
+        data[key] = data[key][:max_games]
+    return data
+
+def merge_games(live, archived, limit=30):
+    """Prefer archive, then fill missing history with ESPN live results."""
+    merged = {k:list(v) for k,v in archived.items()}
+    for team, games in live.items():
+        if len(merged.get(team, [])) >= 4:
+            continue  # Avoid double counting games also returned by live ESPN.
+        existing = merged.setdefault(team, [])
+        ids = {g.get('game_id') for g in existing if g.get('game_id')}
+        for game in games:
+            gid = game.get('game_id') or game.get('id')
+            if gid and gid in ids: continue
+            if gid: ids.add(gid)
+            existing.append(game)
+        merged[team] = existing[:limit]
+    return merged
+
+def implied(odds):
+    if not isinstance(odds,(float,int)) or odds == 0: return None
+    return 100/(100+odds) if odds > 0 else -odds/(100-odds)
+
+def fair_market_probability(market, outcome):
+    """Remove proportional vig for two-sided markets at the same sportsbook."""
+    outcomes = market.get('outcomes') or []
+    if len(outcomes) != 2: return None
+    raw = [implied(x.get('price')) for x in outcomes]
+    if any(x is None for x in raw): return None
+    total = sum(raw)
+    if total <= 0: return None
+    for x, p in zip(outcomes, raw):
+        if x.get('name') == outcome.get('name') and x.get('point') == outcome.get('point'):
+            return p/total
+    return None
+
+def conservative_probability(raw, market, outcome, sample_size):
+    baseline = fair_market_probability(market, outcome)
+    if baseline is None: return None
+    # Explicit heuristic, NOT trained or calibrated: 4 games/team -> 10% weight;
+    # 20 games/team -> 30% weight. Protect against tiny-sample false certainty.
+    weight = min(0.30, max(0.10, 0.10 + 0.0125 * max(0, sample_size-4)))
+    return max(0.02, min(0.98, baseline + weight*(raw-baseline)))
+
 def save_prediction(conn,event,market,selection,point,p,now,version):
     if not 0<p<1:return False
     conn.execute('''INSERT INTO model_predictions(event_id,market,selection,point_key,estimated_prob,generated_at,model_version)
@@ -90,7 +172,10 @@ def main():
                 try:boards.extend(fetch(f'https://site.api.espn.com/apis/site/v2/sports/{esport}/{league}/scoreboard',{'dates':(today+timedelta(days=d)).strftime('%Y%m%d'),'limit':200}).get('events') or [])
                 except (requests.RequestException,ValueError) as exc:logging.warning('ESPN schedule unavailable: %s',exc)
             by_match=match_info(boards)
-            recent=completed_games(esport,league,today,lookback=24 if sport in ('NBA','NHL') else 80)
+            live_recent=completed_games(esport,league,today,lookback=24 if sport in ('NBA','NHL') else 80)
+            archived=archived_completed_games(conn,sport_key,today)
+            recent=merge_games(live_recent,archived)
+            logging.info('%s archive team histories=%d; live team histories=%d',sport,len(archived),len(live_recent))
             for event in odds:
                 try:start=datetime.fromisoformat(event['commence_time'].replace('Z','+00:00'))
                 except (KeyError,ValueError):continue
@@ -145,9 +230,10 @@ def main():
                                 prob=1-cdf((point-(home_mean+away_mean))/total_sigma) if sel=='Over' else cdf((point-(home_mean+away_mean))/total_sigma)
                             else:continue
                             # Avoid extreme probabilities from fragile samples.
-                            prob=max(.15,min(.85,prob))
-                            if save_prediction(conn,eid,m,sel,point,prob,now,'recent-score-normal-v1-uncalibrated'):
+                            prob=conservative_probability(prob,market,o,min(len(home_games),len(away_games)))
+                            if prob is None:continue
+                            if save_prediction(conn,eid,m,sel,point,prob,now,'archive-market-shrink-v1-experimental'):
                                 counts['spread_predictions' if m=='spreads' else 'total_predictions']+=1
         logging.info('Prediction engine funnel: %s',counts)
-        logging.warning('These are uncalibrated experimental probabilities. No props/college/injury feed. Weather forecasts for ESPN-confirmed outdoor venues only.')
+        logging.warning('Market-aware shrinkage is a heuristic, not trained/calibrated. Archived games supplement ESPN; props are archived but not yet modeled. No college/injury model.')
 if __name__=='__main__':main()

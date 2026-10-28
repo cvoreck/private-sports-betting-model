@@ -10,6 +10,7 @@ import requests, psycopg
 from matchup_research import completed_games, research
 from weekly_trainer import MARGIN_SCALE, features as trained_features, sigmoid as trained_sigmoid, parse_game
 from psycopg.rows import dict_row
+from ap_rankings_verifier import verify_college_events
 
 PT=ZoneInfo('America/Los_Angeles')
 SPORTS={'basketball_nba':('NBA','basketball','nba',6), 'icehockey_nhl':('NHL','hockey','nhl',6), 'americanfootball_nfl':('NFL','football','nfl',4), 'baseball_mlb':('MLB','baseball','mlb',4), 'americanfootball_ncaaf':('College Football','football','college-football',4), 'basketball_ncaab':('College Basketball','basketball','mens-college-basketball',4)}
@@ -235,9 +236,11 @@ def main():
         conn.execute(SCHEMA)
         models=load_promoted_models(conn)
         logging.info('Promoted models available: %s', sorted(models))
+        college_odds = {key: cached_odds_events(conn, key, today) for key in ('americanfootball_ncaaf', 'basketball_ncaab')}
+        verify_college_events(conn, now, today, college_odds, fetch_json=fetch)
         for sport_key,(sport,esport,league,min_games) in SPORTS.items():
             try:
-                odds=cached_odds_events(conn,sport_key,today)
+                odds=college_odds[sport_key] if sport_key in college_odds else cached_odds_events(conn,sport_key,today)
             except (requests.RequestException,ValueError) as exc:
                 logging.warning('%s cached odds unavailable: %s',sport,exc);continue
             boards=[]

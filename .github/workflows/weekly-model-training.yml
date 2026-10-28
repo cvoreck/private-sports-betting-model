@@ -3,10 +3,8 @@ name: Weekly Sports Edge Model Training
 
 on:
   schedule:
-    # Every Monday at 12:00 UTC
     - cron: '0 12 * * 1'
 
-  # Allows manual runs from GitHub Actions
   workflow_dispatch:
 
 jobs:
@@ -30,6 +28,5 @@ jobs:
 
       - name: Train and evaluate models
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python sports_betting_cloud/weekly_trainer.py

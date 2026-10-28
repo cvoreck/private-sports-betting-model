@@ -8,10 +8,11 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import requests, psycopg
 from matchup_research import completed_games, research
+from weekly_trainer import MARGIN_SCALE, features as trained_features, sigmoid as trained_sigmoid, parse_game
 from psycopg.rows import dict_row
 
 PT=ZoneInfo('America/Los_Angeles')
-SPORTS={'basketball_nba':('NBA','basketball','nba',6), 'icehockey_nhl':('NHL','hockey','nhl',6), 'americanfootball_nfl':('NFL','football','nfl',4)}
+SPORTS={'basketball_nba':('NBA','basketball','nba',6), 'icehockey_nhl':('NHL','hockey','nhl',6), 'americanfootball_nfl':('NFL','football','nfl',4), 'baseball_mlb':('MLB','baseball','mlb',4), 'americanfootball_ncaaf':('College Football','football','college-football',4), 'basketball_ncaab':('College Basketball','basketball','mens-college-basketball',4)}
 SCHEMA='''
 CREATE TABLE IF NOT EXISTS model_predictions (event_id TEXT NOT NULL, market TEXT NOT NULL, selection TEXT NOT NULL, point_key TEXT NOT NULL DEFAULT '', estimated_prob DOUBLE PRECISION NOT NULL CHECK (estimated_prob>0 AND estimated_prob<1), generated_at TIMESTAMPTZ NOT NULL, model_version TEXT NOT NULL, PRIMARY KEY(event_id,market,selection,point_key));
 CREATE TABLE IF NOT EXISTS verified_events (event_id TEXT PRIMARY KEY, sport TEXT NOT NULL, is_preseason BOOLEAN NOT NULL, ap_top25_team_in_match BOOLEAN, verified_at TIMESTAMPTZ NOT NULL, verification_source TEXT NOT NULL);
@@ -176,12 +177,63 @@ def cached_odds_events(conn, sport, today):
     payload=row['payload'] if isinstance(row,dict) else row[0]
     return payload.get('events',[])
 
+
+def load_promoted_models(conn):
+    """Only use models promoted by the weekly chronological evaluation."""
+    rows = conn.execute("SELECT sport, version, coefficients FROM sports_edge_trained_models").fetchall()
+    models = {}
+    for row in rows:
+        c = row['coefficients'] or {}
+        w = c.get('weights')
+        if (row['sport'] in MARGIN_SCALE and isinstance(w, list) and len(w) == 3
+                and all(isinstance(v, (int, float)) and math.isfinite(v) for v in w)
+                and c.get('margin_scale') == MARGIN_SCALE[row['sport']]
+                and c.get('features') == ['intercept', 'win_rate_diff_last10', 'margin_diff_last10_scaled']):
+            models[row['sport']] = (row['version'], w)
+        else:
+            logging.warning('Skipping incompatible trained model: %s', row['sport'])
+    return models
+
+
+def archived_training_history(conn, sport, cutoff):
+    """Rebuild exact trainer feature history using games before the matchup."""
+    rows = conn.execute("""SELECT event_id,payload FROM historical_snapshots
+       WHERE source='espn' AND sport=%s AND category='game'
+       ORDER BY collected_at DESC LIMIT 30000""", (sport,)).fetchall()
+    games = {}
+    for row in rows:
+        if not isinstance(row['payload'], dict):
+            continue
+        parsed = parse_game(row['payload'], sport)
+        if parsed and parsed[0] < cutoff and parsed[1] and parsed[1] not in games:
+            games[parsed[1]] = parsed
+    history = {}
+    for dt, eid, h, a, hs, aa in sorted(games.values(), key=lambda x: (x[0], x[1])):
+        history.setdefault(h, []).append((int(hs > aa), hs-aa))
+        history.setdefault(a, []).append((int(aa > hs), aa-hs))
+    return history
+
+
+def trained_home_probability(event, history, sport, weights):
+    cs = (event.get('competitions') or [{}])[0].get('competitors') or []
+    home = next((x for x in cs if x.get('homeAway') == 'home'), None)
+    away = next((x for x in cs if x.get('homeAway') == 'away'), None)
+    if not home or not away:
+        return None
+    ht, at = home.get('team') or {}, away.get('team') or {}
+    hid = str(ht.get('id') or norm(ht.get('displayName')))
+    aid = str(at.get('id') or norm(at.get('displayName')))
+    x = trained_features(hid, aid, history, sport)
+    return trained_sigmoid(sum(a*b for a,b in zip(weights, x))) if x else None
+
 def main():
     logging.basicConfig(level=logging.INFO,format='%(levelname)s %(message)s')
     now=datetime.now(timezone.utc);today=now.astimezone(PT).date()
-    counts={'events':0,'matched':0,'regular':0,'moneyline_predictions':0,'spread_predictions':0,'total_predictions':0}
+    counts={'events':0,'matched':0,'regular':0,'moneyline_predictions':0,'spread_predictions':0,'total_predictions':0,'trained_moneyline_events':0,'no_trained_model':0,'insufficient_team_history':0}
     with psycopg.connect(os.environ['DATABASE_URL'],row_factory=dict_row) as conn:
         conn.execute(SCHEMA)
+        models=load_promoted_models(conn)
+        logging.info('Promoted models available: %s', sorted(models))
         for sport_key,(sport,esport,league,min_games) in SPORTS.items():
             try:
                 odds=cached_odds_events(conn,sport_key,today)
@@ -192,8 +244,10 @@ def main():
                 try:boards.extend(fetch(f'https://site.api.espn.com/apis/site/v2/sports/{esport}/{league}/scoreboard',{'dates':(today+timedelta(days=d)).strftime('%Y%m%d'),'limit':200}).get('events') or [])
                 except (requests.RequestException,ValueError) as exc:logging.warning('ESPN schedule unavailable: %s',exc)
             by_match=match_info(boards)
-            live_recent=completed_games(esport,league,today,lookback=24 if sport in ('NBA','NHL') else 80)
-            archived=archived_completed_games(conn,sport_key,today)
+            live_recent=completed_games(esport,league,today,lookback=24 if sport in ('NBA','NHL','MLB','College Basketball') else 80) if sport in ('NBA','NHL','NFL') else {}
+            archived=archived_completed_games(conn,sport_key,today) if sport in ('NBA','NHL','NFL') else {}
+            trained_model=models.get(sport_key)
+            trained_history=archived_training_history(conn,sport_key,now) if trained_model else {}
             recent=merge_games(live_recent,archived)
             logging.info('%s archive team histories=%d; live team histories=%d',sport,len(archived),len(live_recent))
             for event in odds:
@@ -209,12 +263,19 @@ def main():
                 counts['regular']+=1
                 eid=event.get('id');hn=event['home_team'];an=event['away_team']
                 if not eid:continue
-                hr=record(h);ar=record(a);p=win_prob(hr,ar,min_games)
+                hr=record(h);ar=record(a)
+                p=trained_home_probability(e,trained_history,sport_key,trained_model[1]) if trained_model else None
+                if not trained_model: counts['no_trained_model']+=1
+                elif p is None: counts['insufficient_team_history']+=1
+                else: counts['trained_moneyline_events']+=1
                 home_games=recent.get(norm(hn),[]);away_games=recent.get(norm(an),[])
-                rationale, warnings_list = research(e, sport, hn, an, recent, start, p)
+                rationale, warnings_list = research(e, sport, hn, an, recent, start, p) if sport in ('NBA','NHL','NFL') else ([], ['College AP Top 25 eligibility requires independent verification.'] if sport.startswith('College') else [])
                 if hr and ar:
                     rationale.insert(0, f'ESPN overall records: {hn} {hr[0]}-{hr[1]}; {an} {ar[0]}-{ar[1]}.')
                 warnings = '\n'.join(warnings_list)
+                if sport.startswith('College'):
+                    # Do not label an ESPN ranking as AP Top 25 without verifying its poll source.
+                    continue
                 conn.execute('''INSERT INTO verified_events(event_id,sport,is_preseason,ap_top25_team_in_match,verified_at,verification_source)
                 VALUES(%s,%s,FALSE,NULL,%s,%s) ON CONFLICT(event_id) DO UPDATE SET sport=EXCLUDED.sport,is_preseason=FALSE,verified_at=EXCLUDED.verified_at,verification_source=EXCLUDED.verification_source''',
                 (eid,sport,now,'ESPN scoreboard: regular season'))
@@ -223,9 +284,9 @@ def main():
                 (eid,hn,an,logo(h),logo(a),'\n'.join(rationale),warnings,now))
                 if p is not None:
                     for team,prob in ((hn,p),(an,1-p)):
-                        if save_prediction(conn,eid,'h2h',team,None,prob,now,'record-v2-experimental'):
+                        if save_prediction(conn,eid,'h2h',team,None,prob,now,trained_model[0]):
                             counts['moneyline_predictions']+=1
-                if len(home_games)<4 or len(away_games)<4:continue
+                if sport not in ('NBA','NHL','NFL') or len(home_games)<4 or len(away_games)<4:continue
                 # Independent expected scores: average own points scored and opponent points allowed.
                 home_mean=(statistics.mean(x['scored'] for x in home_games)+statistics.mean(x['allowed'] for x in away_games))/2
                 away_mean=(statistics.mean(x['scored'] for x in away_games)+statistics.mean(x['allowed'] for x in home_games))/2
@@ -255,5 +316,5 @@ def main():
                             if save_prediction(conn,eid,m,sel,point,prob,now,'archive-market-shrink-v1-experimental'):
                                 counts['spread_predictions' if m=='spreads' else 'total_predictions']+=1
         logging.info('Prediction engine funnel: %s',counts)
-        logging.warning('Market-aware shrinkage is a heuristic, not trained/calibrated. Archived games supplement ESPN; props are archived but not yet modeled. No college/injury model.')
+        logging.warning('Moneylines use promoted trained models only. Spreads/totals remain experimental heuristics. College predictions require separately verified AP Top 25 eligibility; no props or injury model.')
 if __name__=='__main__':main()

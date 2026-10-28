@@ -102,7 +102,16 @@ def archived_completed_games(conn, sport_key, before, max_games=30):
         for i, c in enumerate(cs):
             name = (c.get('team') or {}).get('displayName')
             if name:
-                data.setdefault(norm(name), []).append({'scored':scores[i], 'allowed':scores[1-i], 'game_id':eid, 'date':played})
+                # Match matchup_research.completed_games() record schema exactly.
+                # Keep timezone-aware datetime for rest calculations, and derive
+                # actual win/home values from the ESPN box score and competitors.
+                data.setdefault(norm(name), []).append({
+                    'scored': scores[i], 'allowed': scores[1-i],
+                    'win': scores[i] > scores[1-i],
+                    'home': c.get('homeAway') == 'home',
+                    'game_id': eid,
+                    'date': datetime.fromisoformat(e['date'].replace('Z', '+00:00')),
+                })
     for key in data:
         data[key].sort(key=lambda x:x['date'], reverse=True)
         data[key] = data[key][:max_games]

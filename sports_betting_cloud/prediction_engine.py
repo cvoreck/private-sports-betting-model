@@ -7,6 +7,7 @@ import logging, math, os, re, statistics
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import requests, psycopg
+from matchup_research import completed_games, research
 from psycopg.rows import dict_row
 
 PT=ZoneInfo('America/Los_Angeles')
@@ -89,7 +90,7 @@ def main():
                 try:boards.extend(fetch(f'https://site.api.espn.com/apis/site/v2/sports/{esport}/{league}/scoreboard',{'dates':(today+timedelta(days=d)).strftime('%Y%m%d'),'limit':200}).get('events') or [])
                 except (requests.RequestException,ValueError) as exc:logging.warning('ESPN schedule unavailable: %s',exc)
             by_match=match_info(boards)
-            recent=recent_scoring(esport,league,today) if sport in ('NBA','NHL') else {}
+            recent=completed_games(esport,league,today,lookback=24 if sport in ('NBA','NHL') else 80)
             for event in odds:
                 try:start=datetime.fromisoformat(event['commence_time'].replace('Z','+00:00'))
                 except (KeyError,ValueError):continue
@@ -105,11 +106,10 @@ def main():
                 if not eid:continue
                 hr=record(h);ar=record(a);p=win_prob(hr,ar,min_games)
                 home_games=recent.get(norm(hn),[]);away_games=recent.get(norm(an),[])
-                rationale=[]
-                if hr and ar:rationale.append(f'ESPN overall records: {hn} {hr[0]}-{hr[1]}; {an} {ar[0]}-{ar[1]}.')
-                if p is not None:rationale.append(f'Experimental record-strength model estimates {hn} win probability at {p:.1%}; includes shrinkage and a small home adjustment.')
-                if home_games and away_games:rationale.append(f'Recent completed regular-season sample: {hn} {len(home_games)} games, {an} {len(away_games)} games (up to 10).')
-                warnings='Injuries, suspensions and confirmed lineups have NOT been verified. Weather/wind has NOT been verified; check game-time conditions for outdoor games. Model is experimental and uncalibrated.'
+                rationale, warnings_list = research(e, sport, hn, an, recent, start, p)
+                if hr and ar:
+                    rationale.insert(0, f'ESPN overall records: {hn} {hr[0]}-{hr[1]}; {an} {ar[0]}-{ar[1]}.')
+                warnings = '\n'.join(warnings_list)
                 conn.execute('''INSERT INTO verified_events(event_id,sport,is_preseason,ap_top25_team_in_match,verified_at,verification_source)
                 VALUES(%s,%s,FALSE,NULL,%s,%s) ON CONFLICT(event_id) DO UPDATE SET sport=EXCLUDED.sport,is_preseason=FALSE,verified_at=EXCLUDED.verified_at,verification_source=EXCLUDED.verification_source''',
                 (eid,sport,now,'ESPN scoreboard: regular season'))
@@ -122,10 +122,10 @@ def main():
                             counts['moneyline_predictions']+=1
                 if len(home_games)<4 or len(away_games)<4:continue
                 # Independent expected scores: average own points scored and opponent points allowed.
-                home_mean=(statistics.mean(x[0] for x in home_games)+statistics.mean(x[1] for x in away_games))/2
-                away_mean=(statistics.mean(x[0] for x in away_games)+statistics.mean(x[1] for x in home_games))/2
+                home_mean=(statistics.mean(x['scored'] for x in home_games)+statistics.mean(x['allowed'] for x in away_games))/2
+                away_mean=(statistics.mean(x['scored'] for x in away_games)+statistics.mean(x['allowed'] for x in home_games))/2
                 # Variance estimated from observed scoring and regularized to avoid overconfidence.
-                all_scores=[x[0] for x in home_games+away_games]
+                all_scores=[x['scored'] for x in home_games+away_games]
                 sigma=max(8.0 if sport=='NBA' else 1.6,statistics.stdev(all_scores) if len(all_scores)>1 else 0)
                 diff_sigma=max(11.0 if sport=='NBA' else 2.0,sigma*1.35)
                 total_sigma=max(15.0 if sport=='NBA' else 2.5,sigma*1.6)
@@ -149,5 +149,5 @@ def main():
                             if save_prediction(conn,eid,m,sel,point,prob,now,'recent-score-normal-v1-uncalibrated'):
                                 counts['spread_predictions' if m=='spreads' else 'total_predictions']+=1
         logging.info('Prediction engine funnel: %s',counts)
-        logging.warning('These are uncalibrated experimental probabilities. No props, college, verified injury or weather inputs.')
+        logging.warning('These are uncalibrated experimental probabilities. No props/college/injury feed. Weather forecasts for ESPN-confirmed outdoor venues only.')
 if __name__=='__main__':main()

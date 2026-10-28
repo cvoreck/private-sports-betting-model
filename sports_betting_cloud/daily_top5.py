@@ -149,6 +149,50 @@ def rank_candidates(candidates):
             break
     return result
 
+
+def research_notes(context, selection, market, model_version=None, edge_pp=None, ev=None, bookmaker=None, verification_source=None):
+    # Prefix each line to preserve the separate dashboard columns.
+    ctx = context or {}
+    why = [x.strip() for x in (ctx.get('rationale') or '').splitlines() if x.strip()]
+    risks = [x.strip() for x in (ctx.get('warnings') or '').splitlines() if x.strip()]
+    if not why:
+        why = ['Recent-game evidence is not available for this matchup.']
+    if not risks:
+        risks = ['Injury, lineup and venue-specific weather checks are unavailable.']
+    if market in ('spreads', 'totals'):
+        why.append('Experimental recent-score distribution model; not backtested or calibrated.')
+    if model_version and edge_pp is not None and ev is not None:
+        why.append(f'Experimental model {model_version}: edge {edge_pp:+.1f} pp; EV {ev:+.3f} units per unit at {bookmaker or "listed sportsbook"}.')
+    image = (ctx.get('home_logo') if selection == ctx.get('home_team') else
+             ctx.get('away_logo') if selection == ctx.get('away_team') else ctx.get('home_logo')) or ''
+    lines = [f'Why: {x}' for x in why] + [f'Watch out for: {x}' for x in risks]
+    if image:
+        lines.append(f'Image URL: {image}')
+    if verification_source:
+        lines.append(f'Source: {verification_source}')
+    return '\n'.join(lines)
+
+def refresh_existing_card_research(conn, today):
+    # Updates only research text, preserving ranks, bets, results and odds.
+    rows = conn.execute("""SELECT id, matchup, selection, market, notes FROM picks
+      WHERE date=%s AND kind='Hypothetical' AND rank IS NOT NULL AND source LIKE 'Auto:%%'""",
+      (today.isoformat(),)).fetchall()
+    if not rows:
+        return 0
+    contexts = conn.execute("""SELECT * FROM prediction_context
+      WHERE updated_at >= NOW() - INTERVAL '36 hours'""").fetchall()
+    lookup = {f"{r['away_team']} @ {r['home_team']}": dict(r) for r in contexts}
+    updated = 0
+    for row in rows:
+        ctx = lookup.get(row['matchup'])
+        if not ctx:
+            continue
+        notes = research_notes(ctx, row['selection'], row['market'])
+        if notes != (row.get('notes') or ''):
+            conn.execute('UPDATE picks SET notes=%s WHERE id=%s', (notes, row['id']))
+            updated += 1
+    return updated
+
 def main():
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
     now = datetime.now(timezone.utc)
@@ -167,7 +211,8 @@ def main():
             existing = conn.execute('''SELECT count(*) AS n FROM picks
               WHERE date=%s AND kind='Hypothetical' AND rank IS NOT NULL''', (today.isoformat(),)).fetchone()['n']
             if existing:
-                logging.info('Already have %s ranked hypothetical picks for %s; no overwrite', existing, today)
+                refreshed = refresh_existing_card_research(conn, today)
+                logging.info('Already have %s ranked hypothetical picks for %s; refreshed research on %s, preserved picks', existing, today, refreshed)
                 return
         candidates = find_candidates(conn, api_key, today, now)
         top = rank_candidates(candidates)
@@ -186,15 +231,8 @@ def main():
                     if c['point'] is not None:
                         pick_label += f" ({c['point']:+g})" if isinstance(c['point'], (int,float)) else f" ({c['point']})"
                     ctx = c.get('context') or {}
-                    rationale = ctx.get('rationale') or 'No verified team-performance context was available.'
-                    if c['market'] in ('spreads','totals'):
-                        rationale += '\nExperimental scoring-distribution model uses recent final scores; not backtested or calibrated.'
-                    rationale += (f'\nModel: {c["model_version"]}. Estimated edge {c["edge_pp"]:+.1f} percentage points; '
-                                  f'EV {c["ev"]:+.3f} units per 1u at {c["bookmaker"]}.')
-                    warnings = ctx.get('warnings') or 'Injuries, lineups and weather/wind not verified.'
-                    image = (ctx.get('home_logo') if c['selection']==ctx.get('home_team') else
-                             ctx.get('away_logo') if c['selection']==ctx.get('away_team') else ctx.get('home_logo')) or ''
-                    notes = f'Why: {rationale}\nWatch out for: {warnings}\nImage URL: {image}\nSource: {c["verification_source"]}'
+                    notes = research_notes(ctx, c['selection'], c['market'], c['model_version'],
+                                           c['edge_pp'], c['ev'], c['bookmaker'], c['verification_source'])
                     conn.execute('''INSERT INTO picks
                       (date,sport,matchup,market,selection,odds,stake,kind,result,source,
                        notes,rank,start_pt,estimated_prob)

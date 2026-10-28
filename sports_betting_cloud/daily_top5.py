@@ -12,6 +12,8 @@ import psycopg
 from psycopg.rows import dict_row
 import requests
 
+import matchup_research as mr
+
 PT = ZoneInfo('America/Los_Angeles')
 SPORT_KEYS = {
     'americanfootball_nfl': 'NFL', 'basketball_nba': 'NBA',
@@ -172,25 +174,117 @@ def research_notes(context, selection, market, model_version=None, edge_pp=None,
         lines.append(f'Source: {verification_source}')
     return '\n'.join(lines)
 
+# ESPN scoreboard endpoints used to research picks already saved in the ledger.
+ESPN_LEAGUES = {
+    'NFL': ('football', 'nfl'), 'NBA': ('basketball', 'nba'),
+    'MLB': ('baseball', 'mlb'), 'NHL': ('hockey', 'nhl'),
+    'College Football': ('football', 'college-football'),
+    'College Basketball': ('basketball', 'mens-college-basketball'),
+}
+
+
+def _espn_event_teams(event):
+    comps = (event.get('competitions') or [{}])[0].get('competitors') or []
+    home = next((c for c in comps if c.get('homeAway') == 'home'), None)
+    away = next((c for c in comps if c.get('homeAway') == 'away'), None)
+    if not home or not away:
+        return None
+    return ((home.get('team') or {}).get('displayName') or '',
+            (away.get('team') or {}).get('displayName') or '')
+
+
+def _fetch_research_events(sport, day):
+    domain, league = ESPN_LEAGUES[sport]
+    url = f'https://site.api.espn.com/apis/site/v2/sports/{domain}/{league}/scoreboard'
+    board = mr.get_json(url, {'dates': day.strftime('%Y%m%d'), 'limit': 200})
+    return board.get('events') or []
+
+
+def _match_saved_event(row, events):
+    # Match both teams and the exact home/away orientation; do not guess a game.
+    saved = row.get('matchup') or ''
+    if ' @ ' not in saved:
+        return None
+    away, home = saved.rsplit(' @ ', 1)
+    matches = []
+    for event in events:
+        teams = _espn_event_teams(event)
+        if teams and mr.norm(teams[0]) == mr.norm(home) and mr.norm(teams[1]) == mr.norm(away):
+            matches.append(event)
+    return matches[0] if len(matches) == 1 else None
+
+
+def _existing_note_lines(notes, prefix):
+    return [line[len(prefix):].strip() for line in (notes or '').splitlines()
+            if line.startswith(prefix) and line[len(prefix):].strip()]
+
+
 def refresh_existing_card_research(conn, today):
-    # Updates only research text, preserving ranks, bets, results and odds.
-    rows = conn.execute("""SELECT id, matchup, selection, market, notes FROM picks
+    """Research existing picks from ESPN by matchup, without changing bet details.
+
+    Previous code only joined prediction_context rows generated for the *current*
+    event pool. A saved NHL pick could therefore never receive research if the
+    prediction engine happened to process only NBA games in a later run.
+    """
+    rows = conn.execute("""SELECT id, sport, matchup, selection, market, notes FROM picks
       WHERE date=%s AND kind='Hypothetical' AND rank IS NOT NULL AND source LIKE 'Auto:%%'""",
       (today.isoformat(),)).fetchall()
     if not rows:
         return 0
-    contexts = conn.execute("""SELECT * FROM prediction_context
-      WHERE updated_at >= NOW() - INTERVAL '36 hours'""").fetchall()
-    lookup = {f"{r['away_team']} @ {r['home_team']}": dict(r) for r in contexts}
-    updated = 0
+
+    by_sport = {}
     for row in rows:
-        ctx = lookup.get(row['matchup'])
-        if not ctx:
+        by_sport.setdefault(row['sport'], []).append(dict(row))
+
+    updated = matched = missing = 0
+    for sport, sport_rows in by_sport.items():
+        if sport not in ESPN_LEAGUES:
+            logging.warning('Research: unsupported sport %s (%s saved picks)', sport, len(sport_rows))
+            missing += len(sport_rows)
             continue
-        notes = research_notes(ctx, row['selection'], row['market'])
-        if notes != (row.get('notes') or ''):
-            conn.execute('UPDATE picks SET notes=%s WHERE id=%s', (notes, row['id']))
-            updated += 1
+        domain, league = ESPN_LEAGUES[sport]
+        try:
+            events = _fetch_research_events(sport, today)
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logging.warning('Research: ESPN scoreboard unavailable for %s: %s', sport, exc)
+            missing += len(sport_rows)
+            continue
+        logging.info('Research: %s ESPN scoreboard events=%s; saved picks=%s',
+                     sport, len(events), len(sport_rows))
+        found = [(row, _match_saved_event(row, events)) for row in sport_rows]
+        found = [(row, event) for row, event in found if event is not None]
+        missing += len(sport_rows) - len(found)
+        if not found:
+            logging.warning('Research: no saved %s matchups matched ESPN scoreboard; preserving old notes', sport)
+            continue
+        try:
+            recent = mr.completed_games(domain, league, today, lookback=24)
+        except Exception as exc:
+            logging.warning('Research: recent-game retrieval failed for %s: %s', sport, exc)
+            recent = {}
+        for row, event in found:
+            matched += 1
+            home, away = _espn_event_teams(event)
+            try:
+                start = datetime.fromisoformat(event['date'].replace('Z', '+00:00'))
+                why, risks = mr.research(event, sport, home, away, recent, start)
+            except (ValueError, KeyError, TypeError, requests.RequestException) as exc:
+                logging.warning('Research: failed to analyze %s: %s', row['matchup'], exc)
+                continue
+            # Preserve previously saved image URLs and metadata, if present.
+            old = row.get('notes') or ''
+            extra = [line for line in old.splitlines()
+                     if line.startswith(('Image URL:', 'Source:'))]
+            notes = '\n'.join([f'Why: {x}' for x in why] +
+                              [f'Watch out for: {x}' for x in risks] + extra)
+            if notes != old:
+                conn.execute('UPDATE picks SET notes=%s WHERE id=%s', (notes, row['id']))
+                updated += 1
+            logging.info('Research: matched %s; recent games home=%s away=%s; updated=%s',
+                         row['matchup'], len(recent.get(mr.norm(home), [])),
+                         len(recent.get(mr.norm(away), [])), notes != old)
+    logging.info('Research refresh summary: saved=%s matched=%s updated=%s unmatched=%s',
+                 len(rows), matched, updated, missing)
     return updated
 
 def main():

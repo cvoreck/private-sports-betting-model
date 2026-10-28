@@ -147,7 +147,25 @@ def archive_odds(conn, now, stats):
             known_remaining = int(balance_row[0]['remaining'])
         except (KeyError, TypeError, ValueError):
             pass
-    spendable = max(0, (known_remaining if known_remaining is not None else monthly_limit) - reserve)
+    # Fail closed: an unknown provider balance cannot establish a hard cap.
+    # A balance from an older run can be stale if the key is used elsewhere.
+    # ODDS_CONFIRMED_REMAINING is a user-verified dashboard balance for bootstrapping;
+    # it is never allowed to increase a lower provider-reported balance.
+    confirmed = os.getenv('ODDS_CONFIRMED_REMAINING', '').strip()
+    if confirmed:
+        try:
+            confirmed_balance = max(0, min(monthly_limit, int(confirmed)))
+            known_remaining = min(known_remaining, confirmed_balance) if known_remaining is not None else confirmed_balance
+        except ValueError:
+            logging.error('Invalid ODDS_CONFIRMED_REMAINING; refusing paid requests')
+            return
+    if known_remaining is None:
+        logging.warning('HARD CAP: no confirmed provider balance for current cycle; ESPN archive continues, paid odds disabled')
+        return
+    # Reserve is held for the first part of the cycle, then becomes spendable.
+    # This allows the final 20 credits to be used, without crossing the ceiling.
+    effective_reserve = reserve if days_left > 3 else 0
+    spendable = max(0, known_remaining - effective_reserve)
     budget = int(spendable * weight / max(remaining_weight, 1))
     # One sport costs at most 3 estimated credits in the current market configuration.
     # Round to a usable market bundle, but do not exceed available spendable balance.
@@ -155,13 +173,15 @@ def archive_odds(conn, now, stats):
     # Manual override can only LOWER the adaptive cap.
     if os.getenv('ODDS_DAILY_BUDGET'):
         budget = min(budget, max(0, int(os.environ['ODDS_DAILY_BUDGET'])))
-    logging.info('Quota plan: billing reset day=%s, days_left=%s, known_remaining=%s, reserve=%s, daily_budget=%s',
-                 reset_day, days_left, known_remaining, reserve, budget)
+    logging.info('HARD CAP quota plan: reset_day=%s days_left=%s provider_remaining=%s effective_reserve=%s daily_budget=%s',
+                 reset_day, days_left, known_remaining, effective_reserve, budget)
     used = 0
     # Only ask for odds for sports with upcoming games in the next 36h.
     # ESPN's schedule is a free filter, not a guarantee that Odds API has prices.
     for sport in priority:
-        if used + 3 > budget:
+        if used + 3 > budget or known_remaining is None or known_remaining < 3 + effective_reserve:
+            logging.info('HARD CAP: stopping before request (budget=%s used=%s remaining=%s reserve=%s)',
+                         budget, used, known_remaining, effective_reserve)
             break
         domain, league = SPORTS[sport]
         upcoming = False
@@ -192,7 +212,8 @@ def archive_odds(conn, now, stats):
                 'oddsFormat':'american','dateFormat':'iso'})
             events=response.json()
             if not isinstance(events,list): raise ValueError('Unexpected odds response')
-            used += 3  # Conservative maximum for one region, three requested markets.
+            # One US region and three markets; reserve the full estimated cost.
+            used += 3
             # Save an empty result too, preventing a second paid call on manual rerun.
             store(conn,now,'the-odds-api',sport,'','daily_odds_cache',day.isoformat(),
                   {'events':events,'request_time':now.isoformat()})
@@ -203,9 +224,13 @@ def archive_odds(conn, now, stats):
             conn.commit()
             remaining=response.headers.get('x-requests-remaining')
             last=response.headers.get('x-requests-last')
-            if remaining is not None:
+            if remaining is None:
+                logging.error('HARD CAP: missing vendor remaining header; refusing subsequent paid requests')
+                known_remaining = None
+            else:
                 try:
-                    known_remaining = int(remaining)
+                    reported = int(remaining)
+                    known_remaining = min(known_remaining, reported) if known_remaining is not None else reported
                     store(conn,now,'the-odds-api',sport,'','quota_balance',
                           day.isoformat(),{'remaining':known_remaining,'last':last,'observed_at':now.isoformat()})
                     conn.commit()
@@ -213,12 +238,14 @@ def archive_odds(conn, now, stats):
                     logging.warning('Unparseable provider remaining-credit header: %s', remaining)
             logging.info('Odds %s: events=%d estimated_daily_spend=%d vendor_last=%s vendor_remaining=%s',
                          sport,len(events),used,last,remaining)
-            if known_remaining is not None and known_remaining <= reserve + 3:
-                logging.warning('Stopping paid collection: vendor balance near reserve (%s)',remaining)
+            if known_remaining is None or known_remaining < 3 + effective_reserve:
+                logging.warning('HARD CAP: provider balance at spending threshold (%s)', remaining)
                 break
         except (requests.RequestException,ValueError) as exc:
             logging.warning('Odds %s unavailable: %s',sport,exc)
             stats['errors'].append(f'odds {sport}: {exc}')
+            logging.warning('HARD CAP: stopping after uncertain API outcome; avoid retrying charged requests')
+            break
     # Player box scores continue to be archived for free. Paid prop odds disabled
     # until plan support and exact billing are confirmed; no speculative charges.
     logging.info('Paid player-prop requests disabled (MAX_PROP_EVENT_REQUESTS=0).')

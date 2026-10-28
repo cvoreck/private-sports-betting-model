@@ -175,42 +175,6 @@ def pick_analysis(r):
     return '\n\n'.join(rationale), '\n\n'.join(warnings)
 
 
-def show_pick_card(r):
-    rank = int(r['rank']) if pd.notna(r.get('rank')) else '—'
-    odds = number(r.get('odds'), None)
-    prob = number(r.get('estimated_prob'), None)
-    be = odds_break_even(odds) if odds is not None else None
-    edge = (prob * 100 - be) if prob is not None and 0 < prob < 1 and be is not None else None
-    label = clean_text(r.get('selection')) or 'Unspecified selection'
-    price = f' ({int(odds):+d})' if odds is not None else ''
-    rationale, warnings = pick_analysis(r)
-
-    with st.container(border=True):
-        st.markdown(f"### {rank}. {label}{price}")
-        st.caption(f"{clean_text(r.get('sport'))} • {clean_text(r.get('matchup'))} • {clean_text(r.get('start_pt')) or 'Start time not sourced'}")
-        a, b, c = st.columns(3)
-        a.metric('Break-even probability', f'{be:.1f}%' if be is not None else '—')
-        b.metric('Estimated win probability', f'{prob * 100:.1f}%' if prob is not None and 0 < prob < 1 else 'Not available')
-        c.metric('Estimated edge', f'{edge:+.1f} pp' if edge is not None else 'Not available')
-
-        st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
-        why_col, watch_col = st.columns([1.7, 1], gap='large')
-        with why_col:
-            st.markdown('**Why this pick**')
-            st.write(rationale if rationale else 'No independently sourced matchup analysis has been recorded for this pick yet.')
-            if not rationale or 'last-10' not in rationale.lower():
-                st.caption('Last-10 form has not been documented or verified for this pick.')
-        with watch_col:
-            st.markdown('**Watch out for**')
-            st.write(warnings if warnings else 'Injury, suspension, lineup, and breaking-news checks have not yet been documented. Verify before placing a wager.')
-
-        st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
-        st.caption(f"Odds / research source: {clean_text(r.get('source')) or 'Not recorded'}")
-        if odds is not None:
-            st.caption(f"Price requirement: {int(odds):+d} or better at a traditional sportsbook. Confirm the current line before betting.")
-    st.markdown('<div style="height:26px"></div>', unsafe_allow_html=True)
-
-
 def final_card_table(data):
     rows = []
     for _, r in data.iterrows():
@@ -561,7 +525,7 @@ elif page=='Top 5 card':
         if len(card)!=5 or sorted(card['rank'].dropna().astype(int).tolist())!=[1,2,3,4,5]:
             st.warning('A complete card needs five unique ranks from 1 to 5.')
         for _, pick in card.head(5).iterrows():
-            show_pick_card(pick)
+            st.markdown(full_pick_card(pick), unsafe_allow_html=True)
         with st.container(border=True):
             header('Final Card')
             st.dataframe(final_card_table(card.head(5)), hide_index=True, use_container_width=True)

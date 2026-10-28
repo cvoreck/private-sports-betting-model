@@ -81,7 +81,7 @@ def archived_completed_games(conn, sport_key, before, max_games=30):
     try:
         rows = conn.execute("""SELECT event_id,payload FROM historical_snapshots
           WHERE source='espn' AND sport=%s AND category='game'
-          ORDER BY collected_at DESC LIMIT 2500""",
+          ORDER BY collected_at DESC LIMIT 30000""",
           (sport_key,)).fetchall()
     except psycopg.errors.UndefinedTable:
         conn.rollback()
@@ -175,7 +175,7 @@ def cached_odds_events(conn, sport, today):
        (sport,today.isoformat())).fetchone()
     if not row: return []
     payload=row['payload'] if isinstance(row,dict) else row[0]
-    return payload.get('events',[])
+    return payload.get('events',[]) if isinstance(payload,dict) else []
 
 
 def load_promoted_models(conn):
@@ -191,7 +191,8 @@ def load_promoted_models(conn):
                 and c.get('features') == ['intercept', 'win_rate_diff_last10', 'margin_diff_last10_scaled']):
             models[row['sport']] = (row['version'], w)
         else:
-            logging.warning('Skipping incompatible trained model: %s', row['sport'])
+            logging.warning('Skipping incompatible trained model: %s (version=%s, margin_scale=%r, features=%r)',
+                            row['sport'], row['version'], c.get('margin_scale'), c.get('features'))
     return models
 
 
@@ -229,7 +230,7 @@ def trained_home_probability(event, history, sport, weights):
 def main():
     logging.basicConfig(level=logging.INFO,format='%(levelname)s %(message)s')
     now=datetime.now(timezone.utc);today=now.astimezone(PT).date()
-    counts={'events':0,'matched':0,'regular':0,'moneyline_predictions':0,'spread_predictions':0,'total_predictions':0,'trained_moneyline_events':0,'no_trained_model':0,'insufficient_team_history':0}
+    counts={'events':0,'matched':0,'regular':0,'moneyline_predictions':0,'spread_predictions':0,'total_predictions':0,'trained_moneyline_events':0,'no_trained_model':0,'insufficient_team_history':0,'college_events_awaiting_ap_verification':0,'trained_noncollege_events':0}
     with psycopg.connect(os.environ['DATABASE_URL'],row_factory=dict_row) as conn:
         conn.execute(SCHEMA)
         models=load_promoted_models(conn)
@@ -264,10 +265,17 @@ def main():
                 eid=event.get('id');hn=event['home_team'];an=event['away_team']
                 if not eid:continue
                 hr=record(h);ar=record(a)
-                p=trained_home_probability(e,trained_history,sport_key,trained_model[1]) if trained_model else None
+                # Use each event's scheduled start as the feature cutoff, never future results.
+                if trained_model:
+                    p=trained_home_probability(e,trained_history,sport_key,trained_model[1])
+                else:
+                    p=None
                 if not trained_model: counts['no_trained_model']+=1
                 elif p is None: counts['insufficient_team_history']+=1
-                else: counts['trained_moneyline_events']+=1
+                else:
+                    counts['trained_moneyline_events']+=1
+                    if not sport.startswith('College'):
+                        counts['trained_noncollege_events']+=1
                 home_games=recent.get(norm(hn),[]);away_games=recent.get(norm(an),[])
                 rationale, warnings_list = research(e, sport, hn, an, recent, start, p) if sport in ('NBA','NHL','NFL') else ([], ['College AP Top 25 eligibility requires independent verification.'] if sport.startswith('College') else [])
                 if hr and ar:
@@ -275,6 +283,7 @@ def main():
                 warnings = '\n'.join(warnings_list)
                 if sport.startswith('College'):
                     # Do not label an ESPN ranking as AP Top 25 without verifying its poll source.
+                    counts['college_events_awaiting_ap_verification']+=1
                     continue
                 conn.execute('''INSERT INTO verified_events(event_id,sport,is_preseason,ap_top25_team_in_match,verified_at,verification_source)
                 VALUES(%s,%s,FALSE,NULL,%s,%s) ON CONFLICT(event_id) DO UPDATE SET sport=EXCLUDED.sport,is_preseason=FALSE,verified_at=EXCLUDED.verified_at,verification_source=EXCLUDED.verification_source''',

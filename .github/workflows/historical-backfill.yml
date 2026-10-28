@@ -1,0 +1,45 @@
+name: Sports Edge Historical Backfill (ESPN Only)
+
+on:
+  schedule:
+    # Daily at 09:30 UTC; independent of the existing daily card and weekly trainer.
+    - cron: '30 9 * * *'
+  workflow_dispatch:
+    inputs:
+      max_days:
+        description: 'Maximum scoreboard dates to process (0-600)'
+        required: false
+        default: '250'
+      max_boxscores:
+        description: 'Maximum historical boxscores to fetch (0-300)'
+        required: false
+        default: '100'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sports-edge-historical-backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    name: Archive historical ESPN games and boxscores
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install requests 'psycopg[binary]'
+      - name: Backfill historical games and player boxscores
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKFILL_MAX_DAYS: ${{ github.event.inputs.max_days || '250' }}
+          BACKFILL_MAX_BOXSCORES: ${{ github.event.inputs.max_boxscores || '100' }}
+          ESPN_REQUEST_PAUSE: '0.15'
+        run: python sports_betting_cloud/historical_backfill.py

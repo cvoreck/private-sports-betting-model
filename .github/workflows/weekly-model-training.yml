@@ -3,12 +3,17 @@ name: Weekly Sports Edge Model Training
 
 on:
   schedule:
+    # Every Monday at 12:00 UTC
     - cron: '0 12 * * 1'
+
+  # Allows manual runs from GitHub Actions
   workflow_dispatch:
 
 jobs:
   train:
+    name: Train and evaluate models
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -19,8 +24,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests supabase scikit-learn "psycopg[binary]"
-
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests supabase scikit-learn "psycopg[binary]"
 
       - name: Train and evaluate models
         env:

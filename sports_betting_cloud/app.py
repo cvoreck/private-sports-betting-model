@@ -46,6 +46,7 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .pick-card>div {padding:13px 11px;min-width:0;border-right:1px solid #143b5b}
 .pick-card>div:last-child {border-right:none}
 .pick-image {display:block;width:84px;height:100px;max-width:100%;object-fit:contain;border-radius:7px;background:#12344d;padding:5px}
+.pick-image-fallback {display:flex;align-items:center;justify-content:center;font-size:2.4rem}
 .pick-image-cell {display:flex;align-items:flex-start;justify-content:center;padding:9px 4px!important}
 .pick-image-pair {display:flex;flex-direction:column;gap:4px;align-items:center;width:100%}
 .pick-image-pair .pick-image {width:74px;height:48px;padding:3px}
@@ -63,8 +64,8 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .pick-market-muted {color:#9ebbd7;font-size:.71rem}
 .pick-preview-label {color:#f1f7ff;font-weight:750}
 .pick-preview {color:#c5d7ec;line-height:1.45}
-.pick-kpi-label {font-size:.76rem;color:#bed0e8;line-height:1.45}
-.pick-kpi-value {font-size:1.17rem;font-weight:750;color:#f5f9ff;margin-top:9px}
+.pick-kpi-label {font-size:.97rem;font-weight:750;color:#e3efff;line-height:1.35;letter-spacing:-.01em}
+.pick-kpi-value {font-size:1.27rem;font-weight:750;color:#f5f9ff;margin-top:9px}
 .pick-col-title {font-size:.81rem;font-weight:800;color:#fff;margin-bottom:9px}
 .pick-bullets {font-size:.76rem;color:#c5d8ee;line-height:1.47;overflow-wrap:anywhere}
 .pick-bullets ul {padding-left:15px;margin:0}.pick-bullets li {margin-bottom:5px}
@@ -228,18 +229,18 @@ def pick_image(notes):
 
 # ESPN CDN team logos are a display fallback, not evidence of roster availability.
 TEAM_LOGOS = {
-    'NHL': {
-        'San Jose Sharks': 'sj', 'Ottawa Senators': 'ott',
-        'Minnesota Wild': 'min', 'Anaheim Ducks': 'ana',
-        'Buffalo Sabres': 'buf', 'Vegas Golden Knights': 'vgk',
-        'Utah Mammoth': 'utah', 'Vancouver Canucks': 'van',
-    },
-    'NBA': {
-        'Chicago Bulls': 'chi', 'Boston Celtics': 'bos',
-        'Los Angeles Lakers': 'lal', 'Milwaukee Bucks': 'mil',
-        'New York Knicks': 'ny', 'Phoenix Suns': 'phx',
-    },
-    'MLB': {'Los Angeles Dodgers': 'lad', 'New York Yankees': 'nyy'},
+    'NFL': dict(zip(
+        ['Arizona Cardinals','Atlanta Falcons','Baltimore Ravens','Buffalo Bills','Carolina Panthers','Chicago Bears','Cincinnati Bengals','Cleveland Browns','Dallas Cowboys','Denver Broncos','Detroit Lions','Green Bay Packers','Houston Texans','Indianapolis Colts','Jacksonville Jaguars','Kansas City Chiefs','Las Vegas Raiders','Los Angeles Chargers','Los Angeles Rams','Miami Dolphins','Minnesota Vikings','New England Patriots','New Orleans Saints','New York Giants','New York Jets','Philadelphia Eagles','Pittsburgh Steelers','San Francisco 49ers','Seattle Seahawks','Tampa Bay Buccaneers','Tennessee Titans','Washington Commanders'],
+        ['ari','atl','bal','buf','car','chi','cin','cle','dal','den','det','gb','hou','ind','jax','kc','lv','lac','lar','mia','min','ne','no','nyg','nyj','phi','pit','sf','sea','tb','ten','wsh'])),
+    'NBA': dict(zip(
+        ['Atlanta Hawks','Boston Celtics','Brooklyn Nets','Charlotte Hornets','Chicago Bulls','Cleveland Cavaliers','Dallas Mavericks','Denver Nuggets','Detroit Pistons','Golden State Warriors','Houston Rockets','Indiana Pacers','Los Angeles Clippers','Los Angeles Lakers','Memphis Grizzlies','Miami Heat','Milwaukee Bucks','Minnesota Timberwolves','New Orleans Pelicans','New York Knicks','Oklahoma City Thunder','Orlando Magic','Philadelphia 76ers','Phoenix Suns','Portland Trail Blazers','Sacramento Kings','San Antonio Spurs','Toronto Raptors','Utah Jazz','Washington Wizards'],
+        ['atl','bos','bkn','cha','chi','cle','dal','den','det','gs','hou','ind','lac','lal','mem','mia','mil','min','no','ny','okc','orl','phi','phx','por','sac','sa','tor','utah','wsh'])),
+    'NHL': dict(zip(
+        ['Anaheim Ducks','Boston Bruins','Buffalo Sabres','Calgary Flames','Carolina Hurricanes','Chicago Blackhawks','Colorado Avalanche','Columbus Blue Jackets','Dallas Stars','Detroit Red Wings','Edmonton Oilers','Florida Panthers','Los Angeles Kings','Minnesota Wild','Montreal Canadiens','Nashville Predators','New Jersey Devils','New York Islanders','New York Rangers','Ottawa Senators','Philadelphia Flyers','Pittsburgh Penguins','San Jose Sharks','Seattle Kraken','St. Louis Blues','Tampa Bay Lightning','Toronto Maple Leafs','Utah Mammoth','Vancouver Canucks','Vegas Golden Knights','Washington Capitals','Winnipeg Jets'],
+        ['ana','bos','buf','cgy','car','chi','col','cbj','dal','det','edm','fla','la','min','mtl','nsh','nj','nyi','nyr','ott','phi','pit','sj','sea','stl','tb','tor','utah','van','vgk','wsh','wpg'])),
+    'MLB': dict(zip(
+        ['Arizona Diamondbacks','Athletics','Atlanta Braves','Baltimore Orioles','Boston Red Sox','Chicago Cubs','Chicago White Sox','Cincinnati Reds','Cleveland Guardians','Colorado Rockies','Detroit Tigers','Houston Astros','Kansas City Royals','Los Angeles Angels','Los Angeles Dodgers','Miami Marlins','Milwaukee Brewers','Minnesota Twins','New York Mets','New York Yankees','Philadelphia Phillies','Pittsburgh Pirates','San Diego Padres','San Francisco Giants','Seattle Mariners','St. Louis Cardinals','Tampa Bay Rays','Texas Rangers','Toronto Blue Jays','Washington Nationals'],
+        ['ari','ath','atl','bal','bos','chc','chw','cin','cle','col','det','hou','kc','laa','lad','mia','mil','min','nym','nyy','phi','pit','sd','sf','sea','stl','tb','tex','tor','wsh'])),
 }
 
 
@@ -256,7 +257,7 @@ def espn_team_logos(sport):
     if sport not in ESPN_LEAGUES:
         return {}
     category, league = ESPN_LEAGUES[sport]
-    url = f'https://site.api.espn.com/apis/site/v2/sports/{category}/{league}/teams?limit=500'
+    url = f'https://site.api.espn.com/apis/site/v2/sports/{category}/{league}/teams?limit=1000'
     try:
         req = Request(url, headers={'User-Agent': 'SportsEdgeDashboard/1.0'})
         with urlopen(req, timeout=8) as response:
@@ -306,8 +307,10 @@ def card_image_html(r):
     is_total = bool(re.match(r'^\s*(over|under)\b', selection, re.I)) or clean_text(r.get('market')).lower() in ('total', 'totals')
     if is_total and len(teams) == 2:
         images = [team_logo(sport, team) for team in teams]
-        imgs = ''.join(f'<img class="pick-image" src="{esc(url)}" alt="{esc(team)} logo" loading="lazy">'
-                       for team, url in zip(teams, images) if url)
+        imgs = ''.join(
+            (f'<img class="pick-image" src="{esc(url)}" alt="{esc(team)} logo" loading="lazy">'
+             if url else f'<div class="pick-image pick-image-fallback" title="{esc(team)} logo unavailable">🏟️</div>')
+            for team, url in zip(teams, images))
         if imgs:
             return f'<div class="pick-image-pair">{imgs}</div>'
     for team in teams:
@@ -322,7 +325,8 @@ def card_image_html(r):
         url = team_logo(sport, teams[0])
         if url:
             return f'<img class="pick-image" src="{esc(url)}" alt="{esc(teams[0])} logo" loading="lazy">'
-    return '<div class="pick-image" aria-label="Team image unavailable"></div>'
+    sport_icon = {'NFL':'🏈','NBA':'🏀','MLB':'⚾','NHL':'🏒','College Football':'🏈','College Basketball':'🏀'}.get(sport, '🏟️')
+    return f'<div class="pick-image pick-image-fallback" role="img" aria-label="Team logo unavailable">{sport_icon}</div>'
 
 
 def recorded_bookmaker(source):

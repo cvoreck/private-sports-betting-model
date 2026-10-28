@@ -54,25 +54,24 @@ def expected_value(p, odds):
     profit_per_unit = odds / 100 if odds > 0 else 100 / abs(odds)
     return p * profit_per_unit - (1 - p)
 
-def odds_events(key, api_key):
-    response = requests.get(ODDS_URL.format(sport=key), params={
-        'apiKey': api_key, 'regions': 'us', 'markets': 'h2h,spreads,totals',
-        'oddsFormat': 'american', 'dateFormat': 'iso'
-    }, timeout=30)
-    response.raise_for_status()
-    return response.json()
+def odds_events(conn, key, today):
+    row=conn.execute('''SELECT payload FROM historical_snapshots
+      WHERE source='the-odds-api' AND sport=%s AND category='daily_odds_cache'
+        AND item_key=%s ORDER BY collected_at DESC LIMIT 1''',
+        (key,today.isoformat())).fetchone()
+    return (row['payload'].get('events') or []) if row else []
 
-def find_candidates(conn, api_key, today, now):
+def find_candidates(conn, today, now):
     candidates = []
     counts = dict(events=0, upcoming_today=0, verified=0, predictions=0, positive_ev=0)
     for key, sport in SPORT_KEYS.items():
         try:
-            events = odds_events(key, api_key)
+            events = odds_events(conn, key, today)
         except requests.HTTPError as exc:
             # Missing subscription coverage is visible in logs, not silently invented.
             logging.warning('Odds unavailable for %s: %s', sport, exc)
             continue
-        logging.info('%s: fetched %s odds events', sport, len(events))
+        logging.info('%s: read %s cached odds events', sport, len(events))
         counts['events'] += len(events)
         for event in events:
             event_id = event.get('id')
@@ -296,7 +295,7 @@ def main():
         return
     today = local.date()
     database_url = os.environ['DATABASE_URL']
-    api_key = os.environ['ODDS_API_KEY']
+    
     with psycopg.connect(database_url, row_factory=dict_row, connect_timeout=15) as conn:
         with conn.transaction():
             # Don't create picks table here: existing app/storage.py owns its schema.
@@ -308,7 +307,7 @@ def main():
                 refreshed = refresh_existing_card_research(conn, today)
                 logging.info('Already have %s ranked hypothetical picks for %s; refreshed research on %s, preserved picks', existing, today, refreshed)
                 return
-        candidates = find_candidates(conn, api_key, today, now)
+        candidates = find_candidates(conn, today, now)
         top = rank_candidates(candidates)
         status = 'published' if top else 'insufficient_verified_candidates'
         # Publish only independently modeled positive-EV picks; fewer than five is allowed.

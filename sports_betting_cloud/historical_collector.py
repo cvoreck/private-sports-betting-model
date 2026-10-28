@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 from zoneinfo import ZoneInfo
 
 import psycopg
@@ -100,88 +100,129 @@ def archive_espn(conn, now, today, stats):
 
 
 def archive_odds(conn, now, stats):
+    """One quota-limited daily snapshot per sport, reused by every downstream step.
+
+    Budget is a maximum estimate, not a guarantee of vendor billing. Actual consumed
+    credits are logged from response headers; stop on a low vendor-reported balance.
+    """
     key = os.getenv('ODDS_API_KEY')
     if not key:
-        logging.warning('ODDS_API_KEY absent: archiving ESPN only')
+        logging.warning('ODDS_API_KEY absent: ESPN-only run')
         return
-    # Free quotas are finite. We only request main markets by default.
-    # Optional player props use event-specific calls and can consume much more quota.
-    prop_budget = max(0, min(4, int(os.getenv('MAX_PROP_EVENT_REQUESTS', '2'))))
-    min_remaining = max(30, int(os.getenv('MIN_ODDS_CREDITS_REMAINING', '100')))
-    prop_markets_by_sport = {
-        'basketball_nba': 'player_points,player_rebounds,player_assists',
-        'americanfootball_nfl': 'player_pass_yds,player_rush_yds,player_reception_yds',
-        'baseball_mlb': 'batter_hits,pitcher_strikeouts',
-        'icehockey_nhl': 'player_shots_on_goal',
-    }
-    # Only attempt supported event-specific markets; responses can still be unavailable.
-    attempted_props = set()
-    for sport in SPORTS:
+    day = now.astimezone(PT).date()
+    weekday = day.weekday()  # Saturday=5, Sunday=6
+    # Saturday gives CFB priority; Sunday NFL; weekdays NBA/NHL first.
+    if weekday == 5:
+        priority = ['americanfootball_ncaaf','basketball_nba','icehockey_nhl','americanfootball_nfl','basketball_ncaab','baseball_mlb']
+    elif weekday == 6:
+        priority = ['americanfootball_nfl','basketball_nba','icehockey_nhl','americanfootball_ncaaf','basketball_ncaab','baseball_mlb']
+    else:
+        priority = ['basketball_nba','icehockey_nhl','americanfootball_nfl','baseball_mlb','basketball_ncaab','americanfootball_ncaaf']
+    # Quota allocation is adaptive to the *remaining* days in the billing cycle.
+    # Configure ODDS_RESET_DAY to the day of month your provider resets credits.
+    # Actual provider balance is authoritative; we do not assume calendar reset.
+    reserve = max(0, int(os.getenv('ODDS_MONTHLY_RESERVE', '20')))
+    monthly_limit = max(1, int(os.getenv('ODDS_MONTHLY_LIMIT', '500')))
+    reset_day = max(1, min(28, int(os.getenv('ODDS_RESET_DAY', '1'))))
+    cycle_start = date(day.year, day.month, reset_day)
+    if day < cycle_start:
+        year, month = (day.year - 1, 12) if day.month == 1 else (day.year, day.month - 1)
+        cycle_start = date(year, month, reset_day)
+    year, month = (cycle_start.year + 1, 1) if cycle_start.month == 12 else (cycle_start.year, cycle_start.month + 1)
+    next_reset = date(year, month, reset_day)
+    days_left = (next_reset - day).days
+    # Weekend weight is larger; allocate available credits by remaining weighted days.
+    weight = {5: 2.2, 6: 2.2, 3: 1.2}.get(weekday, 1.0)
+    remaining_weight = sum({5: 2.2, 6: 2.2, 3: 1.2}.get((day + timedelta(days=i)).weekday(), 1.0)
+                           for i in range(days_left))
+    # Persist the last known provider balance across daily runs, and never exceed
+    # the balance after reserve. Provider header after each request updates it.
+    balance_row = conn.execute("""SELECT payload FROM historical_snapshots
+       WHERE source='the-odds-api' AND category='quota_balance'
+         AND collected_at >= %s
+       ORDER BY collected_at DESC LIMIT 1""", (cycle_start,)).fetchone()
+    known_remaining = None
+    if balance_row:
+        try:
+            known_remaining = int(balance_row[0]['remaining'])
+        except (KeyError, TypeError, ValueError):
+            pass
+    spendable = max(0, (known_remaining if known_remaining is not None else monthly_limit) - reserve)
+    budget = int(spendable * weight / max(remaining_weight, 1))
+    # One sport costs at most 3 estimated credits in the current market configuration.
+    # Round to a usable market bundle, but do not exceed available spendable balance.
+    budget = min(spendable, max(0, budget // 3 * 3))
+    # Manual override can only LOWER the adaptive cap.
+    if os.getenv('ODDS_DAILY_BUDGET'):
+        budget = min(budget, max(0, int(os.environ['ODDS_DAILY_BUDGET'])))
+    logging.info('Quota plan: billing reset day=%s, days_left=%s, known_remaining=%s, reserve=%s, daily_budget=%s',
+                 reset_day, days_left, known_remaining, reserve, budget)
+    used = 0
+    # Only ask for odds for sports with upcoming games in the next 36h.
+    # ESPN's schedule is a free filter, not a guarantee that Odds API has prices.
+    for sport in priority:
+        if used + 3 > budget:
+            break
+        domain, league = SPORTS[sport]
+        upcoming = False
+        for delta in (0, 1):
+            date_key = (day + timedelta(days=delta)).strftime('%Y%m%d')
+            try:
+                board = get(f'https://site.api.espn.com/apis/site/v2/sports/{domain}/{league}/scoreboard',
+                            {'dates':date_key,'limit':300}).json()
+                for e in board.get('events') or []:
+                    if not (e.get('status') or {}).get('type',{}).get('completed',False):
+                        upcoming = True
+                        break
+            except (requests.RequestException, ValueError) as exc:
+                logging.warning('Schedule precheck %s: %s',sport,exc)
+            if upcoming: break
+        if not upcoming:
+            logging.info('Skip %s: no upcoming ESPN events', sport)
+            continue
+        existing = conn.execute("""SELECT 1 FROM historical_snapshots
+            WHERE source='the-odds-api' AND sport=%s AND category='daily_odds_cache'
+              AND item_key=%s LIMIT 1""",(sport,day.isoformat())).fetchone()
+        if existing:
+            logging.info('Reuse existing %s snapshot for %s',sport,day)
+            continue
         try:
             response = get(f'https://api.the-odds-api.com/v4/sports/{sport}/odds/', {
-                'apiKey': key, 'regions': 'us', 'markets': 'h2h,spreads,totals',
-                'oddsFormat': 'american', 'dateFormat': 'iso'})
-            events = response.json()
-            if not isinstance(events, list):
-                raise ValueError('Unexpected odds response')
+                'apiKey':key,'regions':'us','markets':'h2h,spreads,totals',
+                'oddsFormat':'american','dateFormat':'iso'})
+            events=response.json()
+            if not isinstance(events,list): raise ValueError('Unexpected odds response')
+            used += 3  # Conservative maximum for one region, three requested markets.
+            # Save an empty result too, preventing a second paid call on manual rerun.
+            store(conn,now,'the-odds-api',sport,'','daily_odds_cache',day.isoformat(),
+                  {'events':events,'request_time':now.isoformat()})
             for event in events:
-                eid = str(event.get('id') or '')
-                if eid:
-                    store(conn, now, 'the-odds-api', sport, eid, 'pregame_odds', 'h2h_spreads_totals', event)
-                    stats['odds_events'] += 1
-            remaining = response.headers.get('x-requests-remaining')
-            logging.info('Odds %s: %d events; quota remaining %s', sport, len(events), remaining or 'unknown')
-            if remaining is not None and int(remaining) <= 10:
-                logging.warning('Stopping odds collection to protect remaining API quota')
-                stats['errors'].append('Odds API remaining quota <=10')
-                break
-            if prop_budget > 0 and sport in prop_markets_by_sport and (remaining is None or int(remaining) > min_remaining):
-                prop_markets = prop_markets_by_sport[sport]
-                # Prioritize games starting today, and do not re-request stored props.
-                local_today = now.astimezone(PT).date()
-                eligible_events = sorted((e for e in events if e.get('commence_time') and
-                    datetime.fromisoformat(e['commence_time'].replace('Z','+00:00')).astimezone(PT).date() == local_today and
-                    datetime.fromisoformat(e['commence_time'].replace('Z','+00:00')) > now),
-                    key=lambda e: e['commence_time'])
-                for event in eligible_events:
-                    if prop_budget <= 0:
-                        break
-                    eid = event.get('id')
-                    if not eid:
-                        continue
-                    # Avoid burning credits on manual reruns on the same Pacific date.
-                    existing = conn.execute("""SELECT 1 FROM historical_snapshots WHERE source='the-odds-api'
-                      AND sport=%s AND event_id=%s AND category='player_prop_odds'
-                      AND collected_at >= %s LIMIT 1""",
-                      (sport, str(eid), datetime.combine(local_today, datetime.min.time(), tzinfo=PT))).fetchone()
-                    if existing or (sport, str(eid)) in attempted_props:
-                        continue
-                    attempted_props.add((sport,str(eid)))
-                    try:
-                        r = get(f'https://api.the-odds-api.com/v4/sports/{sport}/events/{eid}/odds', {
-                            'apiKey': key, 'regions': 'us', 'markets': prop_markets,
-                            'oddsFormat': 'american', 'dateFormat': 'iso'})
-                        prop_payload = r.json()
-                        if prop_payload.get('bookmakers'):
-                            store(conn, now, 'the-odds-api', sport, eid, 'player_prop_odds', prop_markets, prop_payload)
-                            stats['prop_events'] += 1
-                        else:
-                            logging.info('No player props returned for %s %s', sport, eid)
-                        prop_budget -= 1
-                        remaining = r.headers.get('x-requests-remaining')
-                        if remaining is not None and int(remaining) <= min_remaining:
-                            prop_budget = 0
-                            break
-                    except (requests.RequestException, ValueError) as exc:
-                        # A 401/403/422 can indicate an unavailable market or plan.
-                        logging.warning('Props unavailable %s %s: %s', sport, eid, exc)
-                        stats['errors'].append(f'props {sport} {eid}: {exc}')
-                        prop_budget -= 1
+                if event.get('id'):
+                    store(conn,now,'the-odds-api',sport,event['id'],'pregame_odds','h2h_spreads_totals',event)
+                    stats['odds_events']+=1
             conn.commit()
-        except (requests.RequestException, ValueError) as exc:
-            logging.warning('Odds %s unavailable: %s', sport, exc)
+            remaining=response.headers.get('x-requests-remaining')
+            last=response.headers.get('x-requests-last')
+            if remaining is not None:
+                try:
+                    known_remaining = int(remaining)
+                    store(conn,now,'the-odds-api',sport,'','quota_balance',
+                          day.isoformat(),{'remaining':known_remaining,'last':last,'observed_at':now.isoformat()})
+                    conn.commit()
+                except ValueError:
+                    logging.warning('Unparseable provider remaining-credit header: %s', remaining)
+            logging.info('Odds %s: events=%d estimated_daily_spend=%d vendor_last=%s vendor_remaining=%s',
+                         sport,len(events),used,last,remaining)
+            if known_remaining is not None and known_remaining <= reserve + 3:
+                logging.warning('Stopping paid collection: vendor balance near reserve (%s)',remaining)
+                break
+        except (requests.RequestException,ValueError) as exc:
+            logging.warning('Odds %s unavailable: %s',sport,exc)
             stats['errors'].append(f'odds {sport}: {exc}')
-
+    # Player box scores continue to be archived for free. Paid prop odds disabled
+    # until plan support and exact billing are confirmed; no speculative charges.
+    logging.info('Paid player-prop requests disabled (MAX_PROP_EVENT_REQUESTS=0).')
+    logging.info('Estimated odds credits spent this collector run: <=%d',used)
 
 def main():
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')

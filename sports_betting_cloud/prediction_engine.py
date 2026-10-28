@@ -156,17 +156,28 @@ def save_prediction(conn,event,market,selection,point,p,now,version):
     estimated_prob=EXCLUDED.estimated_prob,generated_at=EXCLUDED.generated_at,model_version=EXCLUDED.model_version''',
     (event,market,selection,str(point) if point is not None else '',p,now,version))
     return True
+
+def cached_odds_events(conn, sport, today):
+    # Read cached daily odds; never call paid API.
+    row=conn.execute('''SELECT payload FROM historical_snapshots
+       WHERE source='the-odds-api' AND sport=%s AND category='daily_odds_cache'
+       AND item_key=%s ORDER BY collected_at DESC LIMIT 1''',
+       (sport,today.isoformat())).fetchone()
+    if not row: return []
+    payload=row['payload'] if isinstance(row,dict) else row[0]
+    return payload.get('events',[])
+
 def main():
     logging.basicConfig(level=logging.INFO,format='%(levelname)s %(message)s')
-    now=datetime.now(timezone.utc);today=now.astimezone(PT).date();key=os.environ['ODDS_API_KEY']
+    now=datetime.now(timezone.utc);today=now.astimezone(PT).date()
     counts={'events':0,'matched':0,'regular':0,'moneyline_predictions':0,'spread_predictions':0,'total_predictions':0}
     with psycopg.connect(os.environ['DATABASE_URL'],row_factory=dict_row) as conn:
         conn.execute(SCHEMA)
         for sport_key,(sport,esport,league,min_games) in SPORTS.items():
             try:
-                odds=fetch(f'https://api.the-odds-api.com/v4/sports/{sport_key}/odds/',{'apiKey':key,'regions':'us','markets':'h2h,spreads,totals','oddsFormat':'american'})
+                odds=cached_odds_events(conn,sport_key,today)
             except (requests.RequestException,ValueError) as exc:
-                logging.warning('%s odds unavailable: %s',sport,exc);continue
+                logging.warning('%s cached odds unavailable: %s',sport,exc);continue
             boards=[]
             for d in (-1,0,1):
                 try:boards.extend(fetch(f'https://site.api.espn.com/apis/site/v2/sports/{esport}/{league}/scoreboard',{'dates':(today+timedelta(days=d)).strftime('%Y%m%d'),'limit':200}).get('events') or [])

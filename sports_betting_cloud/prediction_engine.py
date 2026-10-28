@@ -245,8 +245,8 @@ def main():
                 try:boards.extend(fetch(f'https://site.api.espn.com/apis/site/v2/sports/{esport}/{league}/scoreboard',{'dates':(today+timedelta(days=d)).strftime('%Y%m%d'),'limit':200}).get('events') or [])
                 except (requests.RequestException,ValueError) as exc:logging.warning('ESPN schedule unavailable: %s',exc)
             by_match=match_info(boards)
-            live_recent=completed_games(esport,league,today,lookback=24 if sport in ('NBA','NHL','MLB','College Basketball') else 80) if sport in ('NBA','NHL','NFL') else {}
-            archived=archived_completed_games(conn,sport_key,today) if sport in ('NBA','NHL','NFL') else {}
+            live_recent=completed_games(esport,league,today,lookback=24 if sport in ('NBA','NHL','MLB','College Basketball') else 80)
+            archived=archived_completed_games(conn,sport_key,today) 
             trained_model=models.get(sport_key)
             trained_history=archived_training_history(conn,sport_key,now) if trained_model else {}
             recent=merge_games(live_recent,archived)
@@ -282,10 +282,13 @@ def main():
                     rationale.insert(0, f'ESPN overall records: {hn} {hr[0]}-{hr[1]}; {an} {ar[0]}-{ar[1]}.')
                 warnings = '\n'.join(warnings_list)
                 if sport.startswith('College'):
-                    # Do not label an ESPN ranking as AP Top 25 without verifying its poll source.
-                    counts['college_events_awaiting_ap_verification']+=1
-                    continue
-                conn.execute('''INSERT INTO verified_events(event_id,sport,is_preseason,ap_top25_team_in_match,verified_at,verification_source)
+                    # Require pre-existing independent AP Top 25 verification.
+                    verified = conn.execute("SELECT ap_top25_team_in_match, is_preseason FROM verified_events WHERE event_id=%s AND sport=%s AND verified_at >= %s", (eid, sport, now-timedelta(days=7))).fetchone()
+                    if not verified or verified['ap_top25_team_in_match'] is not True or verified['is_preseason']:
+                        counts['college_events_awaiting_ap_verification']+=1
+                        continue
+                else:
+                    conn.execute('''INSERT INTO verified_events(event_id,sport,is_preseason,ap_top25_team_in_match,verified_at,verification_source)
                 VALUES(%s,%s,FALSE,NULL,%s,%s) ON CONFLICT(event_id) DO UPDATE SET sport=EXCLUDED.sport,is_preseason=FALSE,verified_at=EXCLUDED.verified_at,verification_source=EXCLUDED.verification_source''',
                 (eid,sport,now,'ESPN scoreboard: regular season'))
                 conn.execute('''INSERT INTO prediction_context(event_id,home_team,away_team,home_logo,away_logo,rationale,warnings,updated_at)
@@ -325,5 +328,5 @@ def main():
                             if save_prediction(conn,eid,m,sel,point,prob,now,'archive-market-shrink-v1-experimental'):
                                 counts['spread_predictions' if m=='spreads' else 'total_predictions']+=1
         logging.info('Prediction engine funnel: %s',counts)
-        logging.warning('Moneylines use promoted trained models only. Spreads/totals remain experimental heuristics. College predictions require separately verified AP Top 25 eligibility; no props or injury model.')
+        logging.warning('Moneylines use promoted trained models only. Spreads/totals remain experimental heuristics. College predictions require pre-existing independently verified AP Top 25 eligibility; no props or injury model.')
 if __name__=='__main__':main()

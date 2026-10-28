@@ -60,8 +60,9 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           ESPN_BACKFILL_DAYS: '7'
-          # Set to a small positive number only after confirming your API quota.
-          MAX_PROP_EVENT_REQUESTS: '0'
+          # Up to two event-specific prop requests per day, subject to quota safeguards.
+          MAX_PROP_EVENT_REQUESTS: '2'
+          MIN_ODDS_CREDITS_REMAINING: '100'
         run: python sports_betting_cloud/historical_collector.py
 
       - name: Generate predictions

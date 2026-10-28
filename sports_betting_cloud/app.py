@@ -49,6 +49,11 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .pick-name {font-size:1.02rem;font-weight:800;color:#f4f8ff;line-height:1.35}
 .pick-meta {font-size:.76rem;color:#b9cee7;margin:5px 0 10px}
 .pick-desc {font-size:.79rem;color:#c5d7ec;line-height:1.45}
+.pick-odds-line {display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin:7px 0 8px;color:#c5d7ec;font-size:.78rem}
+.pick-odds-line strong {font-size:1.05rem;color:#f4f8ff}
+.pick-odds-context {font-size:.7rem;color:#9ebbd7}
+.pick-preview-label {color:#f1f7ff;font-weight:750}
+.pick-preview {color:#c5d7ec;line-height:1.45}
 .pick-kpi-label {font-size:.76rem;color:#bed0e8;line-height:1.45}
 .pick-kpi-value {font-size:1.17rem;font-weight:750;color:#f5f9ff;margin-top:9px}
 .pick-col-title {font-size:.81rem;font-weight:800;color:#fff;margin-bottom:9px}
@@ -273,6 +278,42 @@ def fallback_team_logo(r):
     return ''
 
 
+def recorded_bookmaker(source):
+    """Extract a bookmaker name, not the entire technical odds-source field."""
+    source = clean_text(source)
+    if not source:
+        return ''
+    if '/' in source:
+        tail = source.rsplit('/', 1)[-1].strip()
+        if tail and not tail.startswith(('http:', 'https:')):
+            return tail
+    if source.lower().startswith(('auto:', 'the odds api', 'http')):
+        return ''
+    return source if len(source) <= 35 else ''
+
+
+def matchup_preview(rationale):
+    """Summarize facts already stored in the research notes; no invented news."""
+    items = [line.strip().lstrip('•- ').strip() for line in rationale.splitlines() if line.strip()]
+    facts = []
+    for item in items:
+        low = item.lower()
+        if any(x in low for x in ('overall records:', 'last 10 completed', 'last-10 vs last-10', 'last 10 games', 'last-10 record', 'home record', 'away record')):
+            facts.append(item.rstrip('.'))
+        if len(facts) >= 2:
+            break
+    if not facts:
+        for item in items:
+            low = item.lower()
+            if any(x in low for x in ('scored', 'allowed', 'record', 'averag', 'last-10', 'last 10', 'home', 'away')) and not any(x in low for x in ('uncalibrated', 'model', 'probability')):
+                facts.append(item.rstrip('.'))
+            if len(facts) >= 2:
+                break
+    if not facts:
+        return 'Matchup-specific form and scoring data have not been recorded for this selection.'
+    return '. '.join(facts) + '.'
+
+
 def full_pick_card(r):
     odds=number(r.get('odds'),None)
     prob=number(r.get('estimated_prob'),None)
@@ -286,12 +327,18 @@ def full_pick_card(r):
     if not warnings: warnings='Injuries, suspensions, lineups and game-time weather/wind have not been verified. For indoor games, weather is generally irrelevant.'
     image=pick_image(r.get('notes')) or fallback_team_logo(r)
     image_html=f'<img class="pick-image" src="{esc(image)}" alt="Team logo" loading="lazy">' if image else '<div class="pick-image" aria-label="No verified image available"></div>'
-    source=esc(r.get('source')) or 'Source not recorded'
-    description=f'Odds / research source: {source}. Confirm the current price before wagering.'
+    bookmaker = recorded_bookmaker(r.get('source'))
+    price_display = f'{odds:+.0f}' if odds is not None else '—'
+    bookmaker_html = f' · {esc(bookmaker)}' if bookmaker else ''
+    odds_line = (f'<div class="pick-odds-line"><span>Recorded odds:</span>'
+                 f'<strong>{price_display}</strong><span class="pick-odds-context">'
+                 f'{bookmaker_html} · snapshot, not live</span></div>')
+    preview = esc(matchup_preview(rationale))
+    description = f'<div class="pick-preview"><span class="pick-preview-label">Matchup preview:</span> {preview}</div>' 
     return f"""<div class="pick-card">
       <div class="pick-rank">{rank}</div>
       <div class="pick-image-cell">{image_html}</div>
-      <div><div class="pick-name">{label}{price}</div><div class="pick-meta">{esc(r.get('sport'))} · {esc(r.get('matchup'))} · {esc(r.get('start_pt')) or 'Start time unverified'}</div><div class="pick-desc">{description}</div></div>
+      <div><div class="pick-name">{label}{price}</div><div class="pick-meta">{esc(r.get('sport'))} · {esc(r.get('matchup'))} · {esc(r.get('start_pt')) or 'Start time unverified'}</div>{odds_line}<div class="pick-desc">{description}</div></div>
       <div><div class="pick-kpi-label">Break-even<br>probability</div><div class="pick-kpi-value">{f'{be:.1f}%' if be is not None else '—'}</div></div>
       <div><div class="pick-kpi-label">Model win<br>probability</div><div class="pick-kpi-value">{f'{prob*100:.1f}%' if prob is not None and 0<prob<1 else '—'}</div></div>
       <div><div class="pick-kpi-label">Model edge</div><div class="pick-kpi-value {('positive' if edge>=0 else 'negative') if edge is not None else ''}">{f'{edge:+.1f} pp' if edge is not None else '—'}</div></div>

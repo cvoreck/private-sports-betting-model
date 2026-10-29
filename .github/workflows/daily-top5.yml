@@ -1,3 +1,4 @@
+
 name: Daily Top 5 (06:00 Pacific)
 
 on:
@@ -55,10 +56,10 @@ jobs:
 
           if should_run:
               with psycopg.connect(os.environ['DATABASE_URL'], connect_timeout=15) as conn:
-                  # Existing daily_top5.py preserves ANY ranked hypothetical card,
-                  # so skip collector and API calls before starting the pipeline.
+                  # Skip API calls if today's ranked card already exists.
+                  # The picks.date column is stored as TEXT.
                   count = conn.execute('''SELECT COUNT(*) FROM picks
-                      WHERE date=%s AND kind='Hypothetical' AND rank IS NOT NULL''',
+                      WHERE date=%s::text AND kind='Hypothetical' AND rank IS NOT NULL''',
                       (today,)).fetchone()[0]
                   if count:
                       should_run = False

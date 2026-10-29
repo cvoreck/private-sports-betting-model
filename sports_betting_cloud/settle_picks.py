@@ -114,7 +114,7 @@ def grade_pick(row, parsed):
         adjusted = margin + point
         return 'Push' if abs(adjusted) < 1e-8 else ('Win' if adjusted > 0 else 'Loss')
     if market in ('totals', 'total'):
-        m = re.fullmatch(r'(over|under)\s*\(\s*(\d+(?:\.\d+)?)\s*\)', selection, re.I)
+        m = re.fullmatch(r'(over|under)\s*\(\s*\+?(\d+(?:\.\d+)?)\s*\)', selection, re.I)
         if not m:
             return None
         side, line = m.group(1).casefold(), float(m.group(2))

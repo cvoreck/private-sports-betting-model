@@ -1,9 +1,8 @@
-"""Read-only, walk-forward calibration backtest for Sports Edge Analytics.
+"""Read-only, date-grouped walk-forward probability audit for Sports Edge Analytics.
 
-Place next to weekly_trainer.py and run: python sports_betting_cloud/backtest_models.py
-Requires DATABASE_URL and existing psycopg dependency. No Odds API requests.
-No historical betting ROI is claimed: ESPN results alone do not provide historical
-pre-game sportsbook prices or prove that a wager could have been placed.
+Run: python sports_betting_cloud/backtest_models.py
+Requires DATABASE_URL, psycopg, and the existing weekly_trainer.py.
+Uses ESPN archive only; no Odds API calls, database writes, or betting ROI claims.
 """
 import json
 import logging
@@ -14,75 +13,147 @@ from datetime import datetime, timezone
 import psycopg
 from psycopg.rows import dict_row
 
-from weekly_trainer import SPORTS, dataset, fit, predict, logloss, train_candidate
+from weekly_trainer import SPORTS, dataset, predict, train_candidate
 
 LOG = logging.getLogger('sports_edge_backtest')
 MIN_TRAIN = 200
 MIN_TEST = 25
 FOLDS = 4
 BINS = 10
+EPS = 1e-12
+
+
+def clip(p):
+    return max(EPS, min(1.0 - EPS, float(p)))
+
+
+def logloss(ys, ps):
+    return -sum(y * math.log(clip(p)) + (1 - y) * math.log1p(-clip(p))
+                for y, p in zip(ys, ps)) / len(ys)
 
 
 def brier(ys, ps):
-    return sum((p - y) ** 2 for y, p in zip(ys, ps)) / len(ys)
+    return sum((float(p) - y) ** 2 for y, p in zip(ys, ps)) / len(ys)
 
 
 def summarize(ys, ps):
-    n = len(ys)
+    if not ys or len(ys) != len(ps):
+        raise ValueError('Expected equally sized, nonempty outcomes and probabilities')
     bins = []
     for k in range(BINS):
         pairs = [(y, p) for y, p in zip(ys, ps)
-                 if min(BINS - 1, int(p * BINS)) == k]
+                 if min(BINS - 1, int(clip(p) * BINS)) == k]
         if pairs:
             bins.append({'range': [k / BINS, (k + 1) / BINS],
                          'count': len(pairs),
                          'mean_probability': sum(p for _, p in pairs) / len(pairs),
                          'observed_win_rate': sum(y for y, _ in pairs) / len(pairs)})
-    return {'games': n, 'log_loss': logloss(ys, ps), 'brier_score': brier(ys, ps),
-            'mean_predicted_home_win_rate': sum(ps) / n,
-            'observed_home_win_rate': sum(ys) / n,
+    ece = sum(b['count'] * abs(b['observed_win_rate'] - b['mean_probability'])
+              for b in bins) / len(ys)
+    mce = max(abs(b['observed_win_rate'] - b['mean_probability']) for b in bins)
+    return {'games': len(ys), 'log_loss': logloss(ys, ps),
+            'brier_score': brier(ys, ps),
+            'mean_predicted_home_win_rate': sum(ps) / len(ps),
+            'observed_home_win_rate': sum(ys) / len(ys),
+            'expected_calibration_error': ece,
+            'maximum_calibration_error': mce,
             'calibration_bins': bins}
+
+
+def baselines(train, test):
+    """All baseline parameters are determined using past training games only."""
+    train_y = [int(r[3]) for r in train]
+    # Laplace smoothing prevents certainty in small samples.
+    historical_home_rate = (sum(train_y) + 1) / (len(train_y) + 2)
+    return {'coin_flip': [0.5] * len(test),
+            'historical_home_rate': [historical_home_rate] * len(test)}
+
+
+def metrics_for(ys, ps):
+    return {'log_loss': logloss(ys, ps), 'brier_score': brier(ys, ps)}
+
+
+def date_boundaries(data, folds):
+    """Find chronological boundaries without splitting games on the same UTC date."""
+    n = len(data)
+    # Each requested threshold is moved forward to the first new date.
+    boundaries = []
+    for i in range(folds + 1):
+        target = int(n * (0.4 + 0.6 * i / folds))
+        if i == folds:
+            boundaries.append(n)
+            continue
+        while 0 < target < n and data[target - 1][0].date() == data[target][0].date():
+            target += 1
+        boundaries.append(target)
+    return boundaries
 
 
 def backtest_rows(rows, sport, folds=FOLDS):
     data, games = dataset(rows, sport)
+    data = sorted(data, key=lambda r: r[0])
     n = len(data)
-    # Expanding training windows and disjoint subsequent evaluation windows.
-    # Earliest 40% is always training-only; each of four folds tests next 15%.
-    boundaries = [int(n * (0.4 + 0.6 * i / folds)) for i in range(folds + 1)]
+    boundaries = date_boundaries(data, folds)
     all_y, all_p, fold_reports = [], [], []
+    pooled_baselines = {'coin_flip': [], 'historical_home_rate': []}
     for i in range(folds):
         start, end = boundaries[i], boundaries[i + 1]
         train, test = data[:start], data[start:end]
         if len(train) < MIN_TRAIN or len(test) < MIN_TEST:
             continue
+        if train[-1][0].date() >= test[0][0].date():
+            raise ValueError('Date overlap between train and test')
         details = {}
         weights = train_candidate(train, sport, details)
-        probs = predict(weights, test)
-        ys = [r[3] for r in test]
-        # Fit/tune exclusively on past rows. Never retrain on this test block.
+        probs = list(predict(weights, test))
+        ys = [int(r[3]) for r in test]
+        baseline_ps = baselines(train, test)
         report = summarize(ys, probs)
+        baseline_metrics = {name: metrics_for(ys, ps)
+                            for name, ps in baseline_ps.items()}
         report.update({'fold': i + 1, 'train_games': len(train),
+                       'train_last': train[-1][0].isoformat(),
                        'test_first': test[0][0].isoformat(),
                        'test_last': test[-1][0].isoformat(),
-                       'baseline_log_loss': logloss(ys, [0.5] * len(ys)),
-                       'baseline_brier': brier(ys, [0.5] * len(ys))})
+                       'baselines': baseline_metrics,
+                       'improvement_vs_baselines': {
+                           name: {'log_loss_reduction': m['log_loss'] - report['log_loss'],
+                                  'brier_reduction': m['brier_score'] - report['brier_score']}
+                           for name, m in baseline_metrics.items()},
+                       # Backward-compatible fields for existing report consumers.
+                       'baseline_log_loss': baseline_metrics['coin_flip']['log_loss'],
+                       'baseline_brier': baseline_metrics['coin_flip']['brier_score']})
         fold_reports.append(report)
         all_y.extend(ys)
         all_p.extend(probs)
+        for name, ps in baseline_ps.items():
+            pooled_baselines[name].extend(ps)
     result = {'sport': sport, 'archived_unique_games': games,
               'pregame_examples': n, 'folds': fold_reports,
-              'evaluation_type': 'expanding-window out-of-sample',
+              'evaluation_type': 'date-grouped expanding-window out-of-sample',
               'limitations': [
-                  'No historical odds: betting ROI and estimated edge are not evaluated.',
-                  'Historical ESPN archive completeness and team IDs affect coverage.',
-                  'Results are for a re-trained candidate, not necessarily the promoted production model.',
-                  'Same-date games can straddle fold boundaries; strict date grouping is recommended for final audit.',
+                  'No historical pregame odds: ROI, realizable betting edge, and market comparison are not evaluated.',
+                  'The historical home-rate baseline is stronger than a coin flip but not a sportsbook baseline.',
+                  'Historical ESPN archive completeness, event timestamps, and team IDs affect coverage.',
+                  'Results evaluate re-trained candidates, not necessarily currently promoted production weights.',
+                  'College models are evaluated on all archived regular-season games, not exclusively AP Top 25 eligible games.',
+                  'Calibration metrics are descriptive and can be noisy in sparsely populated bins.',
+                  'Date grouping prevents same-date boundary overlap but does not by itself audit upstream feature leakage.'
               ]}
     if all_y:
-        result['overall'] = summarize(all_y, all_p)
-        result['overall']['baseline_log_loss'] = logloss(all_y, [0.5] * len(all_y))
-        result['overall']['baseline_brier'] = brier(all_y, [0.5] * len(all_y))
+        overall = summarize(all_y, all_p)
+        overall['baselines'] = {name: metrics_for(all_y, ps)
+                                for name, ps in pooled_baselines.items()}
+        overall['improvement_vs_baselines'] = {
+            name: {'log_loss_reduction': m['log_loss'] - overall['log_loss'],
+                   'brier_reduction': m['brier_score'] - overall['brier_score']}
+            for name, m in overall['baselines'].items()}
+        overall['baseline_log_loss'] = overall['baselines']['coin_flip']['log_loss']
+        overall['baseline_brier'] = overall['baselines']['coin_flip']['brier_score']
+        overall['folds_beating_home_rate_log_loss'] = sum(
+            f['log_loss'] < f['baselines']['historical_home_rate']['log_loss']
+            for f in fold_reports)
+        result['overall'] = overall
     else:
         result['status'] = 'insufficient_data'
     return result
@@ -93,7 +164,7 @@ def main():
     if not os.getenv('DATABASE_URL'):
         raise RuntimeError('DATABASE_URL is required')
     output = {'generated_at': datetime.now(timezone.utc).isoformat(),
-              'method': 'chronological expanding-window model probability evaluation',
+              'method': 'date-grouped chronological expanding-window probability evaluation',
               'sports': []}
     with psycopg.connect(os.environ['DATABASE_URL'], row_factory=dict_row) as conn:
         with conn.transaction():
@@ -106,11 +177,13 @@ def main():
                 output['sports'].append(report)
                 if report.get('overall'):
                     m = report['overall']
-                    LOG.info('%s: test_games=%d logloss=%.6f baseline=%.6f brier=%.6f',
-                             sport, m['games'], m['log_loss'], m['baseline_log_loss'], m['brier_score'])
+                    LOG.info('%s: games=%d model_logloss=%.6f coinflip=%.6f home_rate=%.6f ECE=%.4f folds_beating_home=%d/%d',
+                             sport, m['games'], m['log_loss'], m['baseline_log_loss'],
+                             m['baselines']['historical_home_rate']['log_loss'],
+                             m['expected_calibration_error'],
+                             m['folds_beating_home_rate_log_loss'], len(report['folds']))
                 else:
                     LOG.warning('%s: insufficient data', sport)
-            # No writes. Read-only by design.
     filename = 'sports_edge_backtest_report.json'
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(output, f, indent=2)

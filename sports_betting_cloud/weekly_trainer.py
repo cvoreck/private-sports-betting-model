@@ -33,6 +33,54 @@ MARGIN_SCALE = {
     'americanfootball_ncaaf': 17.0,
     'basketball_ncaab': 12.0,
 }
+NHL_FEATURES = [
+    'intercept', 'win_rate_diff_last10', 'margin_diff_last10_scaled',
+    'home_away_win_rate_diff_last10', 'goals_for_diff_last10_scaled',
+    'goals_against_diff_last10_scaled', 'rest_days_diff_scaled',
+]
+LEGACY_FEATURES = ['intercept', 'win_rate_diff_last10', 'margin_diff_last10_scaled']
+
+
+def append_history(hist, dt, home, away, home_score, away_score, sport):
+    """Store only already-final games, with enough context for NHL features."""
+    if sport == 'icehockey_nhl':
+        hist[home].append((int(home_score > away_score), home_score-away_score,
+                           home_score, away_score, True, dt))
+        hist[away].append((int(away_score > home_score), away_score-home_score,
+                           away_score, home_score, False, dt))
+    else:
+        hist[home].append((int(home_score > away_score), home_score-away_score))
+        hist[away].append((int(away_score > home_score), away_score-home_score))
+
+
+def nhl_features(home, away, hist, asof):
+    """Seven strictly pregame features. All data comes from completed games.
+
+    Home/away splits shrink toward overall win rate to avoid sparse samples.
+    Rest uses most recent completed game; cap at 7 days. No future results.
+    """
+    h, a = hist.get(home, [])[-10:], hist.get(away, [])[-10:]
+    if len(h) < MIN_PRIOR or len(a) < MIN_PRIOR:
+        return None
+    if any(len(r) < 6 for r in h + a):
+        return None
+    hw, aw = sum(r[0] for r in h)/len(h), sum(r[0] for r in a)/len(a)
+    hm, am = sum(r[1] for r in h)/len(h), sum(r[1] for r in a)/len(a)
+    def venue_win(rows, is_home, overall):
+        subset = [r[0] for r in rows if r[4] == is_home]
+        return (sum(subset) + 3 * overall)/(len(subset) + 3)
+    h_venue = venue_win(h, True, hw)
+    a_venue = venue_win(a, False, aw)
+    goals_for = (sum(r[2] for r in h)/len(h) - sum(r[2] for r in a)/len(a))/2.5
+    goals_against = (sum(r[3] for r in h)/len(h) - sum(r[3] for r in a)/len(a))/2.5
+    def rest(rows):
+        last = max(r[5] for r in rows)
+        return max(0.0, min(7.0, (asof-last).total_seconds()/86400.0))
+    return [1.0, hw-aw, max(-3., min(3., (hm-am)/2.5)),
+            h_venue-a_venue, max(-3., min(3., goals_for)),
+            max(-3., min(3., goals_against)), (rest(h)-rest(a))/7.0]
+
+
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS sports_edge_training_runs (
  id BIGSERIAL PRIMARY KEY, trained_at TIMESTAMPTZ NOT NULL DEFAULT now(), sport TEXT NOT NULL,
@@ -113,24 +161,23 @@ def dataset(rows, sport):
             games[g[1]] = g
     hist, examples = defaultdict(list), []
     for dt, eid, h, a, hs, aa in sorted(games.values(), key=lambda g: (g[0], g[1])):
-        x = features(h, a, hist, sport)
+        x = nhl_features(h, a, hist, dt) if sport == 'icehockey_nhl' else features(h, a, hist, sport)
         if x is not None:
             examples.append((dt, eid, x, int(hs > aa)))
         # Only update history after constructing the pregame feature row.
-        hist[h].append((int(hs > aa), hs-aa))
-        hist[a].append((int(aa > hs), aa-hs))
+        append_history(hist, dt, h, a, hs, aa, sport)
     return examples, len(games)
 
 
 def fit(data, learning_rate=.35, penalty=.025, epochs=900):
-    w = [0.0, 0.0, 0.0]
+    w = [0.0] * len(data[0][2])
     for _ in range(epochs):
-        grad = [0.0, 0.0, 0.0]
+        grad = [0.0] * len(w)
         for _, _, x, y in data:
             err = sigmoid(sum(v*c for v, c in zip(w, x))) - y
-            for j in range(3):
+            for j in range(len(w)):
                 grad[j] += err*x[j]
-        for j in range(3):
+        for j in range(len(w)):
             w[j] -= learning_rate * (grad[j]/len(data) + (0 if j == 0 else penalty*w[j]))
     return w
 
@@ -147,8 +194,8 @@ def evaluate(w, data):
 def train_candidate(train, sport, details):
     """Tune NHL on an inner chronological validation window, never the final test.
 
-    Keep exactly the three feature coefficients expected by prediction_engine.py.
-    All other sports retain their original training algorithm.
+    NHL uses seven features shared with prediction_engine.py.
+    All other sports retain their original three-feature algorithm.
     """
     if sport != 'icehockey_nhl':
         return fit(train)
@@ -205,7 +252,7 @@ def run(conn, sport):
         'first_test_game': test[0][0].isoformat() if test else None,
         'last_test_game': test[-1][0].isoformat() if test else None,
         'margin_scale': MARGIN_SCALE[sport],
-        'note': 'Team-level home-win model; daily engine loads compatible promoted models. NHL uses inner chronological validation for hyperparameter selection.',
+        'note': 'Team-level home-win model. NHL seven-feature candidate uses pregame context and inner chronological validation; other sports unchanged.',
     }
     status, cand, base, inc = 'insufficient_data', None, None, None
     if len(train) >= MIN_TRAIN and len(test) >= MIN_TEST:
@@ -222,10 +269,10 @@ def run(conn, sport):
             # An incumbent built using a different margin scale is not comparable.
             # Preserve it until it can be evaluated on matching features.
             metadata = incumbent['coefficients'] or {}
+            expected_features = NHL_FEATURES if sport == 'icehockey_nhl' else LEGACY_FEATURES
             compatible = (metadata.get('margin_scale') == MARGIN_SCALE[sport]
-                          and metadata.get('features') ==
-                          ['intercept', 'win_rate_diff_last10', 'margin_diff_last10_scaled']
-                          and isinstance(old, list) and len(old) == 3
+                          and metadata.get('features') == expected_features
+                          and isinstance(old, list) and len(old) == len(expected_features)
                           and all(isinstance(v, (int, float)) and math.isfinite(v) for v in old))
             if compatible:
                 inc = evaluate(old, test)
@@ -237,7 +284,7 @@ def run(conn, sport):
         details['baseline_improvement'] = base - cand
         details['incumbent_improvement'] = inc - cand if inc is not None else None
         if cand < base - .005 and (inc is None or cand < inc - .005):
-            version = 'rolling-homewin-v2-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+            version = ('nhl-context-v3-' if sport == 'icehockey_nhl' else 'rolling-homewin-v2-') + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
             conn.execute('''INSERT INTO sports_edge_trained_models
              (sport,version,trained_at,coefficients,test_logloss,train_games,test_games)
              VALUES (%s,%s,now(),%s,%s,%s,%s)
@@ -247,7 +294,7 @@ def run(conn, sport):
              test_games=EXCLUDED.test_games''',
              (sport, version, json.dumps({
                  'weights': weights,
-                 'features': ['intercept', 'win_rate_diff_last10', 'margin_diff_last10_scaled'],
+                 'features': NHL_FEATURES if sport == 'icehockey_nhl' else LEGACY_FEATURES,
                  'margin_scale': MARGIN_SCALE[sport],
              }), cand, len(train), len(test)))
             status = 'promoted'

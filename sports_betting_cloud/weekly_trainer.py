@@ -122,16 +122,16 @@ def dataset(rows, sport):
     return examples, len(games)
 
 
-def fit(data):
+def fit(data, learning_rate=.35, penalty=.025, epochs=900):
     w = [0.0, 0.0, 0.0]
-    for _ in range(900):
+    for _ in range(epochs):
         grad = [0.0, 0.0, 0.0]
         for _, _, x, y in data:
             err = sigmoid(sum(v*c for v, c in zip(w, x))) - y
             for j in range(3):
                 grad[j] += err*x[j]
         for j in range(3):
-            w[j] -= .35 * (grad[j]/len(data) + (0 if j == 0 else .025*w[j]))
+            w[j] -= learning_rate * (grad[j]/len(data) + (0 if j == 0 else penalty*w[j]))
     return w
 
 
@@ -141,6 +141,54 @@ def predict(w, data):
 
 def evaluate(w, data):
     return logloss([z[3] for z in data], predict(w, data))
+
+
+
+def train_candidate(train, sport, details):
+    """Tune NHL on an inner chronological validation window, never the final test.
+
+    Keep exactly the three feature coefficients expected by prediction_engine.py.
+    All other sports retain their original training algorithm.
+    """
+    if sport != 'icehockey_nhl':
+        return fit(train)
+    split = int(len(train) * .8)
+    inner_train, validation = train[:split], train[split:]
+    if len(inner_train) < MIN_TRAIN or len(validation) < MIN_TEST:
+        details['nhl_tuning'] = 'insufficient_inner_validation; default_fit'
+        return fit(train)
+    configurations = [
+        (.35, .025, 900),  # Original model, included for fair selection
+        (.35, .005, 900),
+        (.35, .075, 900),
+        (.25, .001, 900),
+        (.25, .150, 900),
+        (.20, .025, 450),
+    ]
+    results = []
+    for lr, penalty, epochs in configurations:
+        w = fit(inner_train, learning_rate=lr, penalty=penalty, epochs=epochs)
+        score = evaluate(w, validation)
+        results.append((score, lr, penalty, epochs))
+    # Stable tie-breaking favors the original configuration when scores match.
+    best = min(enumerate(results), key=lambda pair: (pair[1][0], pair[0]))[1]
+    score, lr, penalty, epochs = best
+    details['nhl_tuning'] = {
+        'validation_games': len(validation),
+        'validation_first_game': validation[0][0].isoformat(),
+        'validation_last_game': validation[-1][0].isoformat(),
+        'best_validation_logloss': score,
+        'chosen_learning_rate': lr,
+        'chosen_penalty': penalty,
+        'chosen_epochs': epochs,
+        'configurations': [
+            {'validation_logloss': v, 'learning_rate': a, 'penalty': b, 'epochs': c}
+            for v, a, b, c in results
+        ],
+    }
+    logging.info('NHL validation tuning: best logloss=%.6f lr=%s penalty=%s epochs=%d',
+                 score, lr, penalty, epochs)
+    return fit(train, learning_rate=lr, penalty=penalty, epochs=epochs)
 
 
 def run(conn, sport):
@@ -157,11 +205,11 @@ def run(conn, sport):
         'first_test_game': test[0][0].isoformat() if test else None,
         'last_test_game': test[-1][0].isoformat() if test else None,
         'margin_scale': MARGIN_SCALE[sport],
-        'note': 'Team-level home-win model; daily engine loads compatible promoted models.',
+        'note': 'Team-level home-win model; daily engine loads compatible promoted models. NHL uses inner chronological validation for hyperparameter selection.',
     }
     status, cand, base, inc = 'insufficient_data', None, None, None
     if len(train) >= MIN_TRAIN and len(test) >= MIN_TEST:
-        weights = fit(train)
+        weights = train_candidate(train, sport, details)
         cand = evaluate(weights, test)
         ys = [z[3] for z in test]
         base = logloss(ys, [.5]*len(ys))
@@ -185,6 +233,9 @@ def run(conn, sport):
                 details['incumbent_incompatible'] = True
                 logging.warning('%s: existing model has incompatible or missing feature metadata; '
                                 'will not compare its log loss on different features', sport)
+        details['required_logloss_improvement'] = .005
+        details['baseline_improvement'] = base - cand
+        details['incumbent_improvement'] = inc - cand if inc is not None else None
         if cand < base - .005 and (inc is None or cand < inc - .005):
             version = 'rolling-homewin-v2-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
             conn.execute('''INSERT INTO sports_edge_trained_models
@@ -201,7 +252,10 @@ def run(conn, sport):
              }), cand, len(train), len(test)))
             status = 'promoted'
         else:
-            status = 'kept_existing'
+            status = ('rejected_below_baseline_threshold' if cand >= base - .005
+                      else 'rejected_below_incumbent_threshold')
+            logging.info('%s: promotion rejected; candidate improvement over baseline=%.6f, required>0.005; incumbent=%s',
+                         sport, base-cand, inc)
         details['candidate_weights'] = weights
     conn.execute('''INSERT INTO sports_edge_training_runs
       (sport,status,train_games,test_games,candidate_logloss,baseline_logloss,incumbent_logloss,details)

@@ -1,0 +1,29 @@
+name: Settle Completed Picks (Every 5 Minutes)
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sports-edge-settlement
+  cancel-in-progress: false
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install settlement dependencies
+        run: python -m pip install 'psycopg[binary]>=3.1,<4' 'requests>=2.31,<3'
+      - name: Grade final ESPN games and update Supabase
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python sports_betting_cloud/settle_picks.py

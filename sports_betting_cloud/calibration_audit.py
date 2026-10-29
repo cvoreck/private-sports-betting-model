@@ -1,7 +1,8 @@
-"""Read-only temperature-calibration audit using strictly earlier out-of-sample folds.
+"""Read-only rolling-origin probability calibration stability audit.
 
-No production model changes, sportsbook requests, or database writes.
-Run from repository root: python sports_betting_cloud/calibration_audit.py
+Uses four date-grouped chronological OOS prediction folds. For each fold after
+the first, selects a temperature using ONLY earlier OOS folds and evaluates
+the untouched next fold. No production changes, odds API calls or DB writes.
 """
 import json
 import logging
@@ -13,124 +14,154 @@ import psycopg
 from psycopg.rows import dict_row
 from weekly_trainer import SPORTS, dataset, predict, train_candidate
 
-LOG = logging.getLogger("calibration_audit")
+LOG = logging.getLogger("rolling_calibration")
 EPS = 1e-9
-TEMPERATURES = [round(0.5 + i * 0.05, 2) for i in range(41)]  # 0.50 to 2.50
+TEMPERATURES = [round(0.5 + 0.05*i,2) for i in range(41)]
 
 def clip(p):
-    return min(1 - EPS, max(EPS, float(p)))
+    return min(1-EPS,max(EPS,float(p)))
 
-def logloss(ys, ps):
-    return sum(-y * math.log(clip(p)) - (1-y)*math.log(1-clip(p))
-               for y,p in zip(ys,ps)) / len(ys)
+def log_loss(y,p):
+    return sum(-v*math.log(clip(q))-(1-v)*math.log(1-clip(q))
+               for v,q in zip(y,p))/len(y)
 
-def brier(ys, ps):
-    return sum((p-y)**2 for y,p in zip(ys,ps)) / len(ys)
+def brier(y,p):
+    return sum((v-q)**2 for v,q in zip(y,p))/len(y)
 
-def temperature_scale(p, t):
-    p = clip(p)
-    logit = math.log(p/(1-p)) / t
+def temp_scale(p,t):
+    p=clip(p)
+    logit=math.log(p/(1-p))/t
     return 1/(1+math.exp(-max(-30,min(30,logit))))
 
-def bins_ece(ys, ps):
-    n=len(ys)
+def calibration_bins(y,p):
     bins=[]
-    for k in range(10):
-        vals=[(y,p) for y,p in zip(ys,ps) if min(9,int(p*10)) == k]
-        if vals:
-            count=len(vals)
-            bins.append({"range":[k/10,(k+1)/10], "count":count,
-                         "predicted":sum(p for y,p in vals)/count,
-                         "observed":sum(y for y,p in vals)/count})
-    return sum(b["count"]*abs(b["predicted"]-b["observed"]) for b in bins)/n, bins
+    for i in range(10):
+        pairs=[(v,q) for v,q in zip(y,p) if min(9,int(q*10))==i]
+        if pairs:
+            n=len(pairs)
+            bins.append({"bin":i,"games":n,
+                         "predicted":sum(q for v,q in pairs)/n,
+                         "observed":sum(v for v,q in pairs)/n})
+    ece=sum(b["games"]*abs(b["predicted"]-b["observed"]) for b in bins)/len(y)
+    return ece,bins
 
-def summarize(ys, ps):
-    ece, bins = bins_ece(ys,ps)
-    return {"games":len(ys),"log_loss":logloss(ys,ps),
-            "brier_score":brier(ys,ps),"expected_calibration_error":ece,
+def summary(y,p):
+    ece,bins=calibration_bins(y,p)
+    return {"games":len(y),"log_loss":log_loss(y,p),
+            "brier_score":brier(y,p),"ece_10_bins":ece,
             "calibration_bins":bins}
 
-def date_boundaries(data):
-    n=len(data)
-    out=[]
-    for i in range(5):
-        target=int(n*(0.4+0.6*i/4))
-        if i==4:
-            out.append(n)
-            continue
-        while 0 < target < n and data[target-1][0].date()==data[target][0].date():
-            target+=1
-        out.append(target)
-    return out
-
-def evaluate(rows, sport):
-    data, unique_games = dataset(rows,sport)
-    data=sorted(data,key=lambda r:r[0])
-    bounds=date_boundaries(data)
-    folds=[]
+def boundaries(rows):
+    n=len(rows)
+    targets=[int(n*(0.4+0.6*i/4)) for i in range(5)]
+    targets[-1]=n
+    # Every split, INCLUDING the initial 40% train/test boundary, must
+    # move past all games on the same calendar day. Otherwise the first
+    # training set can contain games played on the first test date.
     for i in range(4):
-        start,end=bounds[i:i+2]
+        k=max(targets[i], targets[i-1] if i else 1)
+        while 0 < k < n and rows[k-1][0].date()==rows[k][0].date():
+            k+=1
+        targets[i]=k
+    return targets
+
+def select_temperature(y,p):
+    return min(TEMPERATURES,
+               key=lambda t:(log_loss(y,[temp_scale(q,t) for q in p]),abs(t-1)))
+
+def audit_sport(rows,sport):
+    data,unique_games=dataset(rows,sport)
+    data=sorted(data,key=lambda r:r[0])
+    cut=boundaries(data)
+    oos=[]
+    for i in range(4):
+        start,end=cut[i],cut[i+1]
         train,test=data[:start],data[start:end]
         if len(train)<200 or len(test)<25:
-            return {"sport":sport,"status":"insufficient_data"}
-        if train[-1][0].date() >= test[0][0].date():
-            raise ValueError("Train/test dates overlap")
+            return {"sport":sport,"status":"insufficient_data",
+                    "pregame_examples":len(data)}
+        if train[-1][0].date()>=test[0][0].date():
+            raise ValueError(f"{sport}: train/test dates overlap")
         weights=train_candidate(train,sport,{})
-        ps=[clip(p) for p in predict(weights,test)]
-        ys=[int(r[3]) for r in test]
-        folds.append({"ys":ys,"ps":ps,"start":test[0][0].isoformat(),
-                      "end":test[-1][0].isoformat()})
-        LOG.info("%s fold %s: %s predictions",sport,i+1,len(ys))
-    # Calibrator uses only OOS predictions from earlier three folds.
-    cal_y=sum((f["ys"] for f in folds[:3]),[])
-    cal_p=sum((f["ps"] for f in folds[:3]),[])
-    candidates=[(logloss(cal_y,[temperature_scale(p,t) for p in cal_p]),t)
-                for t in TEMPERATURES]
-    _,best_t=min(candidates)
-    final=folds[3]
-    test_y,test_p=final["ys"],final["ps"]
-    adjusted=[temperature_scale(p,best_t) for p in test_p]
-    raw=summarize(test_y,test_p)
-    calibrated=summarize(test_y,adjusted)
-    improvement=raw["log_loss"]-calibrated["log_loss"]
-    # Conservative gate: no automatic promotion; calibration must improve log loss
-    # and Brier score on untouched final fold to warrant manual review.
-    return {"sport":sport,"status":"evaluated","archived_unique_games":unique_games,
-            "calibration_training_games":len(cal_y),
-            "calibration_training_period":[folds[0]["start"],folds[2]["end"]],
-            "untouched_final_test_period":[final["start"],final["end"]],
-            "temperature":best_t,"raw":raw,"calibrated":calibrated,
-            "final_fold_logloss_improvement":improvement,
-            "final_fold_brier_improvement":raw["brier_score"]-calibrated["brier_score"],
-            "passes_review_gate":improvement>0 and calibrated["brier_score"]<raw["brier_score"],
-            "notes":"Diagnostic only. Final fold never used to fit temperature. Earlier OOS folds may overlap later model training, but not the final test labels."}
+        oos.append({"fold":i+1,"start":test[0][0].isoformat(),
+                    "end":test[-1][0].isoformat(),
+                    "y":[int(r[3]) for r in test],
+                    "p":[clip(q) for q in predict(weights,test)]})
+        LOG.info("%s OOS fold %d: %d games",sport,i+1,len(test))
+    windows=[]
+    all_y,all_raw,all_cal=[],[],[]
+    for i in range(1,len(oos)):
+        history=oos[:i]
+        cal_y=[v for f in history for v in f["y"]]
+        cal_p=[v for f in history for v in f["p"]]
+        t=select_temperature(cal_y,cal_p)
+        target=oos[i]
+        y,p=target["y"],target["p"]
+        adjusted=[temp_scale(q,t) for q in p]
+        raw,cal=summary(y,p),summary(y,adjusted)
+        windows.append({"test_fold":target["fold"],
+                        "calibration_fit_games":len(cal_y),
+                        "calibration_fit_end":history[-1]["end"],
+                        "test_start":target["start"],"test_end":target["end"],
+                        "temperature":t,
+                        "raw":{k:v for k,v in raw.items() if k!="calibration_bins"},
+                        "calibrated":{k:v for k,v in cal.items() if k!="calibration_bins"},
+                        "logloss_gain":raw["log_loss"]-cal["log_loss"],
+                        "brier_gain":raw["brier_score"]-cal["brier_score"],
+                        "ece_gain":raw["ece_10_bins"]-cal["ece_10_bins"]})
+        all_y.extend(y)
+        all_raw.extend(p)
+        all_cal.extend(adjusted)
+    pooled_raw=summary(all_y,all_raw)
+    pooled_cal=summary(all_y,all_cal)
+    both=sum(w["logloss_gain"]>0 and w["brier_gain"]>0 for w in windows)
+    # A strict manual-review flag, NOT a deployment decision.
+    stable=(both==len(windows) and
+            pooled_cal["log_loss"]<pooled_raw["log_loss"] and
+            pooled_cal["brier_score"]<pooled_raw["brier_score"])
+    return {"sport":sport,"status":"evaluated",
+            "archived_unique_games":unique_games,
+            "pregame_examples":len(data),
+            "rolling_test_games":len(all_y),
+            "rolling_windows":windows,
+            "windows_better_on_both":both,
+            "windows_total":len(windows),
+            "pooled_raw":pooled_raw,"pooled_calibrated":pooled_cal,
+            "stable_for_manual_review":stable,
+            "deployment_authorized":False}
 
 def main():
     logging.basicConfig(level=logging.INFO,format="%(levelname)s %(message)s")
     if not os.getenv("DATABASE_URL"):
-        raise RuntimeError("DATABASE_URL secret is required")
-    report={"generated_at":datetime.now(timezone.utc).isoformat(),
-            "method":"temperature scaling fit on first 3 out-of-sample folds; untouched fourth-fold evaluation",
-            "limitations":["No historical sportsbook prices or betting ROI.",
-                           "Calibration applies to game winner home-win predictions, not spread/total or edge probabilities.",
-                           "Candidate retraining does not establish performance of currently promoted models.",
-                           "No calibrators are deployed or saved to the database."],
-            "sports":[]}
-    with psycopg.connect(os.environ["DATABASE_URL"],row_factory=dict_row) as conn:
-        for sport in SPORTS:
-            LOG.info("Loading %s",sport)
-            rows=conn.execute("""SELECT event_id,payload FROM historical_snapshots
-                WHERE source='espn' AND sport=%s AND category='game'
-                ORDER BY collected_at DESC LIMIT 30000""",(sport,)).fetchall()
-            report["sports"].append(evaluate(rows,sport))
-    with open("sports_edge_calibration_audit.json","w",encoding="utf-8") as f:
-        json.dump(report,f,indent=2)
-    for s in report["sports"]:
-        if s["status"]=="evaluated":
-            LOG.info("%s: temperature=%.2f raw=%.5f calibrated=%.5f gate=%s",
-                     s["sport"],s["temperature"],s["raw"]["log_loss"],
-                     s["calibrated"]["log_loss"],s["passes_review_gate"])
-    LOG.info("Saved sports_edge_calibration_audit.json")
+        raise RuntimeError("DATABASE_URL is required")
+    output={"generated_at":datetime.now(timezone.utc).isoformat(),
+            "method":"4 date-grouped chronological OOS folds; fit temperature on prior OOS folds; evaluate next 3 OOS folds",
+            "limitations":[
+                "No historical pregame sportsbook odds; cannot test market edge, returns, or unit-staking effectiveness.",
+                "Moneyline home-win outcome only. Spreads and totals are not evaluated.",
+                "College-sport AP Top 25 eligibility is not reconstructed historically.",
+                "Re-trained candidate predictions may differ from currently promoted production models.",
+                "Rolling folds share historical training examples; window results are not independent.",
+                "This is a diagnostic report only: no deployment, database writes, or production changes."
+            ],"sports":[]}
+    with psycopg.connect(os.environ["DATABASE_URL"],row_factory=dict_row,
+                         connect_timeout=20) as conn:
+        with conn.transaction():
+            conn.execute("SET TRANSACTION READ ONLY")
+            for sport in SPORTS:
+                rows=conn.execute("""SELECT event_id,payload FROM historical_snapshots
+                    WHERE source='espn' AND sport=%s AND category='game'
+                    ORDER BY collected_at DESC LIMIT 30000""",(sport,)).fetchall()
+                output["sports"].append(audit_sport(rows,sport))
+    path="sports_edge_rolling_calibration_report.json"
+    with open(path,"w",encoding="utf-8") as f:
+        json.dump(output,f,indent=2)
+    for sport in output["sports"]:
+        if sport["status"]=="evaluated":
+            LOG.info("%s: stable=%s windows_better=%d/%d",
+                     sport["sport"],sport["stable_for_manual_review"],
+                     sport["windows_better_on_both"],sport["windows_total"])
+    LOG.info("Report written: %s",path)
 
 if __name__=="__main__":
     main()

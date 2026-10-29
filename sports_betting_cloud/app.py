@@ -614,7 +614,7 @@ if page == 'Dashboard':
         done=filtered[filtered['result'].isin(['Win','Loss','Push','Void'])].copy()
         if not done.empty:
             done['pl']=done.apply(profit,axis=1)
-            done['stake_num']=pd.to_numeric(done['stake'],errors='coerce').fillna(0)
+            done['stake_num']=pd.to_numeric(done['stake'],errors='coerce').fillna(0).where(done['result'].isin(['Win','Loss','Push']), 0)
             byday=done.groupby('date',as_index=False)[['pl','stake_num']].sum().sort_values('date')
             byday['cumulative_roi']=100*byday['pl'].cumsum()/byday['stake_num'].cumsum().replace(0,float('nan'))
             st.line_chart(byday.set_index('date')['cumulative_roi'],height=230,y_label='ROI (%)')
@@ -730,5 +730,5 @@ else:
 - NHL player props have lower priority; other sports may include player props when the edge warrants it.
 - Record sportsbook American odds, Pacific start times, recent ten-game form (or available sample), break-even percentage, estimated probability, model edge, injury context and source.
 - Verify results before grading. Keep hypothetical picks and actual wagers separate.
-- **Automation:** A scheduled publisher can read an odds feed, but picks require independently generated probabilities and verified event eligibility. Auto-grading is not implemented.
+- **Automation:** A scheduled publisher can read an odds feed, but picks require independently generated probabilities and verified event eligibility. Auto-grading of supported completed games is implemented through the scheduled settlement workflow; unresolved outcomes remain pending.
 ''')

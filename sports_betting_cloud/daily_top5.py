@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import logging
+import math
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -21,6 +22,12 @@ SPORT_KEYS = {
     'icehockey_nhl': 'NHL', 'basketball_ncaab': 'College Basketball',
 }
 COLLEGE = {'College Football', 'College Basketball'}
+# Maximum age of the prediction at publication. This is NOT a freshness
+# guarantee for cached sportsbook prices, which are timestamped separately.
+MAX_PREDICTION_AGE_HOURS = 3
+EXPERIMENTAL_PREFIX = 'archive-market-shrink-v1-experimental'
+TRAINED_PREFIXES = ('rolling-homewin-v2-', 'nhl-context-v3-')
+
 ODDS_URL = 'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS prediction_context (event_id TEXT PRIMARY KEY, home_team TEXT, away_team TEXT, home_logo TEXT, away_logo TEXT, rationale TEXT, warnings TEXT, updated_at TIMESTAMPTZ NOT NULL);
@@ -63,7 +70,12 @@ def odds_events(conn, key, today):
 
 def find_candidates(conn, today, now):
     candidates = []
-    counts = dict(events=0, upcoming_today=0, verified=0, predictions=0, positive_ev=0)
+    counts = dict(events=0, upcoming_today=0, verified=0, predictions=0,
+                  positive_ev=0, stale_or_unapproved=0, trained=0, experimental=0)
+    # Active promoted versions are authoritative. Reject stale superseded
+    # moneyline predictions, even when their generated_at is recent.
+    promoted = {row['sport']: row['version'] for row in conn.execute(
+        'SELECT sport, version FROM sports_edge_trained_models').fetchall()}
     for key, sport in SPORT_KEYS.items():
         try:
             events = odds_events(conn, key, today)
@@ -107,16 +119,30 @@ def find_candidates(conn, today, now):
                           WHERE event_id=%s AND market=%s AND selection=%s
                             AND point_key=%s
                             AND generated_at >= %s''',
-                          (event_id, mkey, selection, str(point) if point is not None else '', now - timedelta(hours=24))).fetchone()
+                          (event_id, mkey, selection, str(point) if point is not None else '', now - timedelta(hours=MAX_PREDICTION_AGE_HOURS))).fetchone()
                         if not prediction:
                             continue
                         counts['predictions'] += 1
+                        version = prediction['model_version']
+                        if (mkey == 'h2h' and version == promoted.get(key)
+                                and version.startswith(TRAINED_PREFIXES)):
+                            quality = 'trained'
+                        elif (mkey in ('spreads', 'totals')
+                              and version == EXPERIMENTAL_PREFIX):
+                            quality = 'experimental'
+                        else:
+                            counts['stale_or_unapproved'] += 1
+                            continue
                         p = prediction['estimated_prob']
+                        if not isinstance(p, (int, float)) or not math.isfinite(p) or not 0 < p < 1:
+                            continue
                         ev = expected_value(p, odds)
                         if ev <= 0:
                             continue
                         counts['positive_ev'] += 1
+                        counts[quality] += 1
                         candidates.append({
+                            'quality': quality,
                             'event_id': event_id, 'sport': sport, 'matchup': matchup,
                             'market': mkey, 'selection': selection, 'point': point,
                             'odds': int(odds), 'prob': p, 'edge_pp': 100*(p-american_break_even(odds)),
@@ -147,14 +173,19 @@ def rank_candidates(candidates, card_date=None):
             best[k] = c
 
     def confidence(c):
-        # Existing scoring formula, kept intact for displayed ordering.
-        return (0.45*c['prob'] +
-                0.35*min(c['edge_pp']/20, 1) +
-                0.20*min(c['ev'], 1))
+        """Unvalidated ranking proxy; NOT a calibrated confidence score.
+
+        The official order prioritizes trained predictions, then estimated
+        expected value. Experimental candidates can fill remaining slots.
+        """
+        return c['ev']
 
     def score(c):
-        # Preserve the existing preference for moderate American odds.
-        return (-200 <= c['odds'] <= 200, confidence(c))
+        # Prefer trained models at comparable positive EV, without giving an
+        # unvalidated heuristic an equal claim to probability accuracy.
+        # Moderate-odds preference is a tie breaker, not an EV substitute.
+        return (c['quality'] == 'trained', c['ev'],
+                -abs(c['odds']) if c['odds'] > 0 else -abs(c['odds']))
 
     pool = list(best.values())
     selected = []
@@ -165,11 +196,11 @@ def rank_candidates(candidates, card_date=None):
         if not eligible:
             break
         strongest = max(eligible, key=score)
-        # Never sacrifice the existing moderate-odds preference just to
-        # achieve a sport mix.
+        # Only compare candidates of the same evidence tier; a sport-mix
+        # preference must never elevate an experimental pick over a trained one.
         comparable = [c for c in eligible
-                      if score(c)[0] == score(strongest)[0]
-                      and confidence(c) >= confidence(strongest) - 0.06]
+                      if c['quality'] == strongest['quality']
+                      and c['ev'] >= max(0, strongest['ev'] - 0.025)]
         available_sports = {c['sport'] for c in comparable}
         selected_sports = set(sport_counts)
         # Aim for at least two sports when similarly strong options exist.
@@ -183,25 +214,24 @@ def rank_candidates(candidates, card_date=None):
             comparable = under_cap
 
         def selection_score(c):
-            bonus = 0.025 if c['sport'] == preferred_sport else 0.0
-            # Small nudge toward variety, only among close candidates.
-            variety = 0.012 if c['sport'] not in selected_sports else 0.0
-            return confidence(c) + bonus + variety
+            bonus = 0.01 if c['sport'] == preferred_sport else 0.0
+            variety = 0.005 if c['sport'] not in selected_sports else 0.0
+            return c['ev'] + bonus + variety
 
         chosen = max(comparable, key=selection_score)
         selected.append(chosen)
         used_events.add(chosen['event_id'])
         sport_counts[chosen['sport']] = sport_counts.get(chosen['sport'], 0) + 1
 
-    # The published ranks reflect the original confidence score, not the
-    # day-of-week/variety bonuses used to decide which picks make the card.
+    # Ranks reflect model-evidence tier and estimated EV, not validated
+    # confidence. These are research-only selections.
     selected.sort(key=score, reverse=True)
     logging.info('Top 5 selection: day=%s preferred=%s sport_mix=%s',
                  card_date, preferred_sport, json.dumps(sport_counts, sort_keys=True))
     return selected
 
 
-def research_notes(context, selection, market, model_version=None, edge_pp=None, ev=None, bookmaker=None, verification_source=None):
+def research_notes(context, selection, market, model_version=None, edge_pp=None, ev=None, bookmaker=None, verification_source=None, quality=None):
     # Prefix each line to preserve the separate dashboard columns.
     ctx = context or {}
     why = [x.strip() for x in (ctx.get('rationale') or '').splitlines() if x.strip()]
@@ -210,10 +240,13 @@ def research_notes(context, selection, market, model_version=None, edge_pp=None,
         why = ['Recent-game evidence is not available for this matchup.']
     if not risks:
         risks = ['Injury, lineup and venue-specific weather checks are unavailable.']
-    if market in ('spreads', 'totals'):
-        why.append('Experimental recent-score distribution model; not backtested or calibrated.')
+    if quality == 'experimental' or market in ('spreads', 'totals'):
+        why.append('MODEL QUALITY: EXPERIMENTAL spread/total heuristic; not historically validated or calibrated; market-anchored probability.')
+        risks.append('Estimated edge and EV are unvalidated research estimates, not proven sportsbook advantages.')
+    else:
+        why.append('MODEL QUALITY: TRAINED moneyline; promoted after chronological holdout evaluation, not independently betting-validated.')
     if model_version and edge_pp is not None and ev is not None:
-        why.append(f'Experimental model {model_version}: edge {edge_pp:+.1f} pp; EV {ev:+.3f} units per unit at {bookmaker or "listed sportsbook"}.')
+        why.append(f'Model {model_version}: estimated edge {edge_pp:+.1f} pp; estimated EV {ev:+.3f} units per unit at {bookmaker or "listed sportsbook"}.')
     image = (ctx.get('home_logo') if selection == ctx.get('home_team') else
              ctx.get('away_logo') if selection == ctx.get('away_team') else ctx.get('home_logo')) or ''
     lines = [f'Why: {x}' for x in why] + [f'Watch out for: {x}' for x in risks]
@@ -322,8 +355,14 @@ def refresh_existing_card_research(conn, today):
                 continue
             # Preserve previously saved image URLs and metadata, if present.
             old = row.get('notes') or ''
+            # Keep model provenance, estimated EV, uncertainty labels and
+            # source URLs. Refresh only matchup-specific research lines.
             extra = [line for line in old.splitlines()
-                     if line.startswith(('Image URL:', 'Source:'))]
+                     if line.startswith(('Image URL:', 'Source:'))
+                     or ('MODEL QUALITY:' in line)
+                     or ('estimated edge' in line)
+                     or ('unvalidated research estimates' in line)
+                     or ('not historically validated' in line)]
             notes = '\n'.join([f'Why: {x}' for x in why] +
                               [f'Watch out for: {x}' for x in risks] + extra)
             if notes != old:
@@ -375,7 +414,7 @@ def main():
                         pick_label += f" ({c['point']:+g})" if isinstance(c['point'], (int,float)) else f" ({c['point']})"
                     ctx = c.get('context') or {}
                     notes = research_notes(ctx, c['selection'], c['market'], c['model_version'],
-                                           c['edge_pp'], c['ev'], c['bookmaker'], c['verification_source'])
+                                           c['edge_pp'], c['ev'], c['bookmaker'], c['verification_source'], c['quality'])
                     conn.execute('''INSERT INTO picks
                       (date,sport,matchup,market,selection,odds,stake,kind,result,source,
                        notes,rank,start_pt,estimated_prob)
@@ -388,7 +427,7 @@ def main():
               status=EXCLUDED.status,candidates=EXCLUDED.candidates,published=EXCLUDED.published,
               detail=EXCLUDED.detail,updated_at=NOW()''',
               (today,status,len(candidates),len(top),
-               'Experimental uncalibrated models; no college/props/injury/weather verification; fewer than five allowed.'))
+               'Trained moneylines ranked first; experimental spreads/totals may fill five slots and are explicitly labeled. All edges/EV experimental; AP Top 25 verification required; no props or injury/weather checks.'))
         logging.info('%s: %s; candidates=%s; published=%s', today,status,len(candidates),len(top))
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import requests, psycopg
 from matchup_research import completed_games, research
-from weekly_trainer import MARGIN_SCALE, features as trained_features, sigmoid as trained_sigmoid, parse_game
+from weekly_trainer import MARGIN_SCALE, NHL_FEATURES, LEGACY_FEATURES, append_history, nhl_features, features as trained_features, sigmoid as trained_sigmoid, parse_game
 from psycopg.rows import dict_row
 from ap_rankings_verifier import verify_college_events
 
@@ -186,10 +186,11 @@ def load_promoted_models(conn):
     for row in rows:
         c = row['coefficients'] or {}
         w = c.get('weights')
-        if (row['sport'] in MARGIN_SCALE and isinstance(w, list) and len(w) == 3
+        expected = NHL_FEATURES if row['sport'] == 'icehockey_nhl' else LEGACY_FEATURES
+        if (row['sport'] in MARGIN_SCALE and isinstance(w, list) and len(w) == len(expected)
                 and all(isinstance(v, (int, float)) and math.isfinite(v) for v in w)
                 and c.get('margin_scale') == MARGIN_SCALE[row['sport']]
-                and c.get('features') == ['intercept', 'win_rate_diff_last10', 'margin_diff_last10_scaled']):
+                and c.get('features') == expected):
             models[row['sport']] = (row['version'], w)
         else:
             logging.warning('Skipping incompatible trained model: %s (version=%s, margin_scale=%r, features=%r)',
@@ -211,12 +212,11 @@ def archived_training_history(conn, sport, cutoff):
             games[parsed[1]] = parsed
     history = {}
     for dt, eid, h, a, hs, aa in sorted(games.values(), key=lambda x: (x[0], x[1])):
-        history.setdefault(h, []).append((int(hs > aa), hs-aa))
-        history.setdefault(a, []).append((int(aa > hs), aa-hs))
+        append_history(history, dt, h, a, hs, aa, sport)
     return history
 
 
-def trained_home_probability(event, history, sport, weights):
+def trained_home_probability(event, history, sport, weights, asof):
     cs = (event.get('competitions') or [{}])[0].get('competitors') or []
     home = next((x for x in cs if x.get('homeAway') == 'home'), None)
     away = next((x for x in cs if x.get('homeAway') == 'away'), None)
@@ -225,8 +225,9 @@ def trained_home_probability(event, history, sport, weights):
     ht, at = home.get('team') or {}, away.get('team') or {}
     hid = str(ht.get('id') or norm(ht.get('displayName')))
     aid = str(at.get('id') or norm(at.get('displayName')))
-    x = trained_features(hid, aid, history, sport)
-    return trained_sigmoid(sum(a*b for a,b in zip(weights, x))) if x else None
+    x = (nhl_features(hid, aid, history, asof) if sport == 'icehockey_nhl'
+         else trained_features(hid, aid, history, sport))
+    return trained_sigmoid(sum(a*b for a,b in zip(weights, x))) if x and len(x) == len(weights) else None
 
 def main():
     logging.basicConfig(level=logging.INFO,format='%(levelname)s %(message)s')
@@ -270,7 +271,7 @@ def main():
                 hr=record(h);ar=record(a)
                 # Use each event's scheduled start as the feature cutoff, never future results.
                 if trained_model:
-                    p=trained_home_probability(e,trained_history,sport_key,trained_model[1])
+                    p=trained_home_probability(e,trained_history,sport_key,trained_model[1],start)
                 else:
                     p=None
                 if not trained_model: counts['no_trained_model']+=1

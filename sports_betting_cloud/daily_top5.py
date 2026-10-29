@@ -61,6 +61,25 @@ def expected_value(p, odds):
     profit_per_unit = odds / 100 if odds > 0 else 100 / abs(odds)
     return p * profit_per_unit - (1 - p)
 
+def suggested_units(edge_pp):
+    """Experimental 1u–5u stake tier from *unrounded* estimated edge (pp).
+
+    This is a research label, not a validated bankroll recommendation.
+    A pick's assigned stake is frozen at publication for correct settlement.
+    """
+    if not isinstance(edge_pp, (int, float)) or not math.isfinite(edge_pp):
+        raise ValueError('Suggested units require a finite estimated edge')
+    if edge_pp >= 15.0:
+        return 5
+    if edge_pp >= 10.0:
+        return 4
+    if edge_pp >= 6.0:
+        return 3
+    if edge_pp >= 3.0:
+        return 2
+    return 1
+
+
 def odds_events(conn, key, today):
     row=conn.execute('''SELECT payload FROM historical_snapshots
       WHERE source='the-odds-api' AND sport=%s AND category='daily_odds_cache'
@@ -415,13 +434,19 @@ def main():
                     ctx = c.get('context') or {}
                     notes = research_notes(ctx, c['selection'], c['market'], c['model_version'],
                                            c['edge_pp'], c['ev'], c['bookmaker'], c['verification_source'], c['quality'])
+                    units = suggested_units(c['edge_pp'])
+                    notes += (f'\nWhy: EXPERIMENTAL STAKE TIER: {units}u from '
+                              f'{c["edge_pp"]:+.2f} percentage-point estimated edge; '
+                              'uncalibrated, not a validated bankroll recommendation.')
                     conn.execute('''INSERT INTO picks
                       (date,sport,matchup,market,selection,odds,stake,kind,result,source,
                        notes,rank,start_pt,estimated_prob)
-                      VALUES (%s,%s,%s,%s,%s,%s,1,'Hypothetical','Pending',%s,%s,%s,%s,%s)''',
-                      (today.isoformat(),c['sport'],c['matchup'],c['market'],pick_label,c['odds'],
+                      VALUES (%s,%s,%s,%s,%s,%s,%s,'Hypothetical','Pending',%s,%s,%s,%s,%s)''',
+                      (today.isoformat(),c['sport'],c['matchup'],c['market'],pick_label,c['odds'],units,
                        f"Auto: The Odds API / {c['bookmaker']}",notes,rank,
                        c['start'].astimezone(PT).strftime('%Y-%m-%d %I:%M %p PT'),c['prob']))
+                    logging.info('Published rank=%s selection=%s edge_pp=%.3f suggested_units=%su',
+                                 rank, pick_label, c['edge_pp'], units)
             conn.execute('''INSERT INTO daily_card_runs (card_date,status,candidates,published,detail)
               VALUES (%s,%s,%s,%s,%s) ON CONFLICT(card_date) DO UPDATE SET
               status=EXCLUDED.status,candidates=EXCLUDED.candidates,published=EXCLUDED.published,

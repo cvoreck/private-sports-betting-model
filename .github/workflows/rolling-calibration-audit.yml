@@ -1,0 +1,32 @@
+name: Sports Edge Rolling Calibration (Manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rolling-calibration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install "psycopg[binary]"
+      - name: Run read-only rolling calibration audit
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python sports_betting_cloud/rolling_calibration_audit.py
+      - name: Upload rolling calibration report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sports-edge-rolling-calibration-report
+          path: sports_edge_rolling_calibration_report.json
+          if-no-files-found: warn

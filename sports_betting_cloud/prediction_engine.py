@@ -4,6 +4,7 @@ NBA/NHL spread and total models require >=4 recent final games per team.
 Research only: not calibrated or backtested; missing data means no prediction.
 """
 import logging, math, os, re, statistics
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import requests, psycopg
@@ -210,7 +211,7 @@ def archived_training_history(conn, sport, cutoff):
         parsed = parse_game(row['payload'], sport)
         if parsed and parsed[0] < cutoff and parsed[1] and parsed[1] not in games:
             games[parsed[1]] = parsed
-    history = {}
+    history = defaultdict(list)
     for dt, eid, h, a, hs, aa in sorted(games.values(), key=lambda x: (x[0], x[1])):
         append_history(history, dt, h, a, hs, aa, sport)
     return history

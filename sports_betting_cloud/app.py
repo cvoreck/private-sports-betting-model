@@ -42,6 +42,10 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .sport-profit {font-size:.88rem;font-weight:700;margin-left:8px}
 .recap-flex {display:flex;justify-content:space-between;align-items:center;gap:20px}
 .recap-result {font-size:1.3rem;font-weight:750;white-space:nowrap}
+.recap-list {margin-top:10px;display:grid;gap:7px}
+.recap-item {display:flex;justify-content:space-between;gap:12px;align-items:center;border-top:1px solid #16486d;padding:8px 2px 0;font-size:.85rem;color:#dceaff}
+.recap-item-detail {color:#adc7df;font-size:.75rem;margin-top:2px}
+.recap-item-result {font-weight:800;white-space:nowrap;text-align:right}
 .pick-card {display:grid;grid-template-columns:36px 94px minmax(230px,2.15fr) minmax(86px,.7fr) minmax(86px,.7fr) minmax(86px,.7fr) minmax(180px,1.65fr) minmax(180px,1.65fr);border:1px solid #164c72;border-radius:7px;background:linear-gradient(110deg,#082841,#061d33);margin:6px 0;overflow:hidden}
 .pick-card>div {padding:13px 11px;min-width:0;border-right:1px solid #143b5b}
 .pick-card>div:last-child {border-right:none}
@@ -519,11 +523,13 @@ def full_pick_card(r):
     image_html = card_image_html(r)
     market_line = market_lines_html(r)
     preview = esc(matchup_preview(rationale))
-    description = f'<div class="pick-preview"><span class="pick-preview-label">Matchup preview:</span> {preview}</div>' 
+    description = f'<div class="pick-preview"><span class="pick-preview-label">Matchup preview:</span> {preview}</div>'
+    suggested_units = number(r.get("stake"), 1.0)
+    units_html = f'<div class="pick-odds-line"><strong>Suggested Units: {suggested_units:g}u</strong></div>' 
     return f"""<div class="pick-card">
       <div class="pick-rank">{rank}</div>
       <div class="pick-image-cell">{image_html}</div>
-      <div><div class="pick-name">{label}{price}</div><div class="pick-meta">{esc(r.get('sport'))} · {esc(r.get('matchup'))} · {esc(r.get('start_pt')) or 'Start time unverified'}</div>{market_line}<div class="pick-desc">{description}</div></div>
+      <div><div class="pick-name">{label}{price}</div><div class="pick-meta">{esc(r.get('sport'))} · {esc(r.get('matchup'))} · {esc(r.get('start_pt')) or 'Start time unverified'}</div>{market_line}{units_html}<div class="pick-desc">{description}</div></div>
       <div><div class="pick-kpi-label">Break-even<br>probability</div><div class="pick-kpi-value">{f'{be:.1f}%' if be is not None else '—'}</div></div>
       <div><div class="pick-kpi-label">Model win<br>probability</div><div class="pick-kpi-value">{f'{prob*100:.1f}%' if prob is not None and 0<prob<1 else '—'}</div></div>
       <div><div class="pick-kpi-label">Model edge</div><div class="pick-kpi-value {('positive' if edge>=0 else 'negative') if edge is not None else ''}">{f'{edge:+.1f} pp' if edge is not None else '—'}</div></div>
@@ -554,7 +560,19 @@ if page == 'Dashboard':
     if yesterday.isoformat() < RECORD_START_DATE:
         recap = 'New record starts today'
         recap_detail = 'Earlier selections are archived outside the new running record.'
-    st.markdown(f'<section class="dashboard-section"><div class="recap-flex"><div><div class="section-title">Yesterday’s Recap</div><div class="section-sub">{yesterday:%A, %B %d, %Y}</div><div class="section-sub">{esc(recap_detail)}</div></div><div class="recap-result {signed_class(yn)}">{recap}</div></div></section>',unsafe_allow_html=True)
+    recap_items = ''
+    for _, item in y.sort_values('rank', na_position='last').iterrows():
+        outcome = clean_text(item.get('result')) or 'Pending'
+        pl = profit(item)
+        units = number(item.get('stake'), 1.0)
+        pl_text = signed_units(pl) if pl is not None else 'Awaiting result'
+        css = signed_class(pl) if pl is not None else ''
+        odds_value = number(item.get('odds'), None)
+        odds_text = f'{odds_value:+.0f}' if odds_value is not None else 'Odds unavailable'
+        recap_items += (f'<div class="recap-item"><div><strong>{esc(item.get("selection"))}</strong>'
+                        f'<div class="recap-item-detail">{esc(item.get("sport"))} · {esc(odds_text)} · {units:g}u risked</div></div>'
+                        f'<div class="recap-item-result {css}">{esc(outcome.upper())} · {esc(pl_text)}</div></div>')
+    st.markdown(f'<section class="dashboard-section"><div class="recap-flex"><div><div class="section-title">Yesterday’s Recap</div><div class="section-sub">{yesterday:%A, %B %d, %Y}</div><div class="section-sub">{esc(recap_detail)}</div></div><div class="recap-result {signed_class(yn)}">{recap}</div></div><div class="recap-list">{recap_items}</div></section>',unsafe_allow_html=True)
 
     sport_html=''
     for name,emoji in zip(SPORTS,SPORT_ICONS):

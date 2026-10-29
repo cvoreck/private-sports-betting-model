@@ -209,7 +209,9 @@ def archived_training_history(conn, sport, cutoff):
         if not isinstance(row['payload'], dict):
             continue
         parsed = parse_game(row['payload'], sport)
-        if parsed and parsed[0] < cutoff and parsed[1] and parsed[1] not in games:
+        # Require a final game to be in the archive before prediction time.
+        # Avoid assuming a final score was knowable at its scheduled tipoff.
+        if parsed and parsed[0] + timedelta(hours=6) < cutoff and parsed[1] and parsed[1] not in games:
             games[parsed[1]] = parsed
     history = defaultdict(list)
     for dt, eid, h, a, hs, aa in sorted(games.values(), key=lambda x: (x[0], x[1])):
@@ -312,13 +314,19 @@ def main():
                 sigma=max(8.0 if sport=='NBA' else 1.6,statistics.stdev(all_scores) if len(all_scores)>1 else 0)
                 diff_sigma=max(11.0 if sport=='NBA' else 2.0,sigma*1.35)
                 total_sigma=max(15.0 if sport=='NBA' else 2.5,sigma*1.6)
-                for book in event.get('bookmakers',[]):
+                # A spread/total prediction is keyed by event/market/selection/line,
+                # NOT sportsbook. Use one deterministic reference quote per line
+                # instead of letting the final bookmaker silently overwrite it.
+                seen_experimental_lines = set()
+                for book in sorted(event.get('bookmakers',[]), key=lambda b: (b.get('key') or '', b.get('title') or '')):
                     for market in book.get('markets',[]):
                         m=market.get('key')
                         if m not in ('spreads','totals'):continue
                         for o in market.get('outcomes',[]):
                             point=o.get('point');sel=o.get('name')
                             if not isinstance(point,(float,int)) or not sel:continue
+                            line_key = (m, sel, str(point))
+                            if line_key in seen_experimental_lines: continue
                             if m=='spreads' and sel in (hn,an):
                                 margin=home_mean-away_mean if sel==hn else away_mean-home_mean
                                 # A discrete push possibility is not explicitly modeled; skip integer NHL lines.
@@ -330,8 +338,9 @@ def main():
                             # Avoid extreme probabilities from fragile samples.
                             prob=conservative_probability(prob,market,o,min(len(home_games),len(away_games)))
                             if prob is None:continue
+                            seen_experimental_lines.add(line_key)
                             if save_prediction(conn,eid,m,sel,point,prob,now,'archive-market-shrink-v1-experimental'):
                                 counts['spread_predictions' if m=='spreads' else 'total_predictions']+=1
         logging.info('Prediction engine funnel: %s',counts)
-        logging.warning('Moneylines use promoted trained models only. Spreads/totals remain experimental heuristics. College predictions require pre-existing independently verified AP Top 25 eligibility; no props or injury model.')
+        logging.warning('Moneylines use promoted trained models only. Spreads/totals remain unvalidated price-anchored heuristics, one reference quote per line. College predictions require AP Top 25 verification; no props or injury model.')
 if __name__=='__main__':main()

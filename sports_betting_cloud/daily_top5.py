@@ -27,6 +27,8 @@ COLLEGE = {'College Football', 'College Basketball'}
 MAX_PREDICTION_AGE_HOURS = 3
 EXPERIMENTAL_PREFIX = 'archive-market-shrink-v1-experimental'
 TRAINED_PREFIXES = ('rolling-homewin-v2-', 'nhl-context-v3-')
+MIN_STANDARD_WIN_PROB = 0.50  # Presentation filter, not validated profitability
+MAX_EXPERIMENTAL_UNITS = 2
 
 ODDS_URL = 'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
 SCHEMA = '''
@@ -90,7 +92,7 @@ def odds_events(conn, key, today):
 def find_candidates(conn, today, now):
     candidates = []
     counts = dict(events=0, upcoming_today=0, verified=0, predictions=0,
-                  positive_ev=0, stale_or_unapproved=0, trained=0, experimental=0)
+                  positive_ev=0, below_probability_floor=0, stale_or_unapproved=0, trained=0, experimental=0)
     # Active promoted versions are authoritative. Reject stale superseded
     # moneyline predictions, even when their generated_at is recent.
     promoted = {row['sport']: row['version'] for row in conn.execute(
@@ -159,6 +161,9 @@ def find_candidates(conn, today, now):
                         if ev <= 0:
                             continue
                         counts['positive_ev'] += 1
+                        if p < MIN_STANDARD_WIN_PROB:
+                            counts['below_probability_floor'] += 1
+                            continue
                         counts[quality] += 1
                         candidates.append({
                             'quality': quality,
@@ -191,22 +196,13 @@ def rank_candidates(candidates, card_date=None):
         if k not in best or c['ev'] > best[k]['ev']:
             best[k] = c
 
-    def confidence(c):
-        """Unvalidated ranking proxy; NOT a calibrated confidence score.
-
-        The official order prioritizes trained predictions, then estimated
-        expected value. Experimental candidates can fill remaining slots.
-        """
-        return c['ev']
-
     def score(c):
         # Prefer trained models at comparable positive EV, without giving an
         # unvalidated heuristic an equal claim to probability accuracy.
         # Moderate-odds preference is a tie breaker, not an EV substitute.
-        return (c['quality'] == 'trained', c['ev'],
-                -abs(c['odds']) if c['odds'] > 0 else -abs(c['odds']))
+        return (c['quality'] == 'trained', c['prob'], c['ev'], -abs(c['odds']))
 
-    pool = list(best.values())
+    pool = [c for c in best.values() if c['prob'] >= MIN_STANDARD_WIN_PROB and c['ev'] > 0]
     selected = []
     used_events = set()
     sport_counts = {}
@@ -219,7 +215,7 @@ def rank_candidates(candidates, card_date=None):
         # preference must never elevate an experimental pick over a trained one.
         comparable = [c for c in eligible
                       if c['quality'] == strongest['quality']
-                      and c['ev'] >= max(0, strongest['ev'] - 0.025)]
+                      and c['prob'] >= strongest['prob'] - 0.025]
         available_sports = {c['sport'] for c in comparable}
         selected_sports = set(sport_counts)
         # Aim for at least two sports when similarly strong options exist.
@@ -235,14 +231,14 @@ def rank_candidates(candidates, card_date=None):
         def selection_score(c):
             bonus = 0.01 if c['sport'] == preferred_sport else 0.0
             variety = 0.005 if c['sport'] not in selected_sports else 0.0
-            return c['ev'] + bonus + variety
+            return c['prob'] + bonus + variety
 
         chosen = max(comparable, key=selection_score)
         selected.append(chosen)
         used_events.add(chosen['event_id'])
         sport_counts[chosen['sport']] = sport_counts.get(chosen['sport'], 0) + 1
 
-    # Ranks reflect model-evidence tier and estimated EV, not validated
+    # Ranks reflect evidence tier and estimated win probability, not calibrated
     # confidence. These are research-only selections.
     selected.sort(key=score, reverse=True)
     logging.info('Top 5 selection: day=%s preferred=%s sport_mix=%s',
@@ -417,7 +413,8 @@ def main():
                 return
         candidates = find_candidates(conn, today, now)
         top = rank_candidates(candidates, today)
-        status = 'published' if top else 'insufficient_verified_candidates'
+        status = ('published' if len(top) == 5 else
+                  'partial_card' if top else 'insufficient_verified_candidates')
         # Publish only independently modeled positive-EV picks; fewer than five is allowed.
         with conn.transaction():
             conn.execute('SELECT pg_advisory_xact_lock(%s)', (20261027,))
@@ -434,8 +431,9 @@ def main():
                     ctx = c.get('context') or {}
                     notes = research_notes(ctx, c['selection'], c['market'], c['model_version'],
                                            c['edge_pp'], c['ev'], c['bookmaker'], c['verification_source'], c['quality'])
-                    units = suggested_units(c['edge_pp'])
-                    notes += (f'\nWhy: EXPERIMENTAL STAKE TIER: {units}u from '
+                    raw_tier = suggested_units(c['edge_pp'])
+                    units = min(raw_tier, MAX_EXPERIMENTAL_UNITS)
+                    notes += (f'\nWhy: EXPERIMENTAL STAKE TIER: {units}u (raw edge tier {raw_tier}u, capped at 2u) from '
                               f'{c["edge_pp"]:+.2f} percentage-point estimated edge; '
                               'uncalibrated, not a validated bankroll recommendation.')
                     conn.execute('''INSERT INTO picks
@@ -452,7 +450,7 @@ def main():
               status=EXCLUDED.status,candidates=EXCLUDED.candidates,published=EXCLUDED.published,
               detail=EXCLUDED.detail,updated_at=NOW()''',
               (today,status,len(candidates),len(top),
-               'Trained moneylines ranked first; experimental spreads/totals may fill five slots and are explicitly labeled. All edges/EV experimental; AP Top 25 verification required; no props or injury/weather checks.'))
+               'Standard card requires model win probability >=50% and positive estimated EV; trained moneylines ranked first, then win probability. Experimental stakes capped at 2u. Fewer than five picks allowed; no props or injury/weather checks.'))
         logging.info('%s: %s; candidates=%s; published=%s', today,status,len(candidates),len(top))
 
 if __name__ == '__main__':

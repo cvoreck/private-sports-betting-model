@@ -39,6 +39,11 @@ def implied(odds):
 
 
 def units(edge_pp):
+    """Experimental stake tiers. Non-positive edge is explicitly NO BET (0u)."""
+    if not math.isfinite(edge_pp):
+        raise ValueError('Estimated edge must be finite')
+    if edge_pp <= 0:
+        return 0
     return 5 if edge_pp >= 15 else 4 if edge_pp >= 10 else 3 if edge_pp >= 6 else 2 if edge_pp >= 3 else 1
 
 
@@ -66,6 +71,7 @@ def main():
             'The historical temperature 0.70 is not validated on the current promoted model.',
             'Edge is model probability minus the sportsbook raw break-even probability (includes vig).',
             'Unit tiers are experimental; not validated as a staking system.',
+            'Non-positive edges receive 0u (no bet); 0u selections are still displayed for diagnostic comparison.',
             'Spreads and totals are excluded because they use different, heuristic models.'
         ],
         'promoted_model': None,

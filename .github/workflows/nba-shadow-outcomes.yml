@@ -1,0 +1,35 @@
+name: Sports Edge NBA Shadow Outcomes
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '25 15 * * *' # 07:25 PST / 08:25 PDT, after overnight games
+
+permissions:
+  contents: read
+
+jobs:
+  nba-shadow-outcomes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install database driver
+        run: python -m pip install 'psycopg[binary]'
+      - name: Analyze saved NBA moneyline outcomes (read only)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python sports_betting_cloud/nba_shadow_outcomes.py
+      - name: Save audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nba-shadow-outcomes-${{ github.run_number }}
+          path: nba_shadow_outcome_report/
+          if-no-files-found: warn
+          retention-days: 90

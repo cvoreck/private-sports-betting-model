@@ -27,7 +27,7 @@ COLLEGE = {'College Football', 'College Basketball'}
 MAX_PREDICTION_AGE_HOURS = 3
 EXPERIMENTAL_PREFIX = 'archive-market-shrink-v1-experimental'
 TRAINED_PREFIXES = ('rolling-homewin-v2-', 'nhl-context-v3-')
-MIN_STANDARD_WIN_PROB = 0.50  # Presentation filter, not validated profitability
+MAX_POSITIVE_AMERICAN_ODDS = 200  # +200 allowed; +201 and above excluded
 MAX_EXPERIMENTAL_UNITS = 2
 
 ODDS_URL = 'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
@@ -92,7 +92,7 @@ def odds_events(conn, key, today):
 def find_candidates(conn, today, now):
     candidates = []
     counts = dict(events=0, upcoming_today=0, verified=0, predictions=0,
-                  positive_ev=0, below_probability_floor=0, stale_or_unapproved=0, trained=0, experimental=0)
+                  positive_ev=0, above_odds_cap=0, stale_or_unapproved=0, trained=0, experimental=0)
     # Active promoted versions are authoritative. Reject stale superseded
     # moneyline predictions, even when their generated_at is recent.
     promoted = {row['sport']: row['version'] for row in conn.execute(
@@ -134,6 +134,9 @@ def find_candidates(conn, today, now):
                         odds = outcome.get('price')
                         if not isinstance(odds, (int, float)) or (-100 < odds < 100):
                             continue
+                        if odds > MAX_POSITIVE_AMERICAN_ODDS:
+                            counts['above_odds_cap'] += 1
+                            continue
                         selection = outcome.get('name')
                         point = outcome.get('point')
                         prediction = conn.execute('''SELECT * FROM model_predictions
@@ -161,9 +164,6 @@ def find_candidates(conn, today, now):
                         if ev <= 0:
                             continue
                         counts['positive_ev'] += 1
-                        if p < MIN_STANDARD_WIN_PROB:
-                            counts['below_probability_floor'] += 1
-                            continue
                         counts[quality] += 1
                         candidates.append({
                             'quality': quality,
@@ -181,8 +181,8 @@ def find_candidates(conn, today, now):
 def rank_candidates(candidates, card_date=None):
     """Choose a varied Top 5, with modest game-day preferences.
 
-    Selection bonuses never change model probabilities, odds, EV or the
-    confidence order displayed on the published card.
+    Selection bonuses never change model probabilities, odds or EV.
+    Final display order prioritizes model evidence tier, then win probability.
     """
     card_date = card_date or datetime.now(PT).date()
     weekday = card_date.weekday()  # Monday=0, Sunday=6
@@ -202,7 +202,7 @@ def rank_candidates(candidates, card_date=None):
         # Moderate-odds preference is a tie breaker, not an EV substitute.
         return (c['quality'] == 'trained', c['prob'], c['ev'], -abs(c['odds']))
 
-    pool = [c for c in best.values() if c['prob'] >= MIN_STANDARD_WIN_PROB and c['ev'] > 0]
+    pool = [c for c in best.values() if c['odds'] <= MAX_POSITIVE_AMERICAN_ODDS and c['ev'] > 0]
     selected = []
     used_events = set()
     sport_counts = {}
@@ -450,7 +450,7 @@ def main():
               status=EXCLUDED.status,candidates=EXCLUDED.candidates,published=EXCLUDED.published,
               detail=EXCLUDED.detail,updated_at=NOW()''',
               (today,status,len(candidates),len(top),
-               'Standard card requires model win probability >=50% and positive estimated EV; trained moneylines ranked first, then win probability. Experimental stakes capped at 2u. Fewer than five picks allowed; no props or injury/weather checks.'))
+               'Standard card excludes odds above +200 and requires positive estimated EV, with no fixed win-probability floor; trained moneylines ranked first, then win probability. Experimental stakes capped at 2u. Fewer than five picks allowed; no props or injury/weather checks.'))
         logging.info('%s: %s; candidates=%s; published=%s', today,status,len(candidates),len(top))
 
 if __name__ == '__main__':

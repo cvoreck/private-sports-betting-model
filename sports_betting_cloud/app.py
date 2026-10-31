@@ -1,7 +1,7 @@
 """Sports Edge Analytics — Streamlit dashboard, backed by the existing Supabase ledger.
 Replace sports_betting_cloud/app.py with this file; keep storage.py and analytics.py.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import pandas as pd
 import html
@@ -9,6 +9,7 @@ from urllib.parse import urlsplit, urlencode
 from urllib.request import Request, urlopen
 import json
 import re
+from threading import RLock
 import streamlit as st
 from storage import init, add, all_picks, grade, baseline, set_baseline, import_rows
 from analytics import stats, format_record
@@ -380,6 +381,47 @@ def market_events(sport_key, api_key):
         return [], f'Odds API request failed ({type(exc).__name__})'
 
 
+@st.cache_resource(show_spinner=False)
+def _market_quote_memory():
+    """Last successful quotes shared across Streamlit reruns in this server process.
+
+    These are display-only snapshots, not a durable odds archive. A Streamlit
+    restart/redeploy clears this memory; durable storage requires a DB table.
+    """
+    return {'lock': RLock(), 'quotes': {}}
+
+
+def _remember_market_quotes(cache_key, quotes):
+    memory = _market_quote_memory()
+    now = datetime.now(timezone.utc).isoformat()
+    with memory['lock']:
+        prior = memory['quotes'].get(cache_key, {})
+        merged = dict(prior)
+        for market in ('spread', 'total'):
+            if quotes.get(market):
+                merged[market] = quotes[market]
+                merged[f'{market}_book'] = quotes.get(f'{market}_book', '')
+                merged[f'{market}_captured_at'] = now
+        memory['quotes'][cache_key] = merged
+    return merged
+
+
+def _market_quote_fallback(cache_key, reason):
+    memory = _market_quote_memory()
+    with memory['lock']:
+        saved = dict(memory['quotes'].get(cache_key, {}))
+    if not saved:
+        return {'status': reason}
+    times = [saved.get(f'{m}_captured_at') for m in ('spread', 'total') if saved.get(m)]
+    captured = min(times) if times else None
+    try:
+        when = datetime.fromisoformat(captured).astimezone(PT).strftime('%b %d, %I:%M %p PT')
+    except (TypeError, ValueError):
+        when = 'an earlier session'
+    saved['status'] = f'STALE saved quote (captured {when}); not live. {reason}'
+    return saved
+
+
 def _format_outcome(outcome, include_team=False):
     try:
         point = float(outcome['point'])
@@ -415,9 +457,10 @@ def current_market_lines(r):
         return {'status': 'Could not identify the teams in this matchup'}
     away, home = map(_team_key, pieces)
     day = clean_text(r.get('date'))[:10]
+    cache_key = (key, away, home, day)
     events, error = market_events(key, api_key)
     if error:
-        return {'status': error}
+        return _market_quote_fallback(cache_key, error)
 
     matching = []
     for event in events:
@@ -430,7 +473,7 @@ def current_market_lines(r):
         if event_day == day:
             matching.append(event)
     if not matching:
-        return {'status': 'Game not listed in current odds feed; historical quotes not saved'}
+        return _market_quote_fallback(cache_key, 'Game not listed in current odds feed')
 
     preferred = BOOK_KEYS.get(recorded_bookmaker(r.get('source')).casefold())
     for event in matching:
@@ -466,9 +509,19 @@ def current_market_lines(r):
                     result[result_key + '_book'] = book.get('title') or book.get('key') or 'Sportsbook'
                     break
         if result['spread'] or result['total']:
-            result['status'] = ''
+            saved = _remember_market_quotes(cache_key, result)
+            # If one market is absent in the fresh response, retain it only as
+            # explicitly stale rather than presenting a mixed snapshot as live.
+            missing = [m for m in ('spread', 'total') if not result.get(m) and saved.get(m)]
+            if missing:
+                result.update({m: saved[m] for m in missing})
+                result.update({f'{m}_book': saved.get(f'{m}_book', '') for m in missing})
+                result['status'] = ('STALE saved ' + ', '.join(missing) +
+                                    ' quote(s); other quoted markets are current. Prices may change.')
+            else:
+                result['status'] = 'Latest available API snapshot; prices can change'
             return result
-    return {'status': 'Matching game found, but spread and total markets are not offered'}
+    return _market_quote_fallback(cache_key, 'Matching game found, but spread and total markets are not offered')
 
 
 def market_lines_html(r):

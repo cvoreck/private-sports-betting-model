@@ -159,6 +159,80 @@ def outdoor_weather(espn_event, start):
         return None
 
 
+
+# ESPN's public injury feeds are informational and may be incomplete or delayed.
+# One league-level request per sport per refresh, with no Odds API calls.
+ESPN_INJURY_LEAGUES = {
+    'NFL': ('football', 'nfl'), 'NBA': ('basketball', 'nba'),
+    'MLB': ('baseball', 'mlb'), 'NHL': ('hockey', 'nhl'),
+    'College Football': ('football', 'college-football'),
+    'College Basketball': ('basketball', 'mens-college-basketball'),
+}
+
+
+def fetch_espn_injuries(sport):
+    """Fetch league-level ESPN injury records, or None if unavailable.
+
+    A successful empty response is not evidence that every athlete is healthy.
+    The parser accepts only entries with a named athlete, named team and status.
+    """
+    if sport not in ESPN_INJURY_LEAGUES:
+        return None
+    domain, league = ESPN_INJURY_LEAGUES[sport]
+    url = f'https://site.api.espn.com/apis/site/v2/sports/{domain}/{league}/injuries'
+    try:
+        data = get_json(url)
+    except (requests.RequestException, ValueError, TypeError) as exc:
+        logging.warning('ESPN injury feed unavailable for %s: %s', sport, exc)
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get('injuries'), list):
+        logging.warning('ESPN injury feed unexpected response for %s', sport)
+        return None
+    checked = datetime.now(PT).strftime('%Y-%m-%d %I:%M %p PT')
+    reports = {}
+    for entry in data['injuries']:
+        if not isinstance(entry, dict):
+            continue
+        team = entry.get('team') or {}
+        athlete = entry.get('athlete') or {}
+        injury = entry.get('injury') or {}
+        if not all(isinstance(v, dict) for v in (team, athlete, injury)):
+            continue
+        team_name = str(team.get('displayName') or team.get('name') or '').strip()
+        team_id = str(team.get('id') or '').strip()
+        player = str(athlete.get('displayName') or '').strip()
+        status = str(entry.get('status') or '').strip()
+        if not (player and status and (team_id or team_name)):
+            continue
+        detail = str(injury.get('type') or '').strip()
+        comment = str(entry.get('shortComment') or '').strip()
+        note = ', '.join(x for x in (detail, comment) if x)
+        item = {'player': player, 'status': status, 'source': 'ESPN injury feed',
+                'checked_at': checked, 'note': note[:180]}
+        # Prefer stable ESPN team IDs. Names are fallback only.
+        for key in ([f'id:{team_id}'] if team_id else []) + ([f'name:{norm(team_name)}'] if team_name else []):
+            reports.setdefault(key, []).append(item)
+    return reports
+
+
+def injury_reports_for_event(espn_event, league_reports, home, away):
+    """Match injury reports to both teams using ESPN IDs; never fuzzy-guess."""
+    if league_reports is None:
+        return None
+    competitors = ((espn_event.get('competitions') or [{}])[0].get('competitors') or [])
+    matched = {}
+    for c in competitors:
+        t = c.get('team') or {}
+        name = str(t.get('displayName') or '').strip()
+        tid = str(t.get('id') or '').strip()
+        if norm(name) not in (norm(home), norm(away)):
+            continue
+        entries = league_reports.get(f'id:{tid}') if tid else None
+        if entries is None:
+            entries = league_reports.get(f'name:{norm(name)}', [])
+        matched[name] = entries
+    return matched
+
 def verified_injury_notes(injury_reports, home, away):
     """Format optional verified injury entries, without asserting unverified statuses.
 

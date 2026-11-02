@@ -367,6 +367,7 @@ def refresh_existing_card_research(conn, today):
             try:
                 start = datetime.fromisoformat(event['date'].replace('Z', '+00:00'))
                 injuries = mr.injury_reports_for_event(event, injury_feed, home, away)
+                logging.info('Injuries: matchup=%s feed=%s home=%s away=%s', row['matchup'], 'unavailable' if injury_feed is None else 'retrieved', len((injuries or {}).get(home, [])), len((injuries or {}).get(away, [])))
                 why, risks = mr.research(event, sport, home, away, recent, start,
                                          injury_reports=injuries)
             except (ValueError, KeyError, TypeError, requests.RequestException) as exc:

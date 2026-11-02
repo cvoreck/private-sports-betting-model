@@ -135,32 +135,39 @@ def archive_odds(conn, now, stats):
     weight = {5: 2.2, 6: 2.2, 3: 1.2}.get(weekday, 1.0)
     remaining_weight = sum({5: 2.2, 6: 2.2, 3: 1.2}.get((day + timedelta(days=i)).weekday(), 1.0)
                            for i in range(days_left))
-    # Persist the last known provider balance across daily runs, and never exceed
-    # the balance after reserve. Provider header after each request updates it.
-    balance_row = conn.execute("""SELECT payload FROM historical_snapshots
-       WHERE source='the-odds-api' AND category='quota_balance'
-         AND collected_at >= %s
-       ORDER BY collected_at DESC LIMIT 1""", (cycle_start,)).fetchone()
+    # Obtain a current provider balance before making any charged odds requests.
+    # The Odds API /v4/sports endpoint is a non-quota endpoint; its response
+    # normally carries the same x-requests-remaining header as odds responses.
+    # If the provider does not return a usable balance, fail closed unless the
+    # operator has explicitly supplied a conservative confirmed balance.
     known_remaining = None
-    if balance_row:
-        try:
-            known_remaining = int(balance_row[0]['remaining'])
-        except (KeyError, TypeError, ValueError):
-            pass
-    # Fail closed: an unknown provider balance cannot establish a hard cap.
-    # A balance from an older run can be stale if the key is used elsewhere.
-    # ODDS_CONFIRMED_REMAINING is a user-verified dashboard balance for bootstrapping;
-    # it is never allowed to increase a lower provider-reported balance.
+    try:
+        probe = get('https://api.the-odds-api.com/v4/sports/',
+                    {'apiKey': key, 'all': 'false'})
+        header = probe.headers.get('x-requests-remaining')
+        if header is not None:
+            known_remaining = max(0, min(monthly_limit, int(header)))
+            logging.info('Quota verification: provider reports %s credits remaining',
+                         known_remaining)
+        else:
+            logging.warning('Quota verification: free sports endpoint returned no remaining-credit header')
+    except (requests.RequestException, ValueError) as exc:
+        logging.warning('Quota verification failed: %s', exc)
+
     confirmed = os.getenv('ODDS_CONFIRMED_REMAINING', '').strip()
     if confirmed:
         try:
             confirmed_balance = max(0, min(monthly_limit, int(confirmed)))
-            known_remaining = min(known_remaining, confirmed_balance) if known_remaining is not None else confirmed_balance
+            # Manual confirmation can LOWER a live provider reading, not raise it.
+            known_remaining = (min(known_remaining, confirmed_balance)
+                               if known_remaining is not None else confirmed_balance)
+            logging.info('Quota verification: manual confirmed cap applied: %s',
+                         confirmed_balance)
         except ValueError:
             logging.error('Invalid ODDS_CONFIRMED_REMAINING; refusing paid requests')
             return
     if known_remaining is None:
-        logging.warning('HARD CAP: no confirmed provider balance for current cycle; ESPN archive continues, paid odds disabled')
+        logging.warning('HARD CAP: current balance not verified; ESPN archive continues, paid odds disabled. Set ODDS_CONFIRMED_REMAINING only after checking the provider dashboard.')
         return
     # Reserve is held for the first part of the cycle, then becomes spendable.
     # This allows the final 20 credits to be used, without crossing the ceiling.

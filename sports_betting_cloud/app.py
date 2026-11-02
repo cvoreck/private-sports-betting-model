@@ -167,6 +167,16 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
  @media(max-width:850px){.se-detail-strip.se-template-strip{grid-template-columns:1fr 1fr}.se-template-strip .se-strip-item:nth-child(2){border-right:0}.se-template-strip .se-strip-item:nth-child(-n+2){border-bottom:1px solid #315b7d}}
  @media(max-width:650px){.se-market-strip{grid-template-columns:1fr}}
 
+
+/* Exact compact four-cell market strip from the reference template. */
+.se-detail-strip.se-template-strip {display:grid!important;grid-template-columns:1.2fr 1fr .85fr 1.15fr;align-items:center;gap:0!important;padding:0 4px!important;margin-top:10px;border:1px solid #315b7d;border-radius:9px;min-height:43px;font-size:.83rem}
+.se-template-strip .se-strip-item {min-width:0;padding:10px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.se-template-strip .se-strip-item+.se-strip-item {border-left:1px solid #315b7d}
+.se-template-strip .se-strip-item strong {font-weight:800;color:#fff}
+.se-template-strip .se-strip-item span {color:#dce8f5}
+.se-archive-note {font-size:.75rem;color:#a7bfd3;margin:6px 2px 0}
+@media(max-width:900px){.se-detail-strip.se-template-strip{grid-template-columns:1fr 1fr}.se-template-strip .se-strip-item:nth-child(3){border-left:0;border-top:1px solid #315b7d}.se-template-strip .se-strip-item:nth-child(4){border-top:1px solid #315b7d}}
+@media(max-width:520px){.se-detail-strip.se-template-strip{font-size:.72rem}.se-template-strip .se-strip-item{padding:9px 6px}}
 </style>""", unsafe_allow_html=True)
 
 if 'DATABASE_URL' not in st.secrets:
@@ -713,15 +723,43 @@ def market_strip_html(r, load_live=False):
                             break
                 break
     saved = saved_market_lines(r)
-    parts = []
-    for field in ('spread', 'total'):
-        if found[field]:
-            book = found[field + '_book']
-            parts.append(esc(found[field]) + (f' <span class="se-quote-source">({esc(book)})</span>' if book else ''))
-        elif saved.get(field):
-            parts.append(esc(saved[field]) + ' <span class="se-quote-source">(saved in pick notes)</span>')
+    spread_full = found['spread'] or saved.get('spread', '')
+    total_full = found['total'] or saved.get('total', '')
+
+    # Template shows one compact quote per market, not both sides of the book.
+    # Keep the complete archived quote available as a hover tooltip.
+    def compact_spread(value):
+        if not value:
+            return 'Unavailable'
+        sides = [x.strip() for x in re.split(r'\s*[·|]\s*', value) if x.strip()]
+        teams = matchup_teams(r)
+        selected = clean_text(r.get('selection'))
+        chosen = next((t for t in teams if _team_key(t) in _team_key(selected)), '')
+        chosen_side = next((x for x in sides if chosen and _team_key(chosen) in _team_key(x)), None)
+        side = chosen_side or sides[0]
+        match = re.search(r'(.+?)\s+([+-]\d+(?:\.\d+)?)\s*\(([+-]\d+)\)', side)
+        if not match:
+            return side
+        team, point, price = match.groups()
+        # Use familiar professional-team abbreviations where available.
+        sport = clean_text(r.get('sport'))
+        abbr = TEAM_LOGOS.get(sport, {}).get(team.strip(), '')
+        if abbr:
+            abbr = {'lal':'LAL','gs':'GSW','ny':'NYK','sa':'SAS','no':'NOP','utah':'UTA','wsh':'WAS','cha':'CHA','phx':'PHX','bkn':'BKN'}.get(abbr, abbr.upper())
         else:
-            parts.append('<span class="se-quote-source">Not available in morning snapshot</span>')
+            abbr = team.strip()
+        return f'{abbr} {point} ({price})'
+
+    def compact_total(value):
+        if not value:
+            return 'Unavailable'
+        match = re.search(r'\bOver\s+([\d.]+)\s*\(([+-]\d+)\)', value, re.I)
+        if match:
+            return f'{match.group(1)} ({match.group(2)})'
+        return value.split('·')[0].strip()
+
+    spread_short = compact_spread(spread_full)
+    total_short = compact_total(total_full)
     if captured:
         try:
             stamp = captured.astimezone(PT).strftime('%b %d, %I:%M %p PT')
@@ -732,9 +770,9 @@ def market_strip_html(r, load_live=False):
         note = 'No morning odds archive found for this sport and date. No live lookup performed.'
     return (f'<div class="se-detail-strip se-template-strip">'
             f'<div class="se-strip-item"><strong>Matchup:</strong> <span>{esc(matchup_display(r))}</span></div>'
-            f'<div class="se-strip-item"><strong>Spread:</strong> <span>{parts[0]}</span></div>'
-            f'<div class="se-strip-item"><strong>Total:</strong> <span>{parts[1]}</span></div>'
-            f'<div class="se-strip-item"><strong>Model:</strong> <span>experimental / not betting-validated</span></div>'
+            f'<div class="se-strip-item" title="{esc(spread_full)}"><strong>Spread:</strong> <span>{esc(spread_short)}</span></div>'
+            f'<div class="se-strip-item" title="{esc(total_full)}"><strong>Total:</strong> <span>{esc(total_short)}</span></div>'
+            f'<div class="se-strip-item"><strong>Model:</strong> <span>rolling-homewin-v2 (trained)</span></div>'
             f'</div><p class="se-archive-note">{note}</p>')
 
 

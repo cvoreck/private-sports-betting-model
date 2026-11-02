@@ -943,6 +943,20 @@ def why_sections_html(rationale):
     return '<div class="se-watch-sections se-why-sections">' + ''.join(blocks) + '</div>'
 
 
+def ordinal_date(value):
+    """Show calendar dates with English ordinal suffixes."""
+    day = value.day
+    suffix = 'th' if 11 <= day % 100 <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
+    return f'{value:%A, %B} {day}{suffix}, {value.year}'
+
+
+def pick_time_only(value):
+    """Hide the redundant ISO date while retaining the saved Pacific start time."""
+    text = clean_text(value)
+    text = re.sub(r'(?<!\d)\d{4}-\d{2}-\d{2}(?!\d)', '', text)
+    return re.sub(r'\s+', ' ', text).strip(' ·,|-')
+
+
 def full_pick_card(r, load_live=False):
     odds = number(r.get('odds'), None)
     prob = number(r.get('estimated_prob'), None)
@@ -959,7 +973,7 @@ def full_pick_card(r, load_live=False):
     watch_html = watch_sections_html(warnings, r)
     selection = esc(r.get('selection'))
     matchup = esc(selection_matchup_display(r))
-    start = esc(r.get('start_pt')) or 'Time unverified'
+    start = esc(pick_time_only(r.get('start_pt'))) or 'Time unverified'
     sport = esc(r.get('sport'))
     price = f'{odds:+.0f}' if odds is not None else '—'
     units = number(r.get('stake'), 1.0)
@@ -1028,7 +1042,7 @@ if page == 'Dashboard':
         <div class="se-board-col"><h3>Overall Record</h3><div class="se-big-record">{esc(format_record(summary))}</div>
           <div class="se-net">Net: <span class="{'se-green' if net>=0 else 'se-red'}">{signed_units(net)}</span>
           &nbsp; | &nbsp; ROI: <span class="{'se-green' if roi is not None and roi>=0 else 'se-red'}">{roi_text}</span></div></div>
-        <div class="se-board-col"><div class="se-recap-heading"><h3>Yesterday's Recap — {yesterday:%A, %B %d, %Y}</h3><span class="se-recap-pill">{esc(recap_label)}</span></div>
+        <div class="se-board-col"><div class="se-recap-heading"><h3>Yesterday's Recap — {ordinal_date(yesterday)}</h3><span class="se-recap-pill">{esc(recap_label)}</span></div>
           <div class="se-recap-list">{recap_html}</div></div>
         <div class="se-board-col"><h3>Record by Sport</h3><div class="se-sports">{sport_html}</div></div>
       </section>''', unsafe_allow_html=True)

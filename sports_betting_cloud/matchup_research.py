@@ -192,11 +192,34 @@ ESPN_INJURY_LEAGUES = {
 }
 
 
-def fetch_espn_injuries(sport):
-    """Fetch league-level ESPN injury records, or None if unavailable.
+def _injury_text(value):
+    """Extract a human-readable ESPN field without turning dictionaries into text."""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, dict):
+        for key in ('displayName', 'fullName', 'name', 'description', 'abbreviation', 'text', 'label'):
+            found = _injury_text(value.get(key))
+            if found:
+                return found
+    return ''
 
-    A successful empty response is not evidence that every athlete is healthy.
-    The parser accepts only entries with a named athlete, named team and status.
+
+def _injury_team(value):
+    if not isinstance(value, dict):
+        return None
+    candidate = value.get('team')
+    if isinstance(candidate, dict):
+        return candidate
+    if isinstance(value.get('displayName'), str) and (value.get('id') is not None or value.get('abbreviation')):
+        return value
+    return None
+
+
+def fetch_espn_injuries(sport):
+    """Retrieve player-level injuries with conservative nested-schema handling.
+
+    An HTTP success is not proof that the feed contains injuries. Missing or
+    unrecognized data is reported as unavailable, never as a clean bill of health.
     """
     if sport not in ESPN_INJURY_LEAGUES:
         return None
@@ -205,60 +228,83 @@ def fetch_espn_injuries(sport):
     try:
         data = get_json(url)
     except (requests.RequestException, ValueError, TypeError) as exc:
-        logging.warning('ESPN injury feed unavailable for %s: %s', sport, exc)
+        logging.warning('Injury feed request failed: sport=%s error=%s', sport, exc)
         return None
     if not isinstance(data, dict):
-        logging.warning('ESPN injury feed unexpected non-object response for %s', sport)
+        logging.warning('Injury feed unexpected response: sport=%s type=%s', sport, type(data).__name__)
         return None
     raw = data.get('injuries')
     if not isinstance(raw, list):
-        logging.warning('ESPN injury feed schema unavailable for %s; keys=%s', sport, list(data)[:12])
+        logging.warning('Injury feed unexpected schema: sport=%s top_keys=%s', sport, list(data)[:12])
         return None
     checked = datetime.now(PT).strftime('%Y-%m-%d %I:%M %p PT')
     reports = {}
-    total = 0
-    def add_record(record, team):
-        nonlocal total
-        if not isinstance(record, dict):
+    counters = {'nodes': 0, 'athletes': 0, 'missing_team': 0, 'missing_status': 0, 'accepted': 0}
+    sample_keys = []
+    seen = set()
+
+    def walk(node, team=None, depth=0):
+        if depth > 9 or counters['nodes'] > 20000:
             return
-        athlete = record.get('athlete') or record.get('player') or {}
-        if isinstance(athlete, str):
-            athlete = {'displayName': athlete}
-        if not isinstance(athlete, dict):
+        if isinstance(node, list):
+            for child in node:
+                walk(child, team, depth + 1)
             return
-        injury = record.get('injury') or {}
-        if not isinstance(injury, dict):
-            injury = {'type': str(injury)}
-        if not isinstance(team, dict):
-            team = {}
-        team_name = str(team.get('displayName') or team.get('name') or '').strip()
-        team_id = str(team.get('id') or '').strip()
-        player = str(athlete.get('displayName') or athlete.get('fullName') or athlete.get('name') or '').strip()
-        raw_status = record.get('status') or record.get('designation') or injury.get('status') or ''
-        status = str(raw_status.get('name') or raw_status.get('description') or '') if isinstance(raw_status, dict) else str(raw_status).strip()
-        if not (player and status and (team_id or team_name)):
+        if not isinstance(node, dict):
             return
-        detail = str(injury.get('type') or injury.get('description') or '').strip()
-        comment = str(record.get('shortComment') or record.get('longComment') or '').strip()
-        note = ', '.join(x for x in (detail, comment) if x)
-        item = {'player': player, 'status': status, 'source': 'ESPN injury feed',
-                'checked_at': checked, 'note': note[:180]}
-        keys = ([f'id:{team_id}'] if team_id else []) + ([f'name:{norm(team_name)}'] if team_name else [])
-        for key in keys:
-            reports.setdefault(key, []).append(item)
-        total += 1
-    for group in raw:
-        if not isinstance(group, dict):
-            continue
-        team = group.get('team') or {}
-        nested = group.get('injuries')
-        if isinstance(nested, list):
-            for record in nested:
-                add_record(record, team)
-        else:
-            add_record(group, team)
-    logging.info('Injury feed: sport=%s groups=%s parsed_records=%s teams=%s checked=%s',
-                 sport, len(raw), total, len(reports), checked)
+        counters['nodes'] += 1
+        if len(sample_keys) < 5:
+            sample_keys.append(sorted(node.keys())[:20])
+        own_team = _injury_team(node)
+        if own_team:
+            team = own_team
+        athlete = node.get('athlete') or node.get('player')
+        # Only accept actual athlete-bearing records, not team or metadata nodes.
+        if athlete is not None:
+            counters['athletes'] += 1
+            player = _injury_text(athlete)
+            status = _injury_text(node.get('status') or node.get('designation') or node.get('injuryStatus'))
+            injury = node.get('injury')
+            if not status and isinstance(injury, dict):
+                status = _injury_text(injury.get('status') or injury.get('designation'))
+            if not status:
+                status = _injury_text(node.get('type')) if isinstance(node.get('type'), dict) else ''
+            team_id = str((team or {}).get('id') or '').strip()
+            team_name = _injury_text((team or {}).get('displayName') or (team or {}).get('name'))
+            if not (team_id or team_name):
+                counters['missing_team'] += 1
+            elif not status:
+                counters['missing_status'] += 1
+            elif player:
+                detail = _injury_text(injury.get('type') or injury.get('description')) if isinstance(injury, dict) else _injury_text(injury)
+                comment = _injury_text(node.get('shortComment') or node.get('longComment') or node.get('details'))
+                note = ', '.join(x for x in (detail, comment) if x)
+                identity = (team_id, team_name, player, status, note)
+                if identity not in seen:
+                    seen.add(identity)
+                    item = {'player': player, 'status': status, 'source': 'ESPN injury feed',
+                            'checked_at': checked, 'note': note[:180]}
+                    keys = ([f'id:{team_id}'] if team_id else []) + ([f'name:{norm(team_name)}'] if team_name else [])
+                    for key in keys:
+                        reports.setdefault(key, []).append(item)
+                    counters['accepted'] += 1
+        # ESPN may nest entries under injuries, items, entries, or another list.
+        # Only descend into containers; don't mistake athlete/team metadata for reports.
+        for key, value in node.items():
+            if key in ('athlete', 'player', 'team', 'injury', 'status', 'designation', 'details'):
+                continue
+            if isinstance(value, list) and (key in ('injuries', 'items', 'entries', 'athletes', 'players', 'reports', 'data') or
+                                            any(isinstance(v, dict) and ('athlete' in v or 'player' in v or 'injuries' in v or 'items' in v) for v in value[:3])):
+                walk(value, team, depth + 1)
+            elif isinstance(value, dict) and key in ('injuries', 'items', 'entries', 'data', 'report', 'content'):
+                walk(value, team, depth + 1)
+
+    walk(raw)
+    logging.info('Injury feed: sport=%s groups=%s parsed_records=%s teams=%s athlete_nodes=%s missing_team=%s missing_status=%s checked=%s',
+                 sport, len(raw), counters['accepted'], len(reports), counters['athletes'],
+                 counters['missing_team'], counters['missing_status'], checked)
+    if counters['accepted'] == 0:
+        logging.warning('Injury feed parsed zero player reports: sport=%s sample_node_keys=%s', sport, sample_keys)
     return reports
 
 
@@ -326,11 +372,6 @@ def research(espn_event, sport, home, away, recent, start, home_probability=None
     splits = home_away_note(home, away, hg, ag)
     if splits:
         why.append(splits)
-    if home_probability is not None:
-        why.append(
-            f'Experimental independent record-strength estimate: {home} '
-            f'{home_probability:.1%} win probability. Not backtested or calibrated.'
-        )
     watch = []
     rest = rest_note(home, away, hg, ag, start)
     if rest:

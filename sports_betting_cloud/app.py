@@ -736,6 +736,51 @@ def watch_sections_html(warnings, r):
         for title, content in sections) + '</div>'
 
 
+def why_sections_html(rationale):
+    """Render recorded, labeled research; do not invent missing metrics."""
+    categories = [
+        ('Recent form', 'recent form:'),
+        ('Offensive vs. defensive matchup', 'offensive vs. defensive matchup:'),
+        ('Home/away performance', 'home/away performance:'),
+        ('Strength of schedule', 'strength of schedule:'),
+        ('Season-long performance', 'season-long performance:'),
+    ]
+    sections = {name: [] for name, _ in categories}
+    lines = [x.strip().lstrip('•- ').strip() for x in rationale.splitlines() if x.strip()]
+    for line in lines:
+        lower = line.lower()
+        matched = False
+        for name, prefix in categories:
+            if lower.startswith(prefix):
+                sections[name].append(line[len(prefix):].strip())
+                matched = True
+                break
+        if matched:
+            continue
+        if re.search(r'last \d+ completed regular-season games|last-10 performance', lower):
+            sections['Recent form'].append(line)
+        elif lower.startswith(('last-', 'matchup comparison:')):
+            sections['Offensive vs. defensive matchup'].append(line)
+        elif 'home/away form' in lower:
+            sections['Home/away performance'].append(line)
+    placeholders = {
+        'Recent form': 'Recent completed-game data not recorded.',
+        'Offensive vs. defensive matchup': 'Comparable scoring and defensive data not recorded.',
+        'Home/away performance': 'Comparable recent home/road splits not yet recorded.',
+        'Strength of schedule': 'Opponent-strength data not yet recorded.',
+        'Season-long performance': 'Season-long team records and rankings not yet recorded.',
+    }
+    blocks = []
+    for title, _ in categories:
+        content = sections[title]
+        if content:
+            body = ''.join(f'<p class="se-watch-text">{esc(x)}</p>' for x in content)
+        else:
+            body = f'<p class="se-watch-muted">{esc(placeholders[title])}</p>'
+        blocks.append(f'<div class="se-watch-section"><h4>{esc(title)}</h4>{body}</div>')
+    return '<div class="se-watch-sections se-why-sections">' + ''.join(blocks) + '</div>'
+
+
 def full_pick_card(r):
     odds = number(r.get('odds'), None)
     prob = number(r.get('estimated_prob'), None)
@@ -748,7 +793,7 @@ def full_pick_card(r):
     if not warnings:
         warnings = 'Injuries and confirmed lineups have not been independently verified.'
     # Show meaningful research, without fabricating news or suppressing warnings.
-    why_main, why_extra = research_items(rationale, 5)
+    why_html = why_sections_html(rationale)
     watch_html = watch_sections_html(warnings, r)
     selection = esc(r.get('selection'))
     matchup = esc(selection_matchup_display(r))
@@ -776,7 +821,7 @@ def full_pick_card(r):
       </div></summary>
       <div class="se-pick-expanded">
         <div class="se-research">
-          <section class="se-research-panel"><h3>Why This Pick?</h3>{html_lines(chr(10).join(why_main))}</section>
+          <section class="se-research-panel"><h3>Why This Pick?</h3>{why_html}</section>
           <section class="se-research-panel"><h3>Watch Out For:</h3>{watch_html}</section>
         </div>
         <div class="se-detail-strip"><span><strong>Matchup:</strong> {esc(matchup_display(r))}</span><span><strong>Market:</strong> {market}</span><span><strong>Odds:</strong> {price}</span><span><strong>Model:</strong> experimental / not betting-validated</span></div>

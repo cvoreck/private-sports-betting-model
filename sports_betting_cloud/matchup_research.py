@@ -83,21 +83,43 @@ def summarize(team, games, sport):
 
 
 def rest_note(home, away, home_games, away_games, start):
-    if not home_games or not away_games:
+    """Show comparable, verified days off for both teams on every matchup."""
+    def days_off(games):
+        if not games:
+            return None
+        gap = (start.astimezone(PT).date() - games[0]['date'].astimezone(PT).date()).days - 1
+        return gap if gap >= 0 else None
+    h, a = days_off(home_games), days_off(away_games)
+    h_text = f'{h} day(s) off' if h is not None else 'unavailable'
+    a_text = f'{a} day(s) off' if a is not None else 'unavailable'
+    parts = [f'Rest: {home} {h_text}; {away} {a_text}.']
+    if h == 0:
+        parts.append(f'{home} is on a back-to-back.')
+    if a == 0:
+        parts.append(f'{away} is on a back-to-back.')
+    if h is not None and a is not None and abs(h-a) >= 2:
+        parts.append(f'{home if h < a else away} has {abs(h-a)} fewer days off.')
+    return ' '.join(parts)
+
+
+def home_away_note(home, away, home_games, away_games):
+    """Descriptive splits only when there is a useful sample for both sides."""
+    h = [g for g in home_games if g.get('home') is True]
+    a = [g for g in away_games if g.get('home') is False]
+    if len(h) < 3 or len(a) < 3:
         return None
-    home_gap = (start.astimezone(PT).date() - home_games[0]['date'].astimezone(PT).date()).days - 1
-    away_gap = (start.astimezone(PT).date() - away_games[0]['date'].astimezone(PT).date()).days - 1
-    if min(home_gap, away_gap) < 0:
-        return None
-    if home_gap == 0 or away_gap == 0 or abs(home_gap - away_gap) >= 2:
-        parts = [f'Rest: {home} {home_gap} day(s) off; {away} {away_gap} day(s) off.']
-        if home_gap == 0:
-            parts.append(f'{home} is on a back-to-back.')
-        if away_gap == 0:
-            parts.append(f'{away} is on a back-to-back.')
-        if abs(home_gap - away_gap) >= 2:
-            parts.append('Notable rest disparity.')
-        return ' '.join(parts)
+    return (f'Home/away form (recent available games): {home} at home '
+            f'{sum(g["win"] for g in h)}-{len(h)-sum(g["win"] for g in h)} '
+            f'({len(h)} games); {away} on road '
+            f'{sum(g["win"] for g in a)}-{len(a)-sum(g["win"] for g in a)} '
+            f'({len(a)} games). Small-sample descriptive splits.')
+
+
+def road_trip_note(home, away, home_games, away_games):
+    """Identify verified consecutive away games, not guessed travel mileage."""
+    for name, games in ((home, home_games), (away, away_games)):
+        if len(games) >= 2 and all(g.get('home') is False for g in games[:2]):
+            return f'Travel context: {name} played its previous two games on the road; travel distance and time-zone impact not verified.'
     return None
 
 
@@ -185,33 +207,58 @@ def fetch_espn_injuries(sport):
     except (requests.RequestException, ValueError, TypeError) as exc:
         logging.warning('ESPN injury feed unavailable for %s: %s', sport, exc)
         return None
-    if not isinstance(data, dict) or not isinstance(data.get('injuries'), list):
-        logging.warning('ESPN injury feed unexpected response for %s', sport)
+    if not isinstance(data, dict):
+        logging.warning('ESPN injury feed unexpected non-object response for %s', sport)
+        return None
+    raw = data.get('injuries')
+    if not isinstance(raw, list):
+        logging.warning('ESPN injury feed schema unavailable for %s; keys=%s', sport, list(data)[:12])
         return None
     checked = datetime.now(PT).strftime('%Y-%m-%d %I:%M %p PT')
     reports = {}
-    for entry in data['injuries']:
-        if not isinstance(entry, dict):
-            continue
-        team = entry.get('team') or {}
-        athlete = entry.get('athlete') or {}
-        injury = entry.get('injury') or {}
-        if not all(isinstance(v, dict) for v in (team, athlete, injury)):
-            continue
+    total = 0
+    def add_record(record, team):
+        nonlocal total
+        if not isinstance(record, dict):
+            return
+        athlete = record.get('athlete') or record.get('player') or {}
+        if isinstance(athlete, str):
+            athlete = {'displayName': athlete}
+        if not isinstance(athlete, dict):
+            return
+        injury = record.get('injury') or {}
+        if not isinstance(injury, dict):
+            injury = {'type': str(injury)}
+        if not isinstance(team, dict):
+            team = {}
         team_name = str(team.get('displayName') or team.get('name') or '').strip()
         team_id = str(team.get('id') or '').strip()
-        player = str(athlete.get('displayName') or '').strip()
-        status = str(entry.get('status') or '').strip()
+        player = str(athlete.get('displayName') or athlete.get('fullName') or athlete.get('name') or '').strip()
+        raw_status = record.get('status') or record.get('designation') or injury.get('status') or ''
+        status = str(raw_status.get('name') or raw_status.get('description') or '') if isinstance(raw_status, dict) else str(raw_status).strip()
         if not (player and status and (team_id or team_name)):
-            continue
-        detail = str(injury.get('type') or '').strip()
-        comment = str(entry.get('shortComment') or '').strip()
+            return
+        detail = str(injury.get('type') or injury.get('description') or '').strip()
+        comment = str(record.get('shortComment') or record.get('longComment') or '').strip()
         note = ', '.join(x for x in (detail, comment) if x)
         item = {'player': player, 'status': status, 'source': 'ESPN injury feed',
                 'checked_at': checked, 'note': note[:180]}
-        # Prefer stable ESPN team IDs. Names are fallback only.
-        for key in ([f'id:{team_id}'] if team_id else []) + ([f'name:{norm(team_name)}'] if team_name else []):
+        keys = ([f'id:{team_id}'] if team_id else []) + ([f'name:{norm(team_name)}'] if team_name else [])
+        for key in keys:
             reports.setdefault(key, []).append(item)
+        total += 1
+    for group in raw:
+        if not isinstance(group, dict):
+            continue
+        team = group.get('team') or {}
+        nested = group.get('injuries')
+        if isinstance(nested, list):
+            for record in nested:
+                add_record(record, team)
+        else:
+            add_record(group, team)
+    logging.info('Injury feed: sport=%s groups=%s parsed_records=%s teams=%s checked=%s',
+                 sport, len(raw), total, len(reports), checked)
     return reports
 
 
@@ -276,6 +323,9 @@ def research(espn_event, sport, home, away, recent, start, home_probability=None
             f'{away} allowed {statistics.mean(x["allowed"] for x in ag):.1f} per game. '
             'Descriptive matchup comparison, not a causal prediction.'
         )
+    splits = home_away_note(home, away, hg, ag)
+    if splits:
+        why.append(splits)
     if home_probability is not None:
         why.append(
             f'Experimental independent record-strength estimate: {home} '
@@ -285,6 +335,9 @@ def research(espn_event, sport, home, away, recent, start, home_probability=None
     rest = rest_note(home, away, hg, ag, start)
     if rest:
         watch.append(rest)
+    road = road_trip_note(home, away, hg, ag)
+    if road:
+        watch.append(road)
     injuries = verified_injury_notes(injury_reports, home, away)
     watch.extend(injuries if injuries else ['Injury report unavailable; player availability not verified.'])
     if (sport or '').upper() in WEATHER_SPORTS:

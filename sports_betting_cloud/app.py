@@ -107,6 +107,44 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .recap-result {font-size:1.1rem}
 @media(max-width:900px){.pick-card{display:block}.pick-card>div{border-right:0}.pick-research{grid-template-columns:1fr}.pick-top{gap:10px}.pick-price strong{font-size:1.2rem}}
 @media(max-width:520px){.pick-top{padding:12px!important}.pick-image-cell{flex-basis:44px}.pick-image{width:44px;height:48px}.pick-name{font-size:.95rem}.pick-meta{font-size:.7rem}.pick-price{min-width:64px}.pick-kpis{padding:12px!important;gap:5px}.pick-kpi-label{font-size:.69rem}.pick-kpi-value{font-size:1.13rem}.pick-research{padding:13px!important}.pick-rank{min-width:18px}}
+
+/* Screenshot-matched Sports Edge dashboard */
+.block-container {max-width:1480px!important;padding:1.05rem 1.5rem 3rem!important}
+.se-brand {display:flex;align-items:center;gap:17px;margin:0 0 18px 5px}
+.se-mark {display:flex;align-items:flex-end;gap:5px;height:40px}
+.se-mark i {display:block;width:10px;background:linear-gradient(#11c9ff,#00dbaf);border-radius:3px 3px 0 0}
+.se-mark i:nth-child(1){height:14px}.se-mark i:nth-child(2){height:28px}.se-mark i:nth-child(3){height:39px}
+.se-brand h1 {font-size:2rem!important;line-height:1.05!important;margin:0!important}
+.se-brand p {font-size:1rem;color:#d6e1ef;margin:4px 0 0}
+.se-nav {display:flex;gap:12px;margin-left:auto;align-items:center}
+.se-nav span {padding:9px 18px;border-radius:24px;font-size:.93rem;color:#f2f7ff}
+.se-nav span:first-child {border:1px solid #7296b4;background:#1a3a56;font-weight:750}
+.se-board {display:grid;grid-template-columns:1fr 1.7fr 1.2fr;gap:22px;border:1px solid #326384;border-radius:16px;padding:17px 24px;background:#031829;margin-bottom:18px}
+.se-board-col {min-width:0}.se-board-col+.se-board-col {border-left:1px solid #356184;padding-left:22px}
+.se-board h3 {font-size:1rem!important;margin:0 0 8px!important}
+.se-big-record {font-size:2.45rem;font-weight:850;letter-spacing:-.04em;line-height:1.1;margin:9px 0}
+.se-net {font-size:1.04rem;color:#d9e4f3}.se-red {color:#ff5266;font-weight:800}.se-green {color:#00e9a4;font-weight:800}
+.se-recap-heading {display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.se-recap-heading h3 {font-size:.92rem!important;margin:0!important}
+.se-recap-pill {border:1px solid #c2384b;border-radius:20px;padding:2px 9px;color:#ff576b;font-weight:750;font-size:.83rem}
+.se-recap-list {margin-top:8px;display:grid;gap:4px}.se-recap-row {display:grid;grid-template-columns:24px minmax(0,1fr) 24px 75px;gap:7px;font-size:.88rem;align-items:center}.se-recap-row .se-result {font-weight:800}
+.se-sports {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:9px}.se-sport {border:1px solid #245578;border-radius:11px;text-align:center;padding:7px 3px;background:#082238;font-size:.86rem}.se-sport strong {display:block;font-size:1.02rem;font-weight:500;margin-top:2px}
+.se-section-head {margin:14px 0 16px 15px}.se-section-head h2 {font-size:2rem!important;margin:0!important}.se-section-head p {margin:3px 0;color:#dce6f1}
+.se-pick {border:1px solid #315e7d;border-radius:14px;background:linear-gradient(110deg,#062239,#041c2e);margin:9px 0;overflow:hidden}
+.se-pick.se-first {border:2px solid #20e58b;box-shadow:0 0 0 1px #064d44}
+.se-pick summary {list-style:none;cursor:pointer;display:block}.se-pick summary::-webkit-details-marker {display:none}
+.se-pick-head {display:grid;grid-template-columns:48px 80px minmax(190px,2.2fr) minmax(75px,.75fr) minmax(75px,.75fr) minmax(78px,.8fr) 96px 22px;align-items:center;gap:12px;padding:14px 18px}
+.se-rank {border:1px solid #15df85;background:#073c34;border-radius:9px;text-align:center;font-size:1.4rem;font-weight:800;padding:6px 0;color:white}
+.se-pick-logo .pick-image {width:74px;height:67px;background:transparent;padding:0;object-fit:contain}.se-pick-logo .pick-image-pair {display:flex;flex-direction:row}.se-pick-logo .pick-image-pair .pick-image {width:36px;height:54px}
+.se-pick-name {font-size:1.11rem;font-weight:800;line-height:1.3}.se-pick-match {font-size:.97rem;font-weight:650;margin:2px 0}.se-pick-meta {font-size:.8rem;color:#d1e0f0}
+.se-kpi {border-left:1px solid #37607d;padding-left:12px;min-width:0}.se-kpi small {display:block;font-size:.77rem;color:#d4e2f2;white-space:nowrap}.se-kpi strong {display:block;font-size:1.45rem;white-space:nowrap;margin-top:4px}
+.se-odds {text-align:center}.se-odds strong {display:block;border:1px solid #376d90;border-radius:9px;padding:5px 7px;font-size:1.3rem;background:#102e45}.se-odds span {display:block;border:1px solid #078f56;background:#07412f;border-radius:9px;padding:4px;margin-top:6px;font-size:.87rem;color:#61f2a4;font-weight:800}
+.se-chevron {font-size:1.3rem;text-align:center}.se-chevron:before {content:'⌄'}.se-pick[open] .se-chevron:before {content:'⌃'}
+.se-pick-expanded {padding:0 18px 14px}.se-research {display:grid;grid-template-columns:1fr 1fr;gap:14px}.se-research-panel {border:1px solid #326284;border-radius:11px;padding:10px 16px;min-width:0}.se-research-panel h3 {font-size:1.1rem!important;margin:0 0 7px!important}.se-research-panel ul {margin:0;padding-left:22px;color:#e4edf8;font-size:.84rem;line-height:1.5}.se-research-panel li {margin-bottom:5px}
+.se-detail-strip {display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;border:1px solid #315b7d;border-radius:9px;padding:9px 14px;margin-top:10px;font-size:.79rem;color:#d8e8f5}.se-detail-strip strong {color:white}
+.se-disclaimer {font-size:.74rem;color:#a7bfd3;margin:7px 2px 0}
+@media(max-width:1120px){.se-board{grid-template-columns:1fr 1.3fr}.se-board-col:last-child{grid-column:1/-1;border-left:0;border-top:1px solid #356184;padding:12px 0 0}.se-pick-head{grid-template-columns:40px 58px minmax(170px,1.5fr) repeat(3,minmax(68px,.7fr)) 78px 18px;gap:7px;padding:12px}.se-pick-logo .pick-image{width:56px;height:54px}.se-kpi strong{font-size:1.1rem}.se-kpi small{font-size:.65rem}}
+@media(max-width:760px){.block-container{padding:1rem .65rem 2rem!important}.se-brand{flex-wrap:wrap}.se-nav{display:none}.se-board{grid-template-columns:1fr;padding:13px;gap:12px}.se-board-col+.se-board-col{border-left:0;border-top:1px solid #356184;padding:12px 0 0}.se-board-col:last-child{grid-column:auto}.se-pick-head{grid-template-columns:35px 46px minmax(0,1fr) 74px 16px;gap:6px;padding:10px}.se-pick-logo .pick-image{width:45px;height:48px}.se-pick-name{font-size:.89rem}.se-pick-match{font-size:.78rem}.se-pick-meta{font-size:.68rem}.se-kpi{grid-row:2;border-left:0;border-top:1px solid #315b7d;padding:8px 0 0}.se-kpi:nth-of-type(4){grid-column:2}.se-kpi:nth-of-type(5){grid-column:3}.se-kpi:nth-of-type(6){grid-column:4}.se-kpi strong{font-size:1.03rem}.se-odds strong{font-size:1rem}.se-odds span{font-size:.7rem}.se-research{grid-template-columns:1fr}.se-section-head h2{font-size:1.6rem!important}}
 </style>""", unsafe_allow_html=True)
 
 if 'DATABASE_URL' not in st.secrets:
@@ -186,8 +224,7 @@ def header(text, caption=None):
     st.subheader(text)
     if caption: st.caption(caption)
 
-st.title("Sports Betting Analytics")
-st.caption(f"Performance tracking and research ledger • {TODAY:%A, %B %d, %Y} • Pacific Time")
+
 
 def clean_text(value):
     """Keep missing database fields from appearing as 'nan' in the UI."""
@@ -605,100 +642,114 @@ def research_items(text, limit=4):
     return items[:limit], items[limit:]
 
 
+def selection_matchup_display(r):
+    """Display matchup in stored order; never infer home/away from ambiguous vs."""
+    matchup = matchup_display(r)
+    selection = clean_text(r.get('selection'))
+    teams = matchup_teams(r)
+    if len(teams) != 2:
+        return matchup
+    chosen = next((t for t in teams if _team_key(t) in _team_key(selection)), '')
+    if not chosen:
+        return matchup
+    other = teams[1] if chosen == teams[0] else teams[0]
+    if re.search(r'\s+@\s+|\s+at\s+', clean_text(r.get('matchup')), flags=re.I):
+        return f'{chosen} @ {other}' if chosen == teams[0] else f'{chosen} vs. {other}'
+    return matchup
+
+
 def full_pick_card(r):
     odds = number(r.get('odds'), None)
     prob = number(r.get('estimated_prob'), None)
     be = odds_break_even(odds) if odds is not None else None
-    edge = prob*100-be if prob is not None and 0 < prob < 1 and be is not None else None
+    edge = prob * 100 - be if prob is not None and 0 < prob < 1 and be is not None else None
     rank = int(r['rank']) if pd.notna(r.get('rank')) else '—'
     rationale, warnings = pick_analysis(r)
     if not rationale:
-        rationale = 'No verified matchup analysis has been recorded for this selection.'
+        rationale = 'Matchup-specific research has not been recorded.'
     if not warnings:
         warnings = 'Injuries and confirmed lineups have not been independently verified.'
-    why_main, why_extra = research_items(rationale, 4)
-    watch_main, watch_extra = research_items(warnings, 4)
+    # Show meaningful research, without fabricating news or suppressing warnings.
+    why_main, why_extra = research_items(rationale, 5)
+    watch_main, watch_extra = research_items(warnings, 5)
+    if why_extra:
+        why_main.append('Additional recorded research available in the pick history.')
+    if watch_extra:
+        watch_main.append('Additional recorded risks available in the pick history.')
     selection = esc(r.get('selection'))
-    matchup = esc(matchup_display(r))
-    start = esc(r.get('start_pt')) or 'Start time unverified'
+    matchup = esc(selection_matchup_display(r))
+    start = esc(r.get('start_pt')) or 'Time unverified'
     sport = esc(r.get('sport'))
     price = f'{odds:+.0f}' if odds is not None else '—'
     units = number(r.get('stake'), 1.0)
-    details = ''
-    if why_extra:
-        details += f'<p><strong>More matchup analysis</strong></p>{html_lines(chr(10).join(why_extra))}'
-    if watch_extra:
-        details += f'<p><strong>Additional risks</strong></p>{html_lines(chr(10).join(watch_extra))}'
-    # Display cached, saved information only. Do NOT fetch fresh spread/total
-    # quotes during page rendering: this prevents avoidable Odds API charges.
-    details += (f'<p><strong>Matchup:</strong> {matchup}</p>'
-                f'<p><strong>Market:</strong> {esc(r.get("market")) or "Not recorded"}</p>'
-                '<p>Model probabilities and edges are experimental, not independently betting-validated. '
-                'Check current odds, injuries, and lineups before wagering.</p>')
-    return f"""<article class="pick-card">
-      <div class="pick-top">
-        <div class="pick-rank">#{rank}</div>
-        <div class="pick-image-cell">{card_image_html(r)}</div>
-        <div class="pick-primary"><div class="pick-name">{selection}</div>
-          <div class="pick-meta">{sport} · {matchup} · {start}</div></div>
-        <div class="pick-price"><strong>{price}</strong><span>{units:g}u suggested</span></div>
+    prob_text = f'{prob*100:.1f}%' if prob is not None and 0 < prob < 1 else '—'
+    be_text = f'{be:.1f}%' if be is not None else '—'
+    edge_text = f'{edge:+.1f} pp' if edge is not None else '—'
+    edge_class = 'se-green' if edge is not None and edge >= 0 else 'se-red'
+    market = esc(r.get('market')) or 'Not recorded'
+    first = ' se-first' if rank == 1 else ''
+    open_attr = ' open' if rank == 1 else ''
+    return f'''<details class="se-pick{first}"{open_attr}>
+      <summary><div class="se-pick-head">
+        <div class="se-rank">{rank}</div>
+        <div class="se-pick-logo">{card_image_html(r)}</div>
+        <div><div class="se-pick-name">{selection}</div><div class="se-pick-match">{matchup}</div><div class="se-pick-meta">{sport} · {start}</div></div>
+        <div class="se-kpi"><small>Win Prob.</small><strong>{prob_text}</strong></div>
+        <div class="se-kpi"><small>Break-Even</small><strong>{be_text}</strong></div>
+        <div class="se-kpi"><small>Model Edge</small><strong class="{edge_class}">{edge_text}</strong></div>
+        <div class="se-odds"><strong>{price}</strong><span>{units:g} units</span></div>
+        <div class="se-chevron"></div>
+      </div></summary>
+      <div class="se-pick-expanded">
+        <div class="se-research">
+          <section class="se-research-panel"><h3>Why This Pick?</h3>{html_lines(chr(10).join(why_main))}</section>
+          <section class="se-research-panel"><h3>Watch Out For:</h3>{html_lines(chr(10).join(watch_main))}</section>
+        </div>
+        <div class="se-detail-strip"><span><strong>Matchup:</strong> {esc(matchup_display(r))}</span><span><strong>Market:</strong> {market}</span><span><strong>Odds:</strong> {price}</span><span><strong>Model:</strong> experimental / not betting-validated</span></div>
+        <p class="se-disclaimer">Research reflects saved notes, not a live injury or news feed. Confirm prices, availability, and lineups before placing a wager.</p>
       </div>
-      <div class="pick-kpis">
-        <div><div class="pick-kpi-label">Model win probability</div><div class="pick-kpi-value">{f'{prob*100:.1f}%' if prob is not None and 0 < prob < 1 else '—'}</div></div>
-        <div><div class="pick-kpi-label">Break-even probability</div><div class="pick-kpi-value">{f'{be:.1f}%' if be is not None else '—'}</div></div>
-        <div><div class="pick-kpi-label">Estimated edge</div><div class="pick-kpi-value {('positive' if edge >= 0 else 'negative') if edge is not None else ''}">{f'{edge:+.1f} pp' if edge is not None else '—'}</div></div>
-      </div>
-      <div class="pick-research">
-        <section><div class="pick-col-title">Why This Pick?</div><div class="pick-bullets">{html_lines(chr(10).join(why_main))}</div></section>
-        <section><div class="pick-col-title">Watch Out For:</div><div class="pick-bullets">{html_lines(chr(10).join(watch_main))}</div></section>
-      </div>
-      <details class="pick-details"><summary>View detailed analysis</summary>
-        <div class="pick-details-content">{details}</div></details>
-    </article>"""
+    </details>'''
 
 
 if page == 'Dashboard':
-    summary=stats(df)
-    net=number(summary.get('net'))
-    roi=summary.get('roi')
-    settled=int(df['result'].isin(['Win','Loss','Push','Void']).sum())
-    pending=int(df['result'].eq('Pending').sum())
-    metrics=[('W–L–P',format_record(summary),''),('Net units',signed_units(net),signed_class(net)),('ROI',f'{roi:+.1f}%' if roi is not None else '—',signed_class(roi)),('Settled',str(settled),''),('Pending',str(pending),'')]
-    metrics_html=''.join(f'<div class="metric-box"><div class="metric-label">{esc(label)}</div><div class="metric-value {css}">{esc(value)}</div></div>' for label,value,css in metrics)
-    hist=None  # Old aggregate baseline excluded from the October 28 fresh start.
-    if hist:
-        st.caption(f"Historical baseline through {hist['as_of']}: {hist['wins']}–{hist['losses']}–{hist['pushes']}, {hist['net']:+.2f}u (separate from pick-level totals; not double counted).")
-
-    yesterday=TODAY-timedelta(days=1)
-    y=df[df['date'].astype(str)==yesterday.isoformat()]
-    ys=stats(y)
-    yn=number(ys.get('net'))
-    recap=(f'{format_record(ys)} &nbsp; | &nbsp; {signed_units(yn)}' if not y.empty else 'No picks recorded')
-    recap_detail=('Some results are awaiting verification.' if y['result'].eq('Pending').any() else f'{len(y)} recorded picks; see history below.') if not y.empty else 'No recorded picks for yesterday.'
-    if yesterday.isoformat() < RECORD_START_DATE:
-        recap = 'New record starts today'
-        recap_detail = 'Earlier selections are archived outside the new running record.'
-    recap_items = ''
-    for _, item in y.sort_values('rank', na_position='last').iterrows():
+    summary = stats(df)
+    net = number(summary.get('net'))
+    roi = summary.get('roi')
+    yesterday = TODAY - timedelta(days=1)
+    y = df[df['date'].astype(str) == yesterday.isoformat()]
+    ys = stats(y)
+    yn = number(ys.get('net'))
+    recap_html = ''
+    for i, (_, item) in enumerate(y.sort_values('rank', na_position='last').iterrows(), 1):
         outcome = clean_text(item.get('result')) or 'Pending'
         pl = profit(item)
-        units = number(item.get('stake'), 1.0)
-        pl_text = signed_units(pl) if pl is not None else 'Awaiting result'
-        css = signed_class(pl) if pl is not None else ''
-        odds_value = number(item.get('odds'), None)
-        odds_text = f'{odds_value:+.0f}' if odds_value is not None else 'Odds unavailable'
-        recap_items += (f'<div class="recap-item"><div><strong>{esc(item.get("selection"))}</strong>'
-                        f'<div class="recap-item-detail">{esc(item.get("sport"))} · {esc(odds_text)} · {units:g}u risked</div></div>'
-                        f'<div class="recap-item-result {css}">{esc(outcome.upper())} · {esc(pl_text)}</div></div>')
-    st.markdown(f'<section class="dashboard-section"><div class="section-title">Running Record</div><div class="section-sub">Since October 28, 2026 · hypothetical picks · ungraded picks excluded from W–L–P</div><div class="metrics-grid">{metrics_html}</div><div class="record-recap"><div class="recap-flex"><div><div class="section-title">Yesterday’s Recap</div><div class="section-sub">{yesterday:%A, %B %d, %Y}</div><div class="section-sub">{esc(recap_detail)}</div></div><div class="recap-result {signed_class(yn)}">{recap}</div></div><div class="recap-list">{recap_items}</div></div></section>',unsafe_allow_html=True)
-
-    sport_html=''
+        result_letter = {'Win':'W', 'Loss':'L', 'Push':'P', 'Void':'V'}.get(outcome, '—')
+        cls = 'se-green' if outcome == 'Win' else 'se-red' if outcome == 'Loss' else ''
+        pl_text = signed_units(pl) if pl is not None else 'Pending'
+        recap_html += (f'<div class="se-recap-row"><span>{i}.</span>'
+                       f'<span>{esc(item.get("selection"))}</span>'
+                       f'<span class="se-result {cls}">{result_letter}</span>'
+                       f'<span class="{cls}">{esc(pl_text)}</span></div>')
+    if not recap_html:
+        recap_html = '<div style="color:#adc5d9;font-size:.85rem">No picks recorded yesterday.</div>'
+    sport_html = ''
+    short_names = {'College Football':'CFB','College Basketball':'CBB'}
     for name in SPORTS:
-        q=df[df['sport']==name]
-        sq=stats(q)
-        n=number(sq.get('net'))
-        sport_html+=f'<div class="sport-box"><div class="sport-name">{esc(name)}</div><div class="sport-record">{esc(format_record(sq))} <span class="sport-profit {signed_class(n)}">{signed_units(n)}</span></div></div>'
-    st.markdown(f'<section class="dashboard-section"><div class="section-title">Record by Sport</div><div class="sports-grid">{sport_html}</div></section>',unsafe_allow_html=True)
+        sport_record = format_record(stats(df[df['sport'] == name]))
+        sport_html += f'<div class="se-sport">{esc(short_names.get(name, name))}<strong>{esc(sport_record)}</strong></div>'
+    recap_label = f'{format_record(ys)} ({signed_units(yn)})' if not y.empty else 'No picks'
+    roi_text = f'{roi:+.1f}%' if roi is not None else '—'
+    st.markdown(f'''<div class="se-brand"><div class="se-mark"><i></i><i></i><i></i></div>
+      <div><h1>Sports Edge Analytics</h1><p>Model-Driven Sports Betting</p></div>
+      <div class="se-nav"><span>Today's Picks</span><span>Record</span><span>Analytics</span></div></div>
+      <section class="se-board">
+        <div class="se-board-col"><h3>Overall Record</h3><div class="se-big-record">{esc(format_record(summary))}</div>
+          <div class="se-net">Net: <span class="{'se-green' if net>=0 else 'se-red'}">{signed_units(net)}</span>
+          &nbsp; | &nbsp; ROI: <span class="{'se-green' if roi is not None and roi>=0 else 'se-red'}">{roi_text}</span></div></div>
+        <div class="se-board-col"><div class="se-recap-heading"><h3>Yesterday's Recap — {yesterday:%A, %B %d, %Y}</h3><span class="se-recap-pill">{esc(recap_label)}</span></div>
+          <div class="se-recap-list">{recap_html}</div></div>
+        <div class="se-board-col"><h3>Record by Sport</h3><div class="se-sports">{sport_html}</div></div>
+      </section>''', unsafe_allow_html=True)
 
     today_df=df[df['date'].astype(str)==TODAY.isoformat()].sort_values('rank',na_position='last')
     ranked=today_df[today_df['rank'].notna()].head(5)
@@ -708,19 +759,9 @@ if page == 'Dashboard':
         picks_html=''.join(full_pick_card(pick) for _,pick in ranked.iterrows())
         if len(ranked)!=5 or sorted(ranked['rank'].astype(int).tolist())!=[1,2,3,4,5]:
             picks_html='<div class="section-sub">Today’s card is incomplete; only verified recorded picks are shown.</div>'+picks_html
-    st.markdown(f'<section class="dashboard-section"><div class="section-title" style="font-size:1.35rem">Today’s Top 5</div><div class="section-sub">Ranked recorded selections · Pacific Time · model estimates are experimental and uncalibrated</div>{picks_html}</section>',unsafe_allow_html=True)
+    st.markdown(f'<div class="se-section-head"><h2>Today’s Top 5 Picks</h2><p>{TODAY:%A, %B %d, %Y} &nbsp; | &nbsp; All times Pacific</p></div>{picks_html}',unsafe_allow_html=True)
 
-    table_rows=''
-    for _,r in ranked.iterrows():
-        odds=number(r.get('odds'),None)
-        prob=number(r.get('estimated_prob'),None)
-        be=odds_break_even(odds) if odds is not None else None
-        edge=prob*100-be if prob is not None and 0<prob<1 and be is not None else None
-        edge_text=f'{edge:+.1f} pp' if edge is not None else '—'
-        table_rows+=f'<tr><td>{int(r["rank"])}</td><td>{esc(r.get("selection"))}</td><td>{odds:+.0f}</td><td>{f"{be:.1f}%" if be is not None else "—"}</td><td>{f"{prob*100:.1f}%" if prob is not None and 0<prob<1 else "—"}</td><td class="{("positive" if edge>=0 else "negative") if edge is not None else ""}">{edge_text}</td></tr>'
-    if not table_rows: table_rows='<tr><td colspan="6">No verified selections available for today.</td></tr>'
-    st.markdown(f'<section class="dashboard-section"><div class="section-title">Final Card</div><table class="final-table"><thead><tr><th>Rank</th><th>Pick</th><th>Odds</th><th>Break-even</th><th>Estimated probability</th><th>Estimated edge</th></tr></thead><tbody>{table_rows}</tbody></table></section>',unsafe_allow_html=True)
-
+    st.divider()
     header('Performance Trends')
     filtered=df.copy()
     with st.container(border=True):

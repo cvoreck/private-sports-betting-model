@@ -688,7 +688,7 @@ def full_pick_card(r):
     edge_class = 'se-green' if edge is not None and edge >= 0 else 'se-red'
     market = esc(r.get('market')) or 'Not recorded'
     first = ' se-first' if rank == 1 else ''
-    open_attr = ' open' if rank == 1 else ''
+    open_attr = ''  # All pick cards start collapsed.
     return f'''<details class="se-pick{first}"{open_attr}>
       <summary><div class="se-pick-head">
         <div class="se-rank">{rank}</div>
@@ -697,7 +697,7 @@ def full_pick_card(r):
         <div class="se-kpi"><small>Win Prob.</small><strong>{prob_text}</strong></div>
         <div class="se-kpi"><small>Break-Even</small><strong>{be_text}</strong></div>
         <div class="se-kpi"><small>Model Edge</small><strong class="{edge_class}">{edge_text}</strong></div>
-        <div class="se-odds"><strong>{price}</strong><span>{units:g} units</span></div>
+        <div class="se-odds"><strong>{price}</strong><span>{units:g} {'unit' if units == 1 else 'units'}</span></div>
         <div class="se-chevron"></div>
       </div></summary>
       <div class="se-pick-expanded">

@@ -235,7 +235,7 @@ def trained_home_probability(event, history, sport, weights, asof):
 def main():
     logging.basicConfig(level=logging.INFO,format='%(levelname)s %(message)s')
     now=datetime.now(timezone.utc);today=now.astimezone(PT).date()
-    counts={'events':0,'matched':0,'regular':0,'moneyline_predictions':0,'spread_predictions':0,'total_predictions':0,'trained_moneyline_events':0,'no_trained_model':0,'insufficient_team_history':0,'college_events_awaiting_ap_verification':0,'trained_noncollege_events':0}
+    counts={'events':0,'matched':0,'regular':0,'moneyline_predictions':0,'spread_predictions':0,'total_predictions':0,'trained_moneyline_events':0,'no_trained_model':0,'insufficient_team_history':0,'college_events_awaiting_ap_verification':0,'trained_noncollege_events':0,'cached_odds_events':0,'missing_commence_time':0,'already_started':0,'other_pacific_date':0,'unmatched_espn':0,'non_regular_season':0,'missing_event_id':0}
     with psycopg.connect(os.environ['DATABASE_URL'],row_factory=dict_row) as conn:
         conn.execute(SCHEMA)
         models=load_promoted_models(conn)
@@ -247,6 +247,8 @@ def main():
                 odds=college_odds[sport_key] if sport_key in college_odds else cached_odds_events(conn,sport_key,today)
             except (requests.RequestException,ValueError) as exc:
                 logging.warning('%s cached odds unavailable: %s',sport,exc);continue
+            counts['cached_odds_events']+=len(odds)
+            logging.info('%s cached odds events=%d for Pacific date %s',sport,len(odds),today)
             boards=[]
             for d in (-1,0,1):
                 try:boards.extend(fetch(f'https://site.api.espn.com/apis/site/v2/sports/{esport}/{league}/scoreboard',{'dates':(today+timedelta(days=d)).strftime('%Y%m%d'),'limit':200}).get('events') or [])
@@ -260,17 +262,31 @@ def main():
             logging.info('%s archive team histories=%d; live team histories=%d',sport,len(archived),len(live_recent))
             for event in odds:
                 try:start=datetime.fromisoformat(event['commence_time'].replace('Z','+00:00'))
-                except (KeyError,ValueError):continue
-                if start<=now or start.astimezone(PT).date()!=today:continue
+                except (KeyError,ValueError,TypeError):
+                    counts['missing_commence_time']+=1
+                    continue
+                if start<=now:
+                    counts['already_started']+=1
+                    continue
+                if start.astimezone(PT).date()!=today:
+                    counts['other_pacific_date']+=1
+                    continue
                 counts['events']+=1
                 pair=by_match.get((norm(event.get('home_team')),norm(event.get('away_team'))))
-                if not pair:continue
+                if not pair:
+                    counts['unmatched_espn']+=1
+                    logging.info('Unmatched ESPN event sport=%s home=%r away=%r start=%s',sport,event.get('home_team'),event.get('away_team'),start.isoformat())
+                    continue
                 counts['matched']+=1
                 e,h,a=pair
-                if (e.get('season') or {}).get('type')!=2:continue
+                if (e.get('season') or {}).get('type')!=2:
+                    counts['non_regular_season']+=1
+                    continue
                 counts['regular']+=1
                 eid=event.get('id');hn=event['home_team'];an=event['away_team']
-                if not eid:continue
+                if not eid:
+                    counts['missing_event_id']+=1
+                    continue
                 hr=record(h);ar=record(a)
                 # Use each event's scheduled start as the feature cutoff, never future results.
                 if trained_model:

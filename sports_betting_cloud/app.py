@@ -145,6 +145,16 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .se-disclaimer {font-size:.74rem;color:#a7bfd3;margin:7px 2px 0}
 @media(max-width:1120px){.se-board{grid-template-columns:1fr 1.3fr}.se-board-col:last-child{grid-column:1/-1;border-left:0;border-top:1px solid #356184;padding:12px 0 0}.se-pick-head{grid-template-columns:40px 58px minmax(170px,1.5fr) repeat(3,minmax(68px,.7fr)) 78px 18px;gap:7px;padding:12px}.se-pick-logo .pick-image{width:56px;height:54px}.se-kpi strong{font-size:1.1rem}.se-kpi small{font-size:.65rem}}
 @media(max-width:760px){.block-container{padding:1rem .65rem 2rem!important}.se-brand{flex-wrap:wrap}.se-nav{display:none}.se-board{grid-template-columns:1fr;padding:13px;gap:12px}.se-board-col+.se-board-col{border-left:0;border-top:1px solid #356184;padding:12px 0 0}.se-board-col:last-child{grid-column:auto}.se-pick-head{grid-template-columns:35px 46px minmax(0,1fr) 74px 16px;gap:6px;padding:10px}.se-pick-logo .pick-image{width:45px;height:48px}.se-pick-name{font-size:.89rem}.se-pick-match{font-size:.78rem}.se-pick-meta{font-size:.68rem}.se-kpi{grid-row:2;border-left:0;border-top:1px solid #315b7d;padding:8px 0 0}.se-kpi:nth-of-type(4){grid-column:2}.se-kpi:nth-of-type(5){grid-column:3}.se-kpi:nth-of-type(6){grid-column:4}.se-kpi strong{font-size:1.03rem}.se-odds strong{font-size:1rem}.se-odds span{font-size:.7rem}.se-research{grid-template-columns:1fr}.se-section-head h2{font-size:1.6rem!important}}
+
+/* Reference-style Watch Out For sections, no icons */
+.se-watch-sections {display:flex;flex-direction:column;gap:0}
+.se-watch-section {border-top:1px solid #315b7d;padding:13px 0 12px}
+.se-watch-section:first-child {border-top:0;padding-top:6px}
+.se-watch-section h4 {font-size:1rem!important;font-weight:800;color:#f6faff;margin:0 0 10px!important}
+.se-watch-team {padding:2px 0 9px 12px}
+.se-watch-team h5 {font-size:.86rem;font-weight:800;color:#b9ddf7;margin:0 0 6px}
+.se-watch-text {font-size:.82rem;color:#e3eef9;line-height:1.55;margin:0 0 7px 12px;overflow-wrap:anywhere}
+.se-watch-muted {font-size:.8rem;color:#a8bed1;line-height:1.5;margin:0 0 5px 12px}
 </style>""", unsafe_allow_html=True)
 
 if 'DATABASE_URL' not in st.secrets:
@@ -238,7 +248,7 @@ def pick_analysis(r):
     for line in notes.splitlines():
         item = line.strip().lstrip('-• ').strip()
         lower = item.lower()
-        if any(term in lower for term in ('model quality:', 'model rolling-', 'additional recorded research', 'experimental independent record-strength estimate', 'estimated edge and ev are unvalidated', 'not historically validated')):
+        if any(term in lower for term in ('model quality:', 'model rolling-', 'additional recorded research', 'experimental independent record-strength estimate', 'estimated edge and ev are unvalidated', 'not historically validated', 'experimental stake tier:', 'unvalidated bankroll recommendation')):
             continue
         if lower.startswith(('watch out for:', 'watch out:', 'risks:', 'injuries:', 'injury news:', 'suspensions:')):
             warnings.append(item.split(':', 1)[1].strip())
@@ -660,6 +670,72 @@ def selection_matchup_display(r):
     return matchup
 
 
+def watch_sections_html(warnings, r):
+    """Organize saved evidence into reference-style sections; no external requests."""
+    lines = [x.strip().lstrip('•- ').strip() for x in warnings.splitlines() if x.strip()]
+    teams = matchup_teams(r)
+    grouped = {team: [] for team in teams}
+    unassigned, rest, travel, market, other = [], [], [], [], []
+    for line in lines:
+        low = line.lower()
+        if low.startswith(('injury (', 'injuries (')):
+            match = re.match(r'^Injur(?:y|ies)\s*\(([^)]+)\):\s*(.*)$', line, re.I)
+            if match:
+                team, detail = match.group(1).strip(), match.group(2).strip()
+                actual = next((t for t in teams if _team_key(t) == _team_key(team)), team)
+                grouped.setdefault(actual, []).append(detail)
+            else:
+                unassigned.append(line)
+        elif low.startswith(('injury report', 'injuries:', 'injury:', 'suspension')):
+            unassigned.append(line)
+        elif low.startswith('rest:'):
+            rest.append(line.split(':', 1)[1].strip())
+        elif low.startswith(('travel context:', 'travel:')):
+            travel.append(line.split(':', 1)[1].strip())
+        elif low.startswith(('market movement:', 'odds movement:', 'line movement:')):
+            market.append(line.split(':', 1)[1].strip())
+        else:
+            other.append(line)
+
+    # No role/usage data is stored in these notes. Sort by reported status,
+    # never assert that one player is more important than another.
+    def injury_priority(detail):
+        match = re.search(r'—\s*(Out|Doubtful|Questionable|Day-to-day|Probable|Active|Available)\b', detail, re.I)
+        status = match.group(1).lower() if match else ''
+        return {'out': 0, 'doubtful': 1, 'questionable': 2,
+                'day-to-day': 3, 'probable': 4, 'active': 5, 'available': 5}.get(status, 6)
+
+    def entries(items):
+        return ''.join(f'<p class="se-watch-text">{esc(item)}</p>' for item in items)
+
+    injuries_html = ''
+    for team, reports in grouped.items():
+        injuries_html += f'<div class="se-watch-team"><h5>{esc(team)}</h5>'
+        if reports:
+            unique = list(dict.fromkeys(reports))
+            unique.sort(key=injury_priority)
+            injuries_html += entries(unique[:10])
+            if len(unique) > 10:
+                injuries_html += f'<p class="se-watch-muted">{len(unique)-10} additional recorded injuries not shown.</p>'
+        else:
+            injuries_html += '<p class="se-watch-muted">No player injuries returned in the saved matchup report; availability not confirmed.</p>'
+        injuries_html += '</div>'
+    if unassigned:
+        injuries_html += '<div class="se-watch-team">' + entries(unassigned) + '</div>'
+    if not injuries_html:
+        injuries_html = '<p class="se-watch-muted">Injury information unavailable.</p>'
+
+    sections = [('Injuries', injuries_html),
+                ('Rest', entries(rest) if rest else '<p class="se-watch-muted">Rest data unavailable.</p>'),
+                ('Travel', entries(travel) if travel else '<p class="se-watch-muted">No verified travel context recorded.</p>'),
+                ('Market movement', entries(market) if market else '<p class="se-watch-muted">No verified line movement recorded.</p>')]
+    if other:
+        sections.append(('Other matchup factors', entries(other)))
+    return '<div class="se-watch-sections">' + ''.join(
+        f'<div class="se-watch-section"><h4>{esc(title)}</h4>{content}</div>'
+        for title, content in sections) + '</div>'
+
+
 def full_pick_card(r):
     odds = number(r.get('odds'), None)
     prob = number(r.get('estimated_prob'), None)
@@ -673,9 +749,7 @@ def full_pick_card(r):
         warnings = 'Injuries and confirmed lineups have not been independently verified.'
     # Show meaningful research, without fabricating news or suppressing warnings.
     why_main, why_extra = research_items(rationale, 5)
-    watch_main, watch_extra = research_items(warnings, 5)
-    if watch_extra:
-        watch_main.append('Additional recorded risks available in the pick history.')
+    watch_html = watch_sections_html(warnings, r)
     selection = esc(r.get('selection'))
     matchup = esc(selection_matchup_display(r))
     start = esc(r.get('start_pt')) or 'Time unverified'
@@ -703,7 +777,7 @@ def full_pick_card(r):
       <div class="se-pick-expanded">
         <div class="se-research">
           <section class="se-research-panel"><h3>Why This Pick?</h3>{html_lines(chr(10).join(why_main))}</section>
-          <section class="se-research-panel"><h3>Watch Out For:</h3>{html_lines(chr(10).join(watch_main))}</section>
+          <section class="se-research-panel"><h3>Watch Out For:</h3>{watch_html}</section>
         </div>
         <div class="se-detail-strip"><span><strong>Matchup:</strong> {esc(matchup_display(r))}</span><span><strong>Market:</strong> {market}</span><span><strong>Odds:</strong> {price}</span><span><strong>Model:</strong> experimental / not betting-validated</span></div>
         <p class="se-disclaimer">Research reflects saved notes, not a live injury or news feed. Confirm prices, availability, and lineups before placing a wager.</p>

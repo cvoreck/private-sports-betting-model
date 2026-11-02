@@ -11,7 +11,7 @@ import json
 import re
 from threading import RLock
 import streamlit as st
-from storage import init, add, all_picks, grade, baseline, set_baseline, import_rows
+from storage import init, add, all_picks, grade, baseline, set_baseline, import_rows, connect
 from analytics import stats, format_record
 
 st.set_page_config(page_title="Sports Betting Analytics", page_icon="🏟️", layout="wide", initial_sidebar_state="collapsed")
@@ -155,6 +155,9 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .se-watch-team h5 {font-size:.86rem;font-weight:800;color:#b9ddf7;margin:0 0 6px}
 .se-watch-text {font-size:.82rem;color:#e3eef9;line-height:1.55;margin:0 0 7px 12px;overflow-wrap:anywhere}
 .se-watch-muted {font-size:.8rem;color:#a8bed1;line-height:1.5;margin:0 0 5px 12px}
+.se-market-strip {display:grid;grid-template-columns:1fr 1fr;gap:7px 16px;border:1px solid #315b7d;border-radius:9px;padding:11px 14px;margin-top:10px;font-size:.84rem;color:#d8e8f5}
+.se-market-strip strong {color:#fff}.se-quote-source {color:#a7bfd3;font-size:.76rem}.se-market-strip>.se-quote-source {grid-column:1/-1}
+@media(max-width:650px){.se-market-strip{grid-template-columns:1fr}}
 </style>""", unsafe_allow_html=True)
 
 if 'DATABASE_URL' not in st.secrets:
@@ -614,6 +617,116 @@ def market_lines_html(r):
             f'<br><span class="pick-market-muted">{esc(status)}</span></div>')
 
 
+def saved_market_lines(r):
+    """Read only explicitly saved market quotes; never infer from model odds."""
+    notes = clean_text(r.get('notes'))
+    result = {}
+    for raw in notes.splitlines():
+        line = raw.strip().lstrip('-• ').strip()
+        for key, labels in (('spread', ('spread:', 'recorded spread:')),
+                            ('total', ('total o/u:', 'total:', 'recorded total:'))):
+            if any(line.lower().startswith(label) for label in labels):
+                value = line.split(':', 1)[1].strip()
+                if value:
+                    result[key] = value
+    return result
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def morning_market_snapshots(day):
+    """Read existing daily Odds API archive; never call the vendor."""
+    try:
+        with connect() as conn:
+            rows = conn.execute("""SELECT sport, payload, collected_at FROM historical_snapshots
+                WHERE source='the-odds-api' AND category='daily_odds_cache'
+                  AND item_key=%s ORDER BY collected_at ASC""", (day,)).fetchall()
+    except Exception:
+        return {}
+    # First successful snapshot per sport is the morning publication snapshot.
+    result = {}
+    for row in rows:
+        result.setdefault(row['sport'], row)
+    return result
+
+
+def market_strip_html(r, load_live=False):
+    """Display morning archived spreads/totals with zero additional Odds API calls."""
+    day = clean_text(r.get('date'))[:10]
+    sport_key = ODDS_SPORT_KEYS.get(clean_text(r.get('sport')))
+    archive = morning_market_snapshots(day).get(sport_key) if sport_key else None
+    found = {'spread': '', 'total': '', 'spread_book': '', 'total_book': ''}
+    captured = None
+    if archive:
+        captured = archive.get('collected_at')
+        events = (archive.get('payload') or {}).get('events') or []
+        teams = matchup_teams(r)
+        if len(teams) == 2:
+            away, home = map(_team_key, teams)
+            for event in events:
+                if _team_key(event.get('away_team')) != away or _team_key(event.get('home_team')) != home:
+                    continue
+                try:
+                    event_day = datetime.fromisoformat(event['commence_time'].replace('Z', '+00:00')).astimezone(PT).date().isoformat()
+                except (ValueError, TypeError, KeyError):
+                    continue
+                if event_day != day:
+                    continue
+                books = event.get('bookmakers') or []
+                preferred = BOOK_KEYS.get(recorded_bookmaker(r.get('source')).casefold())
+                books = sorted(books, key=lambda book: book.get('key') != preferred)
+                for market_key, field in (('spreads', 'spread'), ('totals', 'total')):
+                    for book in books:
+                        market = _market_from_book(book, market_key)
+                        if not market:
+                            continue
+                        outcomes = market.get('outcomes') or []
+                        if market_key == 'spreads':
+                            parts = []
+                            for team in (event.get('home_team'), event.get('away_team')):
+                                outcome = next((o for o in outcomes if _team_key(o.get('name')) == _team_key(team)), None)
+                                if outcome:
+                                    value = _format_outcome(outcome, include_team=True)
+                                    if value:
+                                        parts.append(value)
+                            value = ' · '.join(parts)
+                        else:
+                            parts = []
+                            for side in ('Over', 'Under'):
+                                outcome = next((o for o in outcomes if str(o.get('name', '')).casefold() == side.casefold()), None)
+                                if outcome:
+                                    value = _format_outcome(outcome)
+                                    if value:
+                                        parts.append(f'{side} {value}')
+                            value = ' · '.join(parts)
+                        if value:
+                            found[field] = value
+                            found[field + '_book'] = book.get('title') or book.get('key') or ''
+                            break
+                break
+    saved = saved_market_lines(r)
+    parts = []
+    for field in ('spread', 'total'):
+        if found[field]:
+            book = found[field + '_book']
+            parts.append(esc(found[field]) + (f' <span class="se-quote-source">({esc(book)})</span>' if book else ''))
+        elif saved.get(field):
+            parts.append(esc(saved[field]) + ' <span class="se-quote-source">(saved in pick notes)</span>')
+        else:
+            parts.append('<span class="se-quote-source">Not available in morning snapshot</span>')
+    if captured:
+        try:
+            stamp = captured.astimezone(PT).strftime('%b %d, %I:%M %p PT')
+        except (AttributeError, ValueError):
+            stamp = 'time unavailable'
+        note = f'Archived odds snapshot: {esc(stamp)}. Prices are not live.'
+    else:
+        note = 'No morning odds archive found for this sport and date. No live lookup performed.'
+    return (f'<div class="se-market-strip">'
+            f'<div><strong>Spread:</strong> {parts[0]}</div>'
+            f'<div><strong>Total O/U:</strong> {parts[1]}</div>'
+            f'<div class="se-quote-source">{note}</div></div>')
+
+
 def matchup_preview(rationale):
     """Summarize facts already stored in the research notes; no invented news."""
     items = [line.strip().lstrip('•- ').strip() for line in rationale.splitlines() if line.strip()]
@@ -781,7 +894,7 @@ def why_sections_html(rationale):
     return '<div class="se-watch-sections se-why-sections">' + ''.join(blocks) + '</div>'
 
 
-def full_pick_card(r):
+def full_pick_card(r, load_live=False):
     odds = number(r.get('odds'), None)
     prob = number(r.get('estimated_prob'), None)
     be = odds_break_even(odds) if odds is not None else None
@@ -808,6 +921,7 @@ def full_pick_card(r):
     market = esc(r.get('market')) or 'Not recorded'
     first = ' se-first' if rank == 1 else ''
     open_attr = ''
+    market_strip = market_strip_html(r, load_live=load_live)
     return f'''<details class="se-pick{first}"{open_attr}>
       <summary><div class="se-pick-head">
         <div class="se-rank">{rank}</div>
@@ -824,6 +938,7 @@ def full_pick_card(r):
           <section class="se-research-panel"><h3>Why This Pick?</h3>{why_html}</section>
           <section class="se-research-panel"><h3>Watch Out For:</h3>{watch_html}</section>
         </div>
+        {market_strip}
         <div class="se-detail-strip"><span><strong>Matchup:</strong> {esc(matchup_display(r))}</span><span><strong>Market:</strong> {market}</span><span><strong>Odds:</strong> {price}</span><span><strong>Model:</strong> experimental / not betting-validated</span></div>
         <p class="se-disclaimer">Research reflects saved notes, not a live injury or news feed. Confirm prices, availability, and lineups before placing a wager.</p>
       </div>

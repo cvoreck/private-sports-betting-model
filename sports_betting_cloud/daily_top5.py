@@ -359,12 +359,16 @@ def refresh_existing_card_research(conn, today):
         except Exception as exc:
             logging.warning('Research: recent-game retrieval failed for %s: %s', sport, exc)
             recent = {}
+        # ESPN league-level injuries are fetched once for this sport, not per pick.
+        injury_feed = mr.fetch_espn_injuries(sport)
         for row, event in found:
             matched += 1
             home, away = _espn_event_teams(event)
             try:
                 start = datetime.fromisoformat(event['date'].replace('Z', '+00:00'))
-                why, risks = mr.research(event, sport, home, away, recent, start)
+                injuries = mr.injury_reports_for_event(event, injury_feed, home, away)
+                why, risks = mr.research(event, sport, home, away, recent, start,
+                                         injury_reports=injuries)
             except (ValueError, KeyError, TypeError, requests.RequestException) as exc:
                 logging.warning('Research: failed to analyze %s: %s', row['matchup'], exc)
                 continue

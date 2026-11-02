@@ -64,6 +64,7 @@ def completed_games(sport, league, day, lookback=18):
                         'allowed': scores[1 - i],
                         'win': scores[i] > scores[1 - i],
                         'home': competitor.get('homeAway') == 'home',
+                        'opponent_record': next((x.get('summary') for x in (competitors[1-i].get('records') or []) if x.get('type') == 'total'), None),
                     })
     return {name: sorted(rows, key=lambda r: r['date'], reverse=True)[:10]
             for name, rows in games.items()}
@@ -361,17 +362,58 @@ def research(espn_event, sport, home, away, recent, start, home_probability=None
     """Return (why, watch) lists; signature remains backward compatible."""
     hg = recent.get(norm(home), [])
     ag = recent.get(norm(away), [])
-    why = [summarize(home, hg, sport), summarize(away, ag, sport)]
+    why = [f'Recent form: {summarize(home, hg, sport)}',
+           f'Recent form: {summarize(away, ag, sport)}']
     if hg and ag:
-        why.append(
-            f'Last-{len(hg)} vs last-{len(ag)} sample: {home} scored '
-            f'{statistics.mean(x["scored"] for x in hg):.1f} per game; '
-            f'{away} allowed {statistics.mean(x["allowed"] for x in ag):.1f} per game. '
-            'Descriptive matchup comparison, not a causal prediction.'
-        )
+        home_scored = statistics.mean(g['scored'] for g in hg)
+        away_allowed = statistics.mean(g['allowed'] for g in ag)
+        away_scored = statistics.mean(g['scored'] for g in ag)
+        home_allowed = statistics.mean(g['allowed'] for g in hg)
+        why.append(f'Offensive vs. defensive matchup: {home} scores {home_scored:.1f} per game recently '
+                   f'vs. {away} allowing {away_allowed:.1f}; {away} scores {away_scored:.1f} '
+                   f'vs. {home} allowing {home_allowed:.1f}. Descriptive last-{len(hg)} / last-{len(ag)} samples.')
     splits = home_away_note(home, away, hg, ag)
-    if splits:
-        why.append(splits)
+    why.append('Home/away performance: ' + (splits or
+               'Insufficient recent home/road games for a comparable split (minimum three per side).'))
+
+    # Opponent W-L snapshots are only used if ESPN supplies them in completed-game records.
+    def schedule_strength(games):
+        vals = []
+        for g in games:
+            record = str(g.get('opponent_record') or '')
+            match = re.fullmatch(r'(\d+)-(\d+)(?:-\d+)?', record)
+            if match:
+                w, l = int(match.group(1)), int(match.group(2))
+                if w + l:
+                    vals.append(w / (w + l))
+        return vals
+    home_opp, away_opp = schedule_strength(hg), schedule_strength(ag)
+    if home_opp and away_opp:
+        why.append(f'Strength of schedule: Recent opponents had average recorded win percentages '
+                   f'of {statistics.mean(home_opp):.3f} for {home} ({len(home_opp)} opponents) '
+                   f'and {statistics.mean(away_opp):.3f} for {away} ({len(away_opp)} opponents). '
+                   'ESPN game-time record snapshots; not an adjusted strength-of-schedule rating.')
+    else:
+        why.append('Strength of schedule: Comparable opponent records were not available '
+                   'from the recorded ESPN game results.')
+
+    # ESPN scoreboard competitors sometimes provide season-to-date overall W-L.
+    competitors = (espn_event.get('competitions') or [{}])[0].get('competitors') or []
+    def season_record(team):
+        for c in competitors:
+            if norm((c.get('team') or {}).get('displayName')) == norm(team):
+                for rec in c.get('records') or []:
+                    if rec.get('type') == 'total' and rec.get('summary'):
+                        return rec['summary']
+        return None
+    hrec, arec = season_record(home), season_record(away)
+    if hrec or arec:
+        why.append(f'Season-long performance: Overall records reported in the ESPN matchup: '
+                   f'{home} {hrec or "unavailable"}; {away} {arec or "unavailable"}. '
+                   'Season scoring averages and league rankings not verified.')
+    else:
+        why.append('Season-long performance: Overall season records and league rankings '
+                   'not available in this matchup snapshot.')
     watch = []
     rest = rest_note(home, away, hg, ag, start)
     if rest:

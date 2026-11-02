@@ -238,6 +238,8 @@ def pick_analysis(r):
     for line in notes.splitlines():
         item = line.strip().lstrip('-• ').strip()
         lower = item.lower()
+        if any(term in lower for term in ('model quality:', 'model rolling-', 'additional recorded research', 'experimental independent record-strength estimate', 'estimated edge and ev are unvalidated', 'not historically validated')):
+            continue
         if lower.startswith(('watch out for:', 'watch out:', 'risks:', 'injuries:', 'injury news:', 'suspensions:')):
             warnings.append(item.split(':', 1)[1].strip())
         elif lower.startswith(('why:', 'rationale:', 'analysis:')):
@@ -672,8 +674,6 @@ def full_pick_card(r):
     # Show meaningful research, without fabricating news or suppressing warnings.
     why_main, why_extra = research_items(rationale, 5)
     watch_main, watch_extra = research_items(warnings, 5)
-    if why_extra:
-        why_main.append('Additional recorded research available in the pick history.')
     if watch_extra:
         watch_main.append('Additional recorded risks available in the pick history.')
     selection = esc(r.get('selection'))
@@ -688,7 +688,7 @@ def full_pick_card(r):
     edge_class = 'se-green' if edge is not None and edge >= 0 else 'se-red'
     market = esc(r.get('market')) or 'Not recorded'
     first = ' se-first' if rank == 1 else ''
-    open_attr = ''  # All pick cards start collapsed.
+    open_attr = ''
     return f'''<details class="se-pick{first}"{open_attr}>
       <summary><div class="se-pick-head">
         <div class="se-rank">{rank}</div>

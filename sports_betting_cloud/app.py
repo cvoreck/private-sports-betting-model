@@ -157,7 +157,16 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .se-watch-muted {font-size:.8rem;color:#a8bed1;line-height:1.5;margin:0 0 5px 12px}
 .se-market-strip {display:grid;grid-template-columns:1fr 1fr;gap:7px 16px;border:1px solid #315b7d;border-radius:9px;padding:11px 14px;margin-top:10px;font-size:.84rem;color:#d8e8f5}
 .se-market-strip strong {color:#fff}.se-quote-source {color:#a7bfd3;font-size:.76rem}.se-market-strip>.se-quote-source {grid-column:1/-1}
-@media(max-width:650px){.se-market-strip{grid-template-columns:1fr}}
+ /* Template-matched single information bar; morning quotes only */
+ .se-detail-strip.se-template-strip {display:grid;grid-template-columns:1.2fr 1fr 1fr 1.05fr;align-items:center;gap:0;padding:0;margin-top:10px;flex-wrap:nowrap}
+ .se-template-strip .se-strip-item {min-width:0;padding:10px 12px;border-right:1px solid #315b7d;line-height:1.35}
+ .se-template-strip .se-strip-item:last-child {border-right:0}
+ .se-template-strip .se-strip-item strong {white-space:nowrap}
+ .se-template-strip .se-strip-item span {overflow-wrap:anywhere}
+ .se-archive-note {font-size:.72rem;color:#a7bfd3;margin:6px 3px 0}
+ @media(max-width:850px){.se-detail-strip.se-template-strip{grid-template-columns:1fr 1fr}.se-template-strip .se-strip-item:nth-child(2){border-right:0}.se-template-strip .se-strip-item:nth-child(-n+2){border-bottom:1px solid #315b7d}}
+ @media(max-width:650px){.se-market-strip{grid-template-columns:1fr}}
+
 </style>""", unsafe_allow_html=True)
 
 if 'DATABASE_URL' not in st.secrets:
@@ -721,10 +730,12 @@ def market_strip_html(r, load_live=False):
         note = f'Archived odds snapshot: {esc(stamp)}. Prices are not live.'
     else:
         note = 'No morning odds archive found for this sport and date. No live lookup performed.'
-    return (f'<div class="se-market-strip">'
-            f'<div><strong>Spread:</strong> {parts[0]}</div>'
-            f'<div><strong>Total O/U:</strong> {parts[1]}</div>'
-            f'<div class="se-quote-source">{note}</div></div>')
+    return (f'<div class="se-detail-strip se-template-strip">'
+            f'<div class="se-strip-item"><strong>Matchup:</strong> <span>{esc(matchup_display(r))}</span></div>'
+            f'<div class="se-strip-item"><strong>Spread:</strong> <span>{parts[0]}</span></div>'
+            f'<div class="se-strip-item"><strong>Total:</strong> <span>{parts[1]}</span></div>'
+            f'<div class="se-strip-item"><strong>Model:</strong> <span>experimental / not betting-validated</span></div>'
+            f'</div><p class="se-archive-note">{note}</p>')
 
 
 def matchup_preview(rationale):
@@ -939,7 +950,6 @@ def full_pick_card(r, load_live=False):
           <section class="se-research-panel"><h3>Watch Out For:</h3>{watch_html}</section>
         </div>
         {market_strip}
-        <div class="se-detail-strip"><span><strong>Matchup:</strong> {esc(matchup_display(r))}</span><span><strong>Market:</strong> {market}</span><span><strong>Odds:</strong> {price}</span><span><strong>Model:</strong> experimental / not betting-validated</span></div>
         <p class="se-disclaimer">Research reflects saved notes, not a live injury or news feed. Confirm prices, availability, and lineups before placing a wager.</p>
       </div>
     </details>'''

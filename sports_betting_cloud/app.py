@@ -82,6 +82,31 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 [data-testid="stDataFrame"] {border:1px solid #16486d;border-radius:7px}
 @media(max-width:1250px){.sports-grid{grid-template-columns:repeat(3,1fr)}.pick-card{grid-template-columns:36px 90px minmax(200px,2fr) repeat(3,minmax(80px,1fr))}.pick-card .analysis-cell{grid-column:1 / span 4;border-top:1px solid #16486d}.pick-card .watch-cell{grid-column:5 / span 2;border-top:1px solid #16486d}}
 @media(max-width:680px){.block-container{padding:1rem!important}.metrics-grid{grid-template-columns:repeat(2,1fr)}.sports-grid{grid-template-columns:repeat(2,1fr)}.pick-card{display:grid;grid-template-columns:40px 94px minmax(0,1fr)}.pick-card>div{border-bottom:1px solid #16486d}.pick-card .analysis-cell,.pick-card .watch-cell{grid-column:1 / -1}.recap-flex{display:block}}
+
+/* Compact, scan-friendly pick cards */
+.pick-card {display:block;border:1px solid #1b4b6c;border-radius:13px;background:linear-gradient(125deg,#092a44,#061e33);margin:14px 0;overflow:hidden}
+.pick-card>div {padding:0;border:0}
+.pick-top {display:flex;align-items:center;gap:15px;padding:17px 19px!important}
+.pick-rank {font-size:1.05rem!important;min-width:29px;flex-shrink:0;color:#a8c3df!important}
+.pick-image-cell {padding:0!important;flex:0 0 64px;align-items:center!important}
+.pick-image {width:64px;height:64px;object-fit:contain;background:#12344d;border-radius:10px;padding:6px}
+.pick-image-pair {flex-direction:row;gap:3px}.pick-image-pair .pick-image {width:31px;height:46px;padding:2px}
+.pick-primary {min-width:0;flex:1}
+.pick-name {font-size:1.14rem}.pick-meta {margin:5px 0 0;font-size:.82rem}
+.pick-price {text-align:right;min-width:82px;flex-shrink:0}.pick-price strong {font-size:1.5rem;color:#f6faff;display:block}.pick-price span {font-size:.78rem;color:#a9c6df}
+.pick-kpis {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:14px 19px!important;border-top:1px solid #194462!important;border-bottom:1px solid #194462!important}
+.pick-kpi-label {font-size:.77rem;color:#adc7e0;font-weight:600}.pick-kpi-value {font-size:1.48rem;margin-top:4px}
+.pick-research {display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:16px 19px!important}
+.pick-research section {min-width:0}.pick-col-title {font-size:.92rem;margin-bottom:8px}
+.pick-bullets {font-size:.84rem;line-height:1.55}.pick-bullets li {margin-bottom:7px}
+.pick-details {border-top:1px solid #194462;padding:0 19px!important}
+.pick-details summary {padding:13px 0;cursor:pointer;color:#b6d9f3;font-size:.83rem;font-weight:650}
+.pick-details-content {padding:0 0 15px;color:#c5d8ec;font-size:.81rem;line-height:1.55}
+.pick-details-content p {margin:6px 0}
+.record-recap {border-top:1px solid #174768;margin-top:16px;padding-top:15px}
+.recap-result {font-size:1.1rem}
+@media(max-width:900px){.pick-card{display:block}.pick-card>div{border-right:0}.pick-research{grid-template-columns:1fr}.pick-top{gap:10px}.pick-price strong{font-size:1.2rem}}
+@media(max-width:520px){.pick-top{padding:12px!important}.pick-image-cell{flex-basis:44px}.pick-image{width:44px;height:48px}.pick-name{font-size:.95rem}.pick-meta{font-size:.7rem}.pick-price{min-width:64px}.pick-kpis{padding:12px!important;gap:5px}.pick-kpi-label{font-size:.69rem}.pick-kpi-value{font-size:1.13rem}.pick-research{padding:13px!important}.pick-rank{min-width:18px}}
 </style>""", unsafe_allow_html=True)
 
 if 'DATABASE_URL' not in st.secrets:
@@ -314,7 +339,7 @@ def card_image_html(r):
         images = [team_logo(sport, team) for team in teams]
         imgs = ''.join(
             (f'<img class="pick-image" src="{esc(url)}" alt="{esc(team)} logo" loading="lazy">'
-             if url else f'<div class="pick-image pick-image-fallback" title="{esc(team)} logo unavailable">🏟️</div>')
+             if url else f'<div class="pick-image pick-image-fallback" title="{esc(team)} logo unavailable">—</div>')
             for team, url in zip(teams, images))
         if imgs:
             return f'<div class="pick-image-pair">{imgs}</div>'
@@ -331,7 +356,7 @@ def card_image_html(r):
         if url:
             return f'<img class="pick-image" src="{esc(url)}" alt="{esc(teams[0])} logo" loading="lazy">'
     sport_icon = {'NFL':'🏈','NBA':'🏀','MLB':'⚾','NHL':'🏒','College Football':'🏈','College Basketball':'🏀'}.get(sport, '🏟️')
-    return f'<div class="pick-image pick-image-fallback" role="img" aria-label="Team logo unavailable">{sport_icon}</div>'
+    return '<div class="pick-image pick-image-fallback" role="img" aria-label="Team logo unavailable">—</div>'
 
 
 def recorded_bookmaker(source):
@@ -562,33 +587,74 @@ def matchup_preview(rationale):
     return '. '.join(facts) + '.'
 
 
+def matchup_display(r):
+    """Preserve the database's explicit away @ home ordering."""
+    matchup = clean_text(r.get('matchup'))
+    teams = matchup_teams(r)
+    if len(teams) != 2:
+        return matchup or 'Matchup unavailable'
+    if re.search(r'\s+@\s+|\s+at\s+', matchup, flags=re.I):
+        return f'{teams[0]} @ {teams[1]}'
+    # A 'vs.' source does not unambiguously identify the home side.
+    return matchup
+
+
+def research_items(text, limit=4):
+    """Keep factual recorded research readable; do not invent fresh news."""
+    items = [line.strip().lstrip('•- ').strip() for line in str(text).splitlines() if line.strip()]
+    return items[:limit], items[limit:]
+
+
 def full_pick_card(r):
-    odds=number(r.get('odds'),None)
-    prob=number(r.get('estimated_prob'),None)
-    be=odds_break_even(odds) if odds is not None else None
-    edge=prob*100-be if prob is not None and 0<prob<1 and be is not None else None
-    rank=int(r['rank']) if pd.notna(r.get('rank')) else '—'
-    label=esc(r.get('selection'))
-    price=f' ({odds:+.0f})' if odds is not None else ''
-    rationale,warnings=pick_analysis(r)
-    if not rationale: rationale='No independently verified matchup analysis has been recorded for this pick.'
-    if not warnings: warnings='Injuries, suspensions, lineups and game-time weather/wind have not been verified. For indoor games, weather is generally irrelevant.'
-    image_html = card_image_html(r)
-    market_line = market_lines_html(r)
-    preview = esc(matchup_preview(rationale))
-    description = f'<div class="pick-preview"><span class="pick-preview-label">Matchup preview:</span> {preview}</div>'
-    suggested_units = number(r.get("stake"), 1.0)
-    units_html = f'<div class="pick-odds-line"><strong>Suggested Units: {suggested_units:g}u</strong></div>' 
-    return f"""<div class="pick-card">
-      <div class="pick-rank">{rank}</div>
-      <div class="pick-image-cell">{image_html}</div>
-      <div><div class="pick-name">{label}{price}</div><div class="pick-meta">{esc(r.get('sport'))} · {esc(r.get('matchup'))} · {esc(r.get('start_pt')) or 'Start time unverified'}</div>{market_line}{units_html}<div class="pick-desc">{description}</div></div>
-      <div><div class="pick-kpi-label">Break-even<br>probability</div><div class="pick-kpi-value">{f'{be:.1f}%' if be is not None else '—'}</div></div>
-      <div><div class="pick-kpi-label">Model win<br>probability</div><div class="pick-kpi-value">{f'{prob*100:.1f}%' if prob is not None and 0<prob<1 else '—'}</div></div>
-      <div><div class="pick-kpi-label">Model edge</div><div class="pick-kpi-value {('positive' if edge>=0 else 'negative') if edge is not None else ''}">{f'{edge:+.1f} pp' if edge is not None else '—'}</div></div>
-      <div class="analysis-cell"><div class="pick-col-title">Why this pick?</div><div class="pick-bullets">{html_lines(rationale)}</div></div>
-      <div class="watch-cell"><div class="pick-col-title">Watch out for</div><div class="pick-bullets">{html_lines(warnings)}</div></div>
-    </div>"""
+    odds = number(r.get('odds'), None)
+    prob = number(r.get('estimated_prob'), None)
+    be = odds_break_even(odds) if odds is not None else None
+    edge = prob*100-be if prob is not None and 0 < prob < 1 and be is not None else None
+    rank = int(r['rank']) if pd.notna(r.get('rank')) else '—'
+    rationale, warnings = pick_analysis(r)
+    if not rationale:
+        rationale = 'No verified matchup analysis has been recorded for this selection.'
+    if not warnings:
+        warnings = 'Injuries and confirmed lineups have not been independently verified.'
+    why_main, why_extra = research_items(rationale, 4)
+    watch_main, watch_extra = research_items(warnings, 4)
+    selection = esc(r.get('selection'))
+    matchup = esc(matchup_display(r))
+    start = esc(r.get('start_pt')) or 'Start time unverified'
+    sport = esc(r.get('sport'))
+    price = f'{odds:+.0f}' if odds is not None else '—'
+    units = number(r.get('stake'), 1.0)
+    details = ''
+    if why_extra:
+        details += f'<p><strong>More matchup analysis</strong></p>{html_lines(chr(10).join(why_extra))}'
+    if watch_extra:
+        details += f'<p><strong>Additional risks</strong></p>{html_lines(chr(10).join(watch_extra))}'
+    # Display cached, saved information only. Do NOT fetch fresh spread/total
+    # quotes during page rendering: this prevents avoidable Odds API charges.
+    details += (f'<p><strong>Matchup:</strong> {matchup}</p>'
+                f'<p><strong>Market:</strong> {esc(r.get("market")) or "Not recorded"}</p>'
+                '<p>Model probabilities and edges are experimental, not independently betting-validated. '
+                'Check current odds, injuries, and lineups before wagering.</p>')
+    return f"""<article class="pick-card">
+      <div class="pick-top">
+        <div class="pick-rank">#{rank}</div>
+        <div class="pick-image-cell">{card_image_html(r)}</div>
+        <div class="pick-primary"><div class="pick-name">{selection}</div>
+          <div class="pick-meta">{sport} · {matchup} · {start}</div></div>
+        <div class="pick-price"><strong>{price}</strong><span>{units:g}u suggested</span></div>
+      </div>
+      <div class="pick-kpis">
+        <div><div class="pick-kpi-label">Model win probability</div><div class="pick-kpi-value">{f'{prob*100:.1f}%' if prob is not None and 0 < prob < 1 else '—'}</div></div>
+        <div><div class="pick-kpi-label">Break-even probability</div><div class="pick-kpi-value">{f'{be:.1f}%' if be is not None else '—'}</div></div>
+        <div><div class="pick-kpi-label">Estimated edge</div><div class="pick-kpi-value {('positive' if edge >= 0 else 'negative') if edge is not None else ''}">{f'{edge:+.1f} pp' if edge is not None else '—'}</div></div>
+      </div>
+      <div class="pick-research">
+        <section><div class="pick-col-title">Why This Pick?</div><div class="pick-bullets">{html_lines(chr(10).join(why_main))}</div></section>
+        <section><div class="pick-col-title">Watch Out For:</div><div class="pick-bullets">{html_lines(chr(10).join(watch_main))}</div></section>
+      </div>
+      <details class="pick-details"><summary>View detailed analysis</summary>
+        <div class="pick-details-content">{details}</div></details>
+    </article>"""
 
 
 if page == 'Dashboard':
@@ -599,7 +665,6 @@ if page == 'Dashboard':
     pending=int(df['result'].eq('Pending').sum())
     metrics=[('W–L–P',format_record(summary),''),('Net units',signed_units(net),signed_class(net)),('ROI',f'{roi:+.1f}%' if roi is not None else '—',signed_class(roi)),('Settled',str(settled),''),('Pending',str(pending),'')]
     metrics_html=''.join(f'<div class="metric-box"><div class="metric-label">{esc(label)}</div><div class="metric-value {css}">{esc(value)}</div></div>' for label,value,css in metrics)
-    st.markdown(f'<section class="dashboard-section"><div class="section-title">Running Record</div><div class="section-sub">Since October 28, 2026 · hypothetical picks · ungraded picks excluded from W–L–P</div><div class="metrics-grid">{metrics_html}</div></section>',unsafe_allow_html=True)
     hist=None  # Old aggregate baseline excluded from the October 28 fresh start.
     if hist:
         st.caption(f"Historical baseline through {hist['as_of']}: {hist['wins']}–{hist['losses']}–{hist['pushes']}, {hist['net']:+.2f}u (separate from pick-level totals; not double counted).")
@@ -625,14 +690,14 @@ if page == 'Dashboard':
         recap_items += (f'<div class="recap-item"><div><strong>{esc(item.get("selection"))}</strong>'
                         f'<div class="recap-item-detail">{esc(item.get("sport"))} · {esc(odds_text)} · {units:g}u risked</div></div>'
                         f'<div class="recap-item-result {css}">{esc(outcome.upper())} · {esc(pl_text)}</div></div>')
-    st.markdown(f'<section class="dashboard-section"><div class="recap-flex"><div><div class="section-title">Yesterday’s Recap</div><div class="section-sub">{yesterday:%A, %B %d, %Y}</div><div class="section-sub">{esc(recap_detail)}</div></div><div class="recap-result {signed_class(yn)}">{recap}</div></div><div class="recap-list">{recap_items}</div></section>',unsafe_allow_html=True)
+    st.markdown(f'<section class="dashboard-section"><div class="section-title">Running Record</div><div class="section-sub">Since October 28, 2026 · hypothetical picks · ungraded picks excluded from W–L–P</div><div class="metrics-grid">{metrics_html}</div><div class="record-recap"><div class="recap-flex"><div><div class="section-title">Yesterday’s Recap</div><div class="section-sub">{yesterday:%A, %B %d, %Y}</div><div class="section-sub">{esc(recap_detail)}</div></div><div class="recap-result {signed_class(yn)}">{recap}</div></div><div class="recap-list">{recap_items}</div></div></section>',unsafe_allow_html=True)
 
     sport_html=''
-    for name,emoji in zip(SPORTS,SPORT_ICONS):
+    for name in SPORTS:
         q=df[df['sport']==name]
         sq=stats(q)
         n=number(sq.get('net'))
-        sport_html+=f'<div class="sport-box"><div class="sport-name">{emoji} {esc(name)}</div><div class="sport-record">{esc(format_record(sq))} <span class="sport-profit {signed_class(n)}">{signed_units(n)}</span></div></div>'
+        sport_html+=f'<div class="sport-box"><div class="sport-name">{esc(name)}</div><div class="sport-record">{esc(format_record(sq))} <span class="sport-profit {signed_class(n)}">{signed_units(n)}</span></div></div>'
     st.markdown(f'<section class="dashboard-section"><div class="section-title">Record by Sport</div><div class="sports-grid">{sport_html}</div></section>',unsafe_allow_html=True)
 
     today_df=df[df['date'].astype(str)==TODAY.isoformat()].sort_values('rank',na_position='last')

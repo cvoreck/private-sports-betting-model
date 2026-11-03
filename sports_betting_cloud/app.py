@@ -182,9 +182,25 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 if 'DATABASE_URL' not in st.secrets:
     st.error('Set DATABASE_URL in Streamlit app settings → Secrets.')
     st.stop()
+# Schema initialization only once per Streamlit server process, not on every rerun.
+# No database connection is retained in Streamlit's resource cache.
+import logging
+from time import perf_counter
+PERF_LOG = logging.getLogger('sports_edge.performance')
+
+@st.cache_resource(show_spinner=False)
+def initialize_database_once():
+    started = perf_counter()
+    try:
+        init()
+    finally:
+        PERF_LOG.warning('database_schema_init_seconds=%.3f', perf_counter() - started)
+    return True
+
 try:
-    init()
+    initialize_database_once()
 except Exception:
+    PERF_LOG.exception('Database schema initialization failed')
     st.error('Cannot connect to Supabase. Check DATABASE_URL and your Supabase project status.')
     st.stop()
 
@@ -192,7 +208,14 @@ except Exception:
 # This does not call The Odds API and does not change stored records.
 @st.cache_data(ttl=120, show_spinner=False)
 def cached_all_picks():
-    return all_picks()
+    started = perf_counter()
+    try:
+        result = all_picks()
+        PERF_LOG.warning('database_pick_fetch_seconds=%.3f rows=%s', perf_counter() - started, len(result))
+        return result
+    except Exception:
+        PERF_LOG.exception('Database pick retrieval failed after %.3f seconds', perf_counter() - started)
+        raise
 
 all_df = cached_all_picks()
 if all_df is None:
@@ -1015,6 +1038,16 @@ def full_pick_card(r, load_live=False):
 
 
 # Render the dashboard once per page load. Avoid expensive periodic full-page rerenders.
+def _timed_dashboard_render(fn):
+    def wrapper(*args, **kwargs):
+        started = perf_counter()
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            PERF_LOG.warning('dashboard_python_render_seconds=%.3f', perf_counter() - started)
+    return wrapper
+
+@_timed_dashboard_render
 def render_live_dashboard():
     today = datetime.now(PT).date()
     fresh_df = cached_all_picks()

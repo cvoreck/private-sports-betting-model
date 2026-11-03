@@ -188,9 +188,9 @@ except Exception:
     st.error('Cannot connect to Supabase. Check DATABASE_URL and your Supabase project status.')
     st.stop()
 
-# Cache Supabase pick reads for five minutes across dashboard reruns.
+# Cache Supabase pick reads for two minutes across dashboard reruns.
 # This does not call The Odds API and does not change stored records.
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=120, show_spinner=False)
 def cached_all_picks():
     return all_picks()
 
@@ -393,7 +393,8 @@ def matchup_teams(r):
 
 
 def team_logo(sport, team):
-    live = espn_team_logos(sport)
+    # Avoid blocking network requests during dashboard rendering.
+    live = {}
     direct = live.get(_team_key(team))
     if direct:
         return direct
@@ -1013,9 +1014,7 @@ def full_pick_card(r, load_live=False):
     </details>'''
 
 
-# Refresh the visible dashboard every five minutes without polling The Odds API.
-# A Streamlit fragment reruns this section while the browser session is open.
-@st.fragment(run_every='300s')
+# Render the dashboard once per page load. Avoid expensive periodic full-page rerenders.
 def render_live_dashboard():
     today = datetime.now(PT).date()
     fresh_df = cached_all_picks()
@@ -1131,6 +1130,9 @@ def render_live_dashboard():
 
 
 if page == 'Dashboard':
+    if st.button('Refresh dashboard data', key='refresh_dashboard_data', help='Fetch the latest saved picks from Supabase; no Odds API calls.'):
+        cached_all_picks.clear()
+        morning_market_snapshots.clear()
     render_live_dashboard()
 
 elif page=='Top 5 card':

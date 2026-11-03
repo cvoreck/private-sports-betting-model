@@ -7,7 +7,7 @@ import streamlit as st
 COLUMNS = ['date','sport','matchup','market','selection','odds','stake','kind','result','source','result_source','notes','rank','start_pt','estimated_prob']
 
 def connect():
-    return psycopg.connect(st.secrets['DATABASE_URL'], row_factory=dict_row, connect_timeout=12)
+    return psycopg.connect(st.secrets['DATABASE_URL'], row_factory=dict_row, connect_timeout=8, options='-c statement_timeout=15000')
 
 def init():
     with connect() as c:

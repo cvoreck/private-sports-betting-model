@@ -421,8 +421,14 @@ def team_logo(sport, team):
     direct = live.get(_team_key(team))
     if direct:
         return direct
-    # Exact full-team fallback for known professional teams.
-    abbr = TEAM_LOGOS.get(sport, {}).get(team)
+    # Match punctuation variants (e.g. "St Louis Blues" vs "St. Louis Blues")
+    # without fetching logos over the network during page rendering.
+    known_teams = TEAM_LOGOS.get(sport, {})
+    abbr = known_teams.get(team)
+    if not abbr:
+        normalized = _team_key(team)
+        abbr = next((code for name, code in known_teams.items()
+                     if _team_key(name) == normalized), None)
     if abbr:
         league = {'NHL': 'nhl', 'NBA': 'nba', 'MLB': 'mlb'}.get(sport)
         if league:
@@ -1163,9 +1169,6 @@ def render_live_dashboard():
 
 
 if page == 'Dashboard':
-    if st.button('Refresh dashboard data', key='refresh_dashboard_data', help='Fetch the latest saved picks from Supabase; no Odds API calls.'):
-        cached_all_picks.clear()
-        morning_market_snapshots.clear()
     render_live_dashboard()
 
 elif page=='Top 5 card':

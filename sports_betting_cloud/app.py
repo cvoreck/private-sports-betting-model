@@ -1007,7 +1007,22 @@ def full_pick_card(r, load_live=False):
     </details>'''
 
 
-if page == 'Dashboard':
+# Refresh the visible dashboard every minute without polling The Odds API.
+# A Streamlit fragment reruns this section while the browser session is open.
+@st.fragment(run_every='60s')
+def render_live_dashboard():
+    today = datetime.now(PT).date()
+    fresh_df = all_picks()
+    if fresh_df is None:
+        fresh_df = pd.DataFrame()
+    for col in ['date', 'sport', 'market', 'matchup', 'selection', 'kind', 'result', 'source', 'notes', 'start_pt', 'result_source']:
+        if col not in fresh_df.columns:
+            fresh_df[col] = pd.Series(dtype='object')
+    for col in ['odds', 'stake', 'rank', 'estimated_prob']:
+        if col not in fresh_df.columns:
+            fresh_df[col] = pd.Series(dtype='float64')
+    df = fresh_df[fresh_df['kind'].eq(kind) & (fresh_df['date'].astype(str) >= RECORD_START_DATE)].copy()
+    TODAY = today
     summary = stats(df)
     net = number(summary.get('net'))
     roi = summary.get('roi')
@@ -1107,6 +1122,10 @@ if page == 'Dashboard':
         if market!='All': historical=historical[historical['market']==market]
         if status!='All': historical=historical[historical['result']==status]
         st.dataframe(make_table(historical),hide_index=True,use_container_width=True)
+
+
+if page == 'Dashboard':
+    render_live_dashboard()
 
 elif page=='Top 5 card':
     header('Daily Top 5 Card')

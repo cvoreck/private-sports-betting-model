@@ -1,0 +1,26 @@
+name: Sports Edge Market Validation (Manual)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install database driver
+        run: python -m pip install 'psycopg[binary]>=3.1,<4'
+      - name: Run read-only audit
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python sports_betting_cloud/market_validation_audit.py
+      - name: Upload JSON report
+        uses: actions/upload-artifact@v4
+        with:
+          name: sports-edge-market-validation
+          path: sports_edge_market_validation.json
+          if-no-files-found: error

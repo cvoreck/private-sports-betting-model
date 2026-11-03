@@ -1,0 +1,26 @@
+name: Sports Edge Market Data Readiness (Manual)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install database driver
+        run: pip install 'psycopg[binary]>=3.1,<4'
+      - name: Audit existing pregame odds (read only)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python sports_betting_cloud/market_data_readiness.py
+      - name: Upload JSON report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sports-edge-market-readiness
+          path: sports_edge_market_readiness.json
+          if-no-files-found: warn

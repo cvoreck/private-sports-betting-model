@@ -92,7 +92,7 @@ def odds_events(conn, key, today):
 def find_candidates(conn, today, now):
     candidates = []
     counts = dict(events=0, upcoming_today=0, verified=0, predictions=0,
-                  positive_ev=0, above_odds_cap=0, stale_or_unapproved=0, trained=0, experimental=0)
+                  positive_ev=0, above_odds_cap=0, stale_or_unapproved=0, trained=0, experimental=0, excluded_unvalidated=0)
     # Active promoted versions are authoritative. Reject stale superseded
     # moneyline predictions, even when their generated_at is recent.
     promoted = {row['sport']: row['version'] for row in conn.execute(
@@ -179,70 +179,45 @@ def find_candidates(conn, today, now):
     return candidates
 
 def rank_candidates(candidates, card_date=None):
-    """Choose a varied Top 5, with modest game-day preferences.
+    """Fill five slots using trained moneylines first, then disclosed experimental markets.
 
-    Selection bonuses never change model probabilities, odds or EV.
-    Final display order prioritizes model evidence tier, then win probability.
+    Do not fabricate odds/probabilities, use duplicate games, or publish negative EV.
     """
-    card_date = card_date or datetime.now(PT).date()
-    weekday = card_date.weekday()  # Monday=0, Sunday=6
-    preferred_sport = ('NFL' if weekday in (0, 3, 6) else
-                       'College Football' if weekday in (4, 5) else None)
+    def tier(c):
+        if c['market'] == 'h2h' and c['quality'] == 'trained':
+            return 0
+        if c['market'] == 'h2h':
+            return 1
+        return 2
 
-    # Keep the best available sportsbook quote for each distinct bet.
     best = {}
     for c in candidates:
-        k = (c['event_id'], c['market'], c['selection'], str(c['point']))
-        if k not in best or c['ev'] > best[k]['ev']:
-            best[k] = c
-
-    def score(c):
-        # Prefer trained models at comparable positive EV, without giving an
-        # unvalidated heuristic an equal claim to probability accuracy.
-        # Moderate-odds preference is a tie breaker, not an EV substitute.
-        return (c['quality'] == 'trained', c['prob'], c['ev'], -abs(c['odds']))
-
-    pool = [c for c in best.values() if c['odds'] <= MAX_POSITIVE_AMERICAN_ODDS and c['ev'] > 0]
-    selected = []
-    used_events = set()
-    sport_counts = {}
-    while len(selected) < 5:
-        eligible = [c for c in pool if c['event_id'] not in used_events]
-        if not eligible:
+        if c['odds'] > MAX_POSITIVE_AMERICAN_ODDS or c['ev'] <= 0:
+            continue
+        key = (c['event_id'], c['market'], c['selection'], str(c['point']))
+        if key not in best or c['ev'] > best[key]['ev']:
+            best[key] = c
+    ordered = sorted(best.values(), key=lambda c: (tier(c), -c['ev'], -c['prob'], abs(c['odds'])))
+    selected, used_events = [], set()
+    for c in ordered:
+        if c['event_id'] in used_events:
+            continue
+        selected.append(c)
+        used_events.add(c['event_id'])
+        if len(selected) == 5:
             break
-        strongest = max(eligible, key=score)
-        # Only compare candidates of the same evidence tier; a sport-mix
-        # preference must never elevate an experimental pick over a trained one.
-        comparable = [c for c in eligible
-                      if c['quality'] == strongest['quality']
-                      and c['prob'] >= strongest['prob'] - 0.025]
-        available_sports = {c['sport'] for c in comparable}
-        selected_sports = set(sport_counts)
-        # Aim for at least two sports when similarly strong options exist.
-        if len(selected_sports) == 1 and len(selected) >= 2:
-            diverse = [c for c in comparable if c['sport'] not in selected_sports]
-            if diverse:
-                comparable = diverse
-        # Soft three-per-sport cap; allow more when alternatives are weak.
-        under_cap = [c for c in comparable if sport_counts.get(c['sport'], 0) < 3]
-        if under_cap:
-            comparable = under_cap
 
-        def selection_score(c):
-            bonus = 0.01 if c['sport'] == preferred_sport else 0.0
-            variety = 0.005 if c['sport'] not in selected_sports else 0.0
-            return c['prob'] + bonus + variety
-
-        chosen = max(comparable, key=selection_score)
-        selected.append(chosen)
-        used_events.add(chosen['event_id'])
-        sport_counts[chosen['sport']] = sport_counts.get(chosen['sport'], 0) + 1
-
-    # Ranks reflect evidence tier and estimated win probability, not calibrated
-    # confidence. These are research-only selections.
-    selected.sort(key=score, reverse=True)
-    logging.info('Top 5 selection: day=%s preferred=%s sport_mix=%s',
-                 card_date, preferred_sport, json.dumps(sport_counts, sort_keys=True))
+    by_sport, by_tier = {}, {}
+    for c in selected:
+        by_sport[c['sport']] = by_sport.get(c['sport'], 0) + 1
+        name = ('trained_moneyline', 'experimental_moneyline', 'experimental_spread_or_total')[tier(c)]
+        by_tier[name] = by_tier.get(name, 0) + 1
+    logging.info('Top 5 selection: day=%s available=%s selected=%s sport_mix=%s model_tiers=%s',
+                 card_date, len(best), len(selected), json.dumps(by_sport, sort_keys=True),
+                 json.dumps(by_tier, sort_keys=True))
+    if len(selected) < 5:
+        logging.error('FIVE-PICK REQUIREMENT NOT MET: only %s distinct verified upcoming '
+                      'positive-EV events available; no invented picks will be published.', len(selected))
     return selected
 
 
@@ -359,17 +334,12 @@ def refresh_existing_card_research(conn, today):
         except Exception as exc:
             logging.warning('Research: recent-game retrieval failed for %s: %s', sport, exc)
             recent = {}
-        # ESPN league-level injuries are fetched once for this sport, not per pick.
-        injury_feed = mr.fetch_espn_injuries(sport)
         for row, event in found:
             matched += 1
             home, away = _espn_event_teams(event)
             try:
                 start = datetime.fromisoformat(event['date'].replace('Z', '+00:00'))
-                injuries = mr.injury_reports_for_event(event, injury_feed, home, away)
-                logging.info('Injuries: matchup=%s feed=%s home=%s away=%s', row['matchup'], 'unavailable' if injury_feed is None else 'retrieved', len((injuries or {}).get(home, [])), len((injuries or {}).get(away, [])))
-                why, risks = mr.research(event, sport, home, away, recent, start,
-                                         injury_reports=injuries)
+                why, risks = mr.research(event, sport, home, away, recent, start)
             except (ValueError, KeyError, TypeError, requests.RequestException) as exc:
                 logging.warning('Research: failed to analyze %s: %s', row['matchup'], exc)
                 continue
@@ -419,8 +389,12 @@ def main():
         candidates = find_candidates(conn, today, now)
         top = rank_candidates(candidates, today)
         status = ('published' if len(top) == 5 else
-                  'partial_card' if top else 'insufficient_verified_candidates')
-        # Publish only independently modeled positive-EV picks; fewer than five is allowed.
+                  'insufficient_verified_candidates')
+        # Never publish a partial card: preserve the exactly-five requirement.
+        # Log the shortage for investigation; do not invent odds or probabilities.
+        if len(top) != 5:
+            logging.error('Publishing halted: required exactly five eligible picks, found %s', len(top))
+            return
         with conn.transaction():
             conn.execute('SELECT pg_advisory_xact_lock(%s)', (20261027,))
             existing = conn.execute('''SELECT count(*) AS n FROM picks
@@ -455,7 +429,7 @@ def main():
               status=EXCLUDED.status,candidates=EXCLUDED.candidates,published=EXCLUDED.published,
               detail=EXCLUDED.detail,updated_at=NOW()''',
               (today,status,len(candidates),len(top),
-               'Standard card excludes odds above +200 and requires positive estimated EV, with no fixed win-probability floor; trained moneylines ranked first, then win probability. Experimental stakes capped at 2u. Fewer than five picks allowed; no props or injury/weather checks.'))
+               'Standard card excludes odds above +200 and requires positive estimated EV, with no fixed win-probability floor; trained moneylines prioritized; experimental markets may fill remaining slots, clearly labeled. Exactly five picks required. Stakes capped at 2u; no props or injury/weather checks.'))
         logging.info('%s: %s; candidates=%s; published=%s', today,status,len(candidates),len(top))
 
 if __name__ == '__main__':

@@ -188,7 +188,13 @@ except Exception:
     st.error('Cannot connect to Supabase. Check DATABASE_URL and your Supabase project status.')
     st.stop()
 
-all_df = all_picks()
+# Cache Supabase pick reads for five minutes across dashboard reruns.
+# This does not call The Odds API and does not change stored records.
+@st.cache_data(ttl=300, show_spinner=False)
+def cached_all_picks():
+    return all_picks()
+
+all_df = cached_all_picks()
 if all_df is None:
     all_df = pd.DataFrame()
 for col in ['date','sport','market','matchup','selection','kind','result','source','notes','start_pt','result_source']:
@@ -1007,12 +1013,12 @@ def full_pick_card(r, load_live=False):
     </details>'''
 
 
-# Refresh the visible dashboard every minute without polling The Odds API.
+# Refresh the visible dashboard every five minutes without polling The Odds API.
 # A Streamlit fragment reruns this section while the browser session is open.
-@st.fragment(run_every='60s')
+@st.fragment(run_every='300s')
 def render_live_dashboard():
     today = datetime.now(PT).date()
-    fresh_df = all_picks()
+    fresh_df = cached_all_picks()
     if fresh_df is None:
         fresh_df = pd.DataFrame()
     for col in ['date', 'sport', 'market', 'matchup', 'selection', 'kind', 'result', 'source', 'notes', 'start_pt', 'result_source']:

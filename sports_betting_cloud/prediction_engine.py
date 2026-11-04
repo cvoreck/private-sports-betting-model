@@ -19,8 +19,6 @@ SCHEMA='''
 CREATE TABLE IF NOT EXISTS model_predictions (event_id TEXT NOT NULL, market TEXT NOT NULL, selection TEXT NOT NULL, point_key TEXT NOT NULL DEFAULT '', estimated_prob DOUBLE PRECISION NOT NULL CHECK (estimated_prob>0 AND estimated_prob<1), generated_at TIMESTAMPTZ NOT NULL, model_version TEXT NOT NULL, PRIMARY KEY(event_id,market,selection,point_key));
 CREATE TABLE IF NOT EXISTS verified_events (event_id TEXT PRIMARY KEY, sport TEXT NOT NULL, is_preseason BOOLEAN NOT NULL, ap_top25_team_in_match BOOLEAN, verified_at TIMESTAMPTZ NOT NULL, verification_source TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS prediction_context (event_id TEXT PRIMARY KEY, home_team TEXT, away_team TEXT, home_logo TEXT, away_logo TEXT, rationale TEXT, warnings TEXT, updated_at TIMESTAMPTZ NOT NULL);
-CREATE TABLE IF NOT EXISTS prediction_snapshots (id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, sport TEXT NOT NULL, event_id TEXT NOT NULL, market TEXT NOT NULL, selection TEXT NOT NULL, point_key TEXT NOT NULL, estimated_prob DOUBLE PRECISION NOT NULL, generated_at TIMESTAMPTZ NOT NULL, model_version TEXT NOT NULL, recorded_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(sport,event_id,market,selection,point_key,generated_at,model_version));
-CREATE INDEX IF NOT EXISTS prediction_snapshots_lookup ON prediction_snapshots(sport,event_id,market,generated_at);
 '''
 HEADERS={'User-Agent':'sports-edge-research/0.2'}
 def norm(s): return re.sub(r'[^a-z0-9]+','',(s or '').lower())
@@ -163,19 +161,12 @@ def conservative_probability(raw, market, outcome, sample_size):
     weight = min(0.30, max(0.10, 0.10 + 0.0125 * max(0, sample_size-4)))
     return max(0.02, min(0.98, baseline + weight*(raw-baseline)))
 
-def save_prediction(conn,event,market,selection,point,p,now,version,sport):
+def save_prediction(conn,event,market,selection,point,p,now,version):
     if not 0<p<1:return False
     conn.execute('''INSERT INTO model_predictions(event_id,market,selection,point_key,estimated_prob,generated_at,model_version)
     VALUES(%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(event_id,market,selection,point_key) DO UPDATE SET
     estimated_prob=EXCLUDED.estimated_prob,generated_at=EXCLUDED.generated_at,model_version=EXCLUDED.model_version''',
     (event,market,selection,str(point) if point is not None else '',p,now,version))
-    # Immutable historical record: the existing mutable latest-prediction table is untouched.
-    # The two writes share the caller's transaction; an archive failure rolls back both.
-    conn.execute('''INSERT INTO prediction_snapshots
-        (sport,event_id,market,selection,point_key,estimated_prob,generated_at,model_version)
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-        ON CONFLICT DO NOTHING''',
-        (sport,event,market,selection,str(point) if point is not None else '',p,now,version))
     return True
 
 def cached_odds_events(conn, sport, today):
@@ -328,7 +319,7 @@ def main():
                 (eid,hn,an,logo(h),logo(a),'\n'.join(rationale),warnings,now))
                 if p is not None:
                     for team,prob in ((hn,p),(an,1-p)):
-                        if save_prediction(conn,eid,'h2h',team,None,prob,now,trained_model[0],sport_key):
+                        if save_prediction(conn,eid,'h2h',team,None,prob,now,trained_model[0]):
                             counts['moneyline_predictions']+=1
                 if sport not in ('NBA','NHL','NFL') or len(home_games)<4 or len(away_games)<4:continue
                 # Independent expected scores: average own points scored and opponent points allowed.
@@ -364,7 +355,7 @@ def main():
                             prob=conservative_probability(prob,market,o,min(len(home_games),len(away_games)))
                             if prob is None:continue
                             seen_experimental_lines.add(line_key)
-                            if save_prediction(conn,eid,m,sel,point,prob,now,'archive-market-shrink-v1-experimental',sport_key):
+                            if save_prediction(conn,eid,m,sel,point,prob,now,'archive-market-shrink-v1-experimental'):
                                 counts['spread_predictions' if m=='spreads' else 'total_predictions']+=1
         logging.info('Prediction engine funnel: %s',counts)
         logging.warning('Moneylines use promoted trained models only. Spreads/totals remain unvalidated price-anchored heuristics, one reference quote per line. College predictions require AP Top 25 verification; no props or injury model.')

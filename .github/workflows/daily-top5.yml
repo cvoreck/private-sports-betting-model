@@ -85,7 +85,7 @@ jobs:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           ESPN_BACKFILL_DAYS: '7'
           MAX_PROP_EVENT_REQUESTS: '0'
-          ODDS_MONTHLY_RESERVE: '20'
+          ODDS_MONTHLY_RESERVE: '50'
           ODDS_MONTHLY_LIMIT: '500'
           # Verify this matches your actual Odds API billing reset day.
           ODDS_RESET_DAY: '1'

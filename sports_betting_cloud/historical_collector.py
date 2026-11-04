@@ -121,7 +121,7 @@ def archive_odds(conn, now, stats):
     # Quota allocation is adaptive to the *remaining* days in the billing cycle.
     # Configure ODDS_RESET_DAY to the day of month your provider resets credits.
     # Actual provider balance is authoritative; we do not assume calendar reset.
-    reserve = max(0, int(os.getenv('ODDS_MONTHLY_RESERVE', '20')))
+    reserve = max(0, int(os.getenv('ODDS_MONTHLY_RESERVE', '50')))
     monthly_limit = max(1, int(os.getenv('ODDS_MONTHLY_LIMIT', '500')))
     reset_day = max(1, min(28, int(os.getenv('ODDS_RESET_DAY', '1'))))
     cycle_start = date(day.year, day.month, reset_day)
@@ -170,7 +170,7 @@ def archive_odds(conn, now, stats):
         logging.warning('HARD CAP: current balance not verified; ESPN archive continues, paid odds disabled. Set ODDS_CONFIRMED_REMAINING only after checking the provider dashboard.')
         return
     # Reserve is held for the first part of the cycle, then becomes spendable.
-    # This allows the final 20 credits to be used, without crossing the ceiling.
+    # This allows the final 50 reserved credits to be used, without crossing the ceiling.
     effective_reserve = reserve if days_left > 3 else 0
     spendable = max(0, known_remaining - effective_reserve)
     budget = int(spendable * weight / max(remaining_weight, 1))

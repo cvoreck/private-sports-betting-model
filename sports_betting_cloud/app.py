@@ -1072,7 +1072,7 @@ def _saved_research_sections(r):
         if key:
             prefix = next(prefix for prefix, category in labels if category == key)
             line = line[len(prefix):].strip()
-        elif any(token in low for token in ('last 10', 'last-10', 'last 9', 'recent form')):
+        elif re.search(r'last\s+\d+\s+completed|last[ -]\d+|recent form', low):
             key = 'recent'
         elif any(token in low for token in ('home/away', 'at home', 'on road', 'on the road')):
             key = 'home'
@@ -1102,8 +1102,14 @@ def _saved_research_sections(r):
                    'travel' if low.startswith(('travel:', 'travel context:')) else
                    'weather' if low.startswith(('weather:', 'weather context:')) else 'market')
             context[key].append(line.split(':', 1)[1].strip())
-        elif low.startswith(('injur', 'suspension', 'lineup')):
-            injuries.setdefault('Additional injury / lineup notes', []).append(line)
+        elif ('indoor venue' in low or 'outdoor venue' in low or 'weather' in low
+              or 'wind' in low or 'precipitation' in low or 'roof status' in low
+              or 'venue exposure' in low or 'forecast' in low):
+            context['weather'].append(line)
+        elif low.startswith(('injur', 'suspension', 'lineup', 'current injuries', 'confirmed starters')):
+            injuries.setdefault('Availability verification', []).append(line)
+        elif 'odds movement' in low or 'market movement' in low or 'sportsbook price' in low:
+            context['market'].append(line)
         else:
             context['market'].append(line)
     return sections, context, injuries
@@ -1120,14 +1126,19 @@ def _insight_card(title, entries, fallback):
 
 
 def _se_extract_metrics(sections, teams):
-    """Extract saved team form without querying the database or guessing numbers."""
-    text = ' '.join(sections['recent'])
+    """Parse saved ESPN summaries for points, runs, or goals; never estimate."""
+    text = ' '.join(sections['recent'] + sections['other'])
     output = {}
     for team in teams:
-        match = re.search(rf'{re.escape(team)}\s+last\s+(\d+)\s+completed[^:]*:\s*(\d+)-(\d+)(?:-(\d+))?;\s*([\d.]+)\s+goals scored and\s+([\d.]+)\s+allowed', text, re.I)
+        # Research summaries can contain several teams in a single note.
+        pattern = (rf'{re.escape(team)}\s+last\s+(\d+)\s+completed[^:]*:\s*'
+                   rf'(\d+)-(\d+)(?:-(\d+))?;\s*([\d.]+)\s+'
+                   rf'(?:points|goals|runs)\s+scored\s+and\s+([\d.]+)\s+allowed')
+        match = re.search(pattern, text, re.I)
         if match:
-            n,w,l,ot,gf,ga = match.groups()
-            output[team] = {'record': f'{w}–{l}' + (f'–{ot}' if ot else ''), 'games':int(n),'gf':gf,'ga':ga}
+            n, w, l, ot, scored, allowed = match.groups()
+            output[team] = {'record': f'{w}–{l}' + (f'–{ot}' if ot else ''),
+                            'games': int(n), 'gf': scored, 'ga': allowed}
     return output
 
 
@@ -1154,10 +1165,10 @@ def _se_season_card(sections, teams):
     return _insight_card('Season Overview',sections['season'],'Season statistics not recorded.')
 
 
-def _se_matchup_card(sections,teams,stats):
+def _se_matchup_card(sections,teams,stats,sport=''):
     rows=[]
     if len(teams)==2:
-        for title,key in [('Goals For / Game','gf'),('Goals Against / Game','ga')]:
+        for title,key in [(('Points' if sport in ('NBA','College Basketball','NFL','College Football') else 'Runs' if sport=='MLB' else 'Goals')+' For / Game','gf'),(('Points' if sport in ('NBA','College Basketball','NFL','College Football') else 'Runs' if sport=='MLB' else 'Goals')+' Against / Game','ga')]:
             if any(stats.get(t,{}).get(key) for t in teams):
                 rows.append((title,[stats.get(t,{}).get(key,'—') for t in teams]))
         home=' '.join(sections['home'])
@@ -1176,6 +1187,10 @@ def _se_injury_table(teams, injuries):
     for team in list(teams)+[t for t in injuries if t not in teams]:
         items=list(dict.fromkeys(injuries.get(team,[])))
         if not items:continue
+        if team == 'Availability verification':
+            panels.append('<div class="se-injury-group"><div class="se-injury-team">Availability verification</div>'+
+                          ''.join(f'<p class="se-muted">{esc(note)}</p>' for note in items[:6])+'</div>')
+            continue
         entries=[]
         for raw in items:
             parts=re.split(r'\s+[—–]\s+',raw,maxsplit=1)
@@ -1191,7 +1206,7 @@ def _se_injury_table(teams, injuries):
         team_logo_html=''
         # Use text-only section labels here; original header logo is untouched.
         panels.append(f'<div class="se-injury-group"><div class="se-injury-team">{esc(team)}</div><div class="se-table-scroll"><table class="se-compact-table se-injury-table"><thead><tr><th>Player</th><th>Status</th><th>Details</th></tr></thead><tbody>{"".join(entries[:12])}</tbody></table></div></div>')
-    return '<div class="se-injury-columns">'+''.join(panels)+'</div>' if panels else '<p class="se-muted">No verified injury report saved; availability not confirmed.</p>'
+    return '<div class="se-injury-columns">'+''.join(panels)+'</div>' if panels else '<p class="se-muted">No player-level injury data saved. Availability not verified.</p>'
 
 
 def _se_short_takeaway(note,limit=170):
@@ -1230,16 +1245,21 @@ def full_pick_card(r, load_live=False):
         if len(takeaways)>=3:break
     takeaway_html=('<ul>'+''.join(f'<li>{esc(x)}</li>' for x in takeaways)+'</ul>') if takeaways else '<p class="se-muted">No verified matchup takeaways recorded.</p>'
     form_rows=[]
+    sport_name=clean_text(r.get('sport'))
+    scoring_unit=('Points' if sport_name in ('NBA','College Basketball','NFL','College Football') else 'Runs' if sport_name=='MLB' else 'Goals')
     if len(teams)==2:
-        for label,key in [('Record','record'),('Goals For / Game','gf'),('Goals Against / Game','ga')]:
+        for label,key in [('Record','record'),(scoring_unit+' For / Game','gf'),(scoring_unit+' Against / Game','ga')]:
             if any(stats.get(t,{}).get(key) for t in teams):form_rows.append((label,[stats.get(t,{}).get(key,'—') for t in teams]))
     form_note='; '.join(f'{t.split()[-1]}: {stats[t]["games"]} games' for t in teams if t in stats)
     recent_card=_se_comparison_card('Recent Form (Last 10)',teams,form_rows,form_note,'▥') if len(teams)==2 else _insight_card('Recent Form',sections['recent'],'No verified form data.')
     season_card=_se_season_card(sections,teams)
-    matchup_card=_se_matchup_card(sections,teams,stats)
+    matchup_card=_se_matchup_card(sections,teams,stats,clean_text(r.get('sport')))
     injuries_html=_se_injury_table(teams,injuries)
     context_rows=[]
-    for symbol,label,key,fallback in [('▤','Rest','rest','Not verified'),('✈','Travel','travel','Not verified'),('☁','Weather','weather','Not recorded')]:
+    weather_fallback=('Indoor sport — outdoor weather is generally not a direct game factor; venue not independently verified.'
+                      if sport_name in ('NBA','NHL','College Basketball') else
+                      'No verified game-time weather saved.')
+    for symbol,label,key,fallback in [('▤','Rest','rest','Not verified'),('✈','Travel','travel','Not verified'),('☁','Weather','weather',weather_fallback)]:
         value=_se_short_takeaway(' '.join(context[key][:2]),125) if context[key] else fallback
         context_rows.append(f'<div class="se-context-row"><span class="se-context-icon">{symbol}</span><strong>{label}</strong><span>{esc(value)}</span></div>')
     if sections['schedule']:

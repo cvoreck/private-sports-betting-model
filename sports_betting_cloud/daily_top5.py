@@ -365,12 +365,21 @@ def refresh_existing_card_research(conn, today):
         except Exception as exc:
             logging.warning('Research: recent-game retrieval failed for %s: %s', sport, exc)
             recent = {}
+        # One informational ESPN injury request per represented sport, not per pick.
+        # A failed or incomplete feed is not treated as proof of no injuries.
+        try:
+            league_injuries = mr.fetch_espn_injuries(sport)
+        except Exception as exc:
+            logging.warning('Research: injury lookup failed for %s: %s', sport, exc)
+            league_injuries = None
         for row, event in found:
             matched += 1
             home, away = _espn_event_teams(event)
             try:
                 start = datetime.fromisoformat(event['date'].replace('Z', '+00:00'))
-                why, risks = mr.research(event, sport, home, away, recent, start)
+                event_injuries = mr.injury_reports_for_event(event, league_injuries, home, away)
+                why, risks = mr.research(event, sport, home, away, recent, start,
+                                         injury_reports=event_injuries)
             except (ValueError, KeyError, TypeError, requests.RequestException) as exc:
                 logging.warning('Research: failed to analyze %s: %s', row['matchup'], exc)
                 continue
@@ -464,6 +473,15 @@ def main():
               detail=EXCLUDED.detail,updated_at=NOW()''',
               (today,status,len(candidates),len(top),
                'Value-first card: odds -200 through +200; ranks trained moneylines and experimental spreads/totals together by provisional uncertainty-adjusted EV; no favorite/underdog quotas. Exactly five distinct positive-adjusted-EV picks required. Flat 1u research stakes; no props or new API/database requests.'))
+        # Enrich newly published picks on the first daily run; the 6 AM workflow
+        # normally runs only once, so waiting for a second invocation is unsafe.
+        # Keep the card intact if optional ESPN research is unavailable.
+        try:
+            with conn.transaction():
+                refreshed = refresh_existing_card_research(conn, today)
+            logging.info('Post-publication research refreshed %s picks', refreshed)
+        except Exception:
+            logging.exception('Optional post-publication research failed; published picks preserved')
         logging.info('%s: %s; candidates=%s; published=%s', today,status,len(candidates),len(top))
 
 if __name__ == '__main__':

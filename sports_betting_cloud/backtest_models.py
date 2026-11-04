@@ -170,9 +170,21 @@ def main():
         with conn.transaction():
             for sport in SPORTS:
                 LOG.info('Loading %s archived ESPN results', sport)
-                rows = conn.execute('''SELECT event_id,payload FROM historical_snapshots
-                    WHERE source='espn' AND sport=%s AND category='game'
-                    ORDER BY collected_at DESC LIMIT 30000''', (sport,)).fetchall()
+                # Preserve the existing 30,000-snapshot window, but transfer
+                # only one row per ESPN event to reduce Supabase egress.
+                # The ascending final sort mirrors weekly_trainer_optimized.py.
+                rows = conn.execute('''
+                    WITH recent AS MATERIALIZED (
+                        SELECT event_id, payload, collected_at
+                        FROM historical_snapshots
+                        WHERE source='espn' AND sport=%s AND category='game'
+                        ORDER BY collected_at DESC
+                        LIMIT 30000
+                    )
+                    SELECT DISTINCT ON (event_id) event_id, payload
+                    FROM recent
+                    ORDER BY event_id, collected_at ASC
+                    ''', (sport,)).fetchall()
                 report = backtest_rows(rows, sport)
                 output['sports'].append(report)
                 if report.get('overall'):

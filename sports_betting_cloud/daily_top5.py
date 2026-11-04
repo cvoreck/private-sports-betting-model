@@ -28,6 +28,13 @@ MAX_PREDICTION_AGE_HOURS = 3
 EXPERIMENTAL_PREFIX = 'archive-market-shrink-v1-experimental'
 TRAINED_PREFIXES = ('rolling-homewin-v2-', 'nhl-context-v3-')
 MAX_POSITIVE_AMERICAN_ODDS = 200  # +200 allowed; +201 and above excluded
+MIN_NEGATIVE_AMERICAN_ODDS = -200  # -200 allowed; -201 and below excluded
+
+# Conservative, provisional ranking adjustments. These are NOT empirically
+# calibrated probabilities; replace with holdout-calibrated estimates later.
+# They use only already-loaded candidates: zero new Odds API/DB requests.
+RANKING_SHRINKAGE = {'trained': 0.80, 'experimental': 0.45}
+RANKING_UNCERTAINTY_PP = {'trained': 1.0, 'experimental': 2.0}
 MAX_EXPERIMENTAL_UNITS = 2
 
 ODDS_URL = 'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
@@ -134,7 +141,7 @@ def find_candidates(conn, today, now):
                         odds = outcome.get('price')
                         if not isinstance(odds, (int, float)) or (-100 < odds < 100):
                             continue
-                        if odds > MAX_POSITIVE_AMERICAN_ODDS:
+                        if odds > MAX_POSITIVE_AMERICAN_ODDS or odds < MIN_NEGATIVE_AMERICAN_ODDS:
                             counts['above_odds_cap'] += 1
                             continue
                         selection = outcome.get('name')
@@ -178,26 +185,52 @@ def find_candidates(conn, today, now):
     logging.info('Candidate funnel: %s', json.dumps(counts, sort_keys=True))
     return candidates
 
-def rank_candidates(candidates, card_date=None):
-    """Fill five slots using trained moneylines first, then disclosed experimental markets.
+def value_adjustment(candidate):
+    """Conservative provisional value score, NOT a calibrated model output.
 
-    Do not fabricate odds/probabilities, use duplicate games, or publish negative EV.
+    Shrink raw estimated edge toward the sportsbook break-even probability,
+    then subtract a model-quality uncertainty haircut. The published model
+    probability is left untouched to avoid misrepresenting this heuristic.
     """
-    def tier(c):
-        if c['market'] == 'h2h' and c['quality'] == 'trained':
-            return 0
-        if c['market'] == 'h2h':
-            return 1
-        return 2
+    odds = candidate['odds']
+    implied = american_break_even(odds)
+    quality = candidate['quality']
+    shrink = RANKING_SHRINKAGE.get(quality, 0.35)
+    haircut = RANKING_UNCERTAINTY_PP.get(quality, 3.0) / 100
+    adjusted_prob = max(0.001, min(0.999, implied + shrink * (candidate['prob'] - implied) - haircut))
+    return {
+        'adjusted_prob': adjusted_prob,
+        'adjusted_edge_pp': 100 * (adjusted_prob - implied),
+        'adjusted_ev': expected_value(adjusted_prob, odds),
+    }
 
+
+def rank_candidates(candidates, card_date=None):
+    """Select up to five distinct events by uncertainty-adjusted expected value.
+
+    No favorite/underdog quotas, no automatic trained-moneyline preference,
+    and no invented candidates. Only positive adjusted-EV bets qualify.
+    """
     best = {}
-    for c in candidates:
-        if c['odds'] > MAX_POSITIVE_AMERICAN_ODDS or c['ev'] <= 0:
+    for candidate in candidates:
+        odds = candidate['odds']
+        if not MIN_NEGATIVE_AMERICAN_ODDS <= odds <= MAX_POSITIVE_AMERICAN_ODDS:
             continue
+        if candidate['ev'] <= 0:
+            continue
+        adjusted = value_adjustment(candidate)
+        if adjusted['adjusted_ev'] <= 0:
+            continue
+        c = dict(candidate, **adjusted)
         key = (c['event_id'], c['market'], c['selection'], str(c['point']))
-        if key not in best or c['ev'] > best[key]['ev']:
+        if key not in best or c['adjusted_ev'] > best[key]['adjusted_ev']:
             best[key] = c
-    ordered = sorted(best.values(), key=lambda c: (tier(c), -c['ev'], -c['prob'], abs(c['odds'])))
+
+    ordered = sorted(
+        best.values(),
+        key=lambda c: (-c['adjusted_ev'], -c['adjusted_edge_pp'],
+                       -c['prob'], abs(c['odds']), c['event_id'])
+    )
     selected, used_events = [], set()
     for c in ordered:
         if c['event_id'] in used_events:
@@ -207,19 +240,17 @@ def rank_candidates(candidates, card_date=None):
         if len(selected) == 5:
             break
 
-    by_sport, by_tier = {}, {}
+    by_sport, by_quality = {}, {}
     for c in selected:
         by_sport[c['sport']] = by_sport.get(c['sport'], 0) + 1
-        name = ('trained_moneyline', 'experimental_moneyline', 'experimental_spread_or_total')[tier(c)]
-        by_tier[name] = by_tier.get(name, 0) + 1
-    logging.info('Top 5 selection: day=%s available=%s selected=%s sport_mix=%s model_tiers=%s',
+        by_quality[c['quality']] = by_quality.get(c['quality'], 0) + 1
+    logging.info('Value-first Top 5: day=%s qualifying=%s selected=%s sport_mix=%s quality_mix=%s',
                  card_date, len(best), len(selected), json.dumps(by_sport, sort_keys=True),
-                 json.dumps(by_tier, sort_keys=True))
+                 json.dumps(by_quality, sort_keys=True))
     if len(selected) < 5:
         logging.error('FIVE-PICK REQUIREMENT NOT MET: only %s distinct verified upcoming '
-                      'positive-EV events available; no invented picks will be published.', len(selected))
+                      'positive-adjusted-EV events available; no invented picks will be published.', len(selected))
     return selected
-
 
 def research_notes(context, selection, market, model_version=None, edge_pp=None, ev=None, bookmaker=None, verification_source=None, quality=None):
     # Prefix each line to preserve the separate dashboard columns.
@@ -410,11 +441,14 @@ def main():
                     ctx = c.get('context') or {}
                     notes = research_notes(ctx, c['selection'], c['market'], c['model_version'],
                                            c['edge_pp'], c['ev'], c['bookmaker'], c['verification_source'], c['quality'])
-                    raw_tier = suggested_units(c['edge_pp'])
-                    units = min(raw_tier, MAX_EXPERIMENTAL_UNITS)
-                    notes += (f'\nWhy: EXPERIMENTAL STAKE TIER: {units}u (raw edge tier {raw_tier}u, capped at 2u) from '
-                              f'{c["edge_pp"]:+.2f} percentage-point estimated edge; '
-                              'uncalibrated, not a validated bankroll recommendation.')
+                    # Flat research stake until calibration/backtests justify sizing.
+                    units = 1
+                    notes += (f'\\nWhy: VALUE RANKING (provisional, not calibrated): '
+                              f'adjusted EV {c["adjusted_ev"]:+.3f} units/unit; '
+                              f'adjusted edge {c["adjusted_edge_pp"]:+.2f} pp. '
+                              'Conservative model-quality shrinkage and uncertainty haircut; '
+                              'published probability remains the original model estimate. '
+                              'Flat 1u research stake pending validation.')
                     conn.execute('''INSERT INTO picks
                       (date,sport,matchup,market,selection,odds,stake,kind,result,source,
                        notes,rank,start_pt,estimated_prob)
@@ -429,7 +463,7 @@ def main():
               status=EXCLUDED.status,candidates=EXCLUDED.candidates,published=EXCLUDED.published,
               detail=EXCLUDED.detail,updated_at=NOW()''',
               (today,status,len(candidates),len(top),
-               'Standard card excludes odds above +200 and requires positive estimated EV, with no fixed win-probability floor; trained moneylines prioritized; experimental markets may fill remaining slots, clearly labeled. Exactly five picks required. Stakes capped at 2u; no props or injury/weather checks.'))
+               'Value-first card: odds -200 through +200; ranks trained moneylines and experimental spreads/totals together by provisional uncertainty-adjusted EV; no favorite/underdog quotas. Exactly five distinct positive-adjusted-EV picks required. Flat 1u research stakes; no props or new API/database requests.'))
         logging.info('%s: %s; candidates=%s; published=%s', today,status,len(candidates),len(top))
 
 if __name__ == '__main__':

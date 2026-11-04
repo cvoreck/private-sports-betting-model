@@ -180,6 +180,30 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 
 /* Expanded matchup intelligence: presentation only; no new network or DB reads. */
 .se-expanded-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(290px,1fr);gap:14px}.se-left-stack{min-width:0;display:grid;gap:12px}.se-insight-card h3{margin:0 0 12px!important;font-size:1.05rem!important}.se-takeaways{border-color:#139d77;background:linear-gradient(115deg,#06332f,#071e2c)}.se-takeaways ul{padding-left:19px;margin:0}.se-takeaways li{margin:0 0 9px;font-size:.86rem;line-height:1.55;color:#dceef4}.se-takeaways li::marker{color:#15d99a}.se-metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.se-data-list{display:grid;gap:0}.se-data-row{display:grid;grid-template-columns:minmax(105px,.8fr) minmax(0,1.3fr);gap:9px;padding:9px 0;border-top:1px solid #1a4057;font-size:.81rem;line-height:1.45}.se-data-row:first-child{border-top:0}.se-data-row strong{color:#f2f8ff}.se-data-row span{color:#c2d7e7;overflow-wrap:anywhere}.se-context-label{font-weight:800;color:#8bdabf;margin:9px 0 4px;font-size:.82rem}.se-context-text{font-size:.82rem;line-height:1.55;color:#d0e2ef;margin:0 0 10px}.se-injury-team{background:#103859;border-radius:7px;padding:8px 10px;margin:10px 0 5px;font-weight:800;font-size:.88rem}.se-injury-entry{border-bottom:1px solid #1d4057;padding:7px 3px;font-size:.8rem;color:#d9e7f2;line-height:1.45;overflow-wrap:anywhere}.se-muted{font-size:.8rem;color:#a9bfd0;line-height:1.5}.se-injury-panel{align-self:stretch}.se-expanded-footer{margin-top:12px}
+
+/* Expanded pick redesign: header and existing logo markup deliberately untouched. */
+.se-v2-expanded{display:grid;gap:13px}
+.se-v2-top{display:grid;grid-template-columns:minmax(0,2fr) minmax(250px,1fr);gap:13px}
+.se-v2-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.se-v2-lower{display:grid;grid-template-columns:minmax(270px,.95fr) minmax(0,1.65fr);gap:13px}
+.se-v2-expanded .se-insight-card{min-width:0}
+.se-v2-expanded .se-insight-card h3{color:#f0f8fc;font-weight:800;margin-bottom:12px!important}
+.se-bottom-line{background:linear-gradient(115deg,#082c30,#071c2a)}
+.se-bottom-line p{font-size:.87rem;line-height:1.55;color:#dcecf4;margin:0}
+.se-table-scroll{overflow-x:auto}
+.se-compact-table{width:100%;border-collapse:collapse;font-size:.79rem;line-height:1.4}
+.se-compact-table th{text-align:left;background:#173247;color:#e6f2fa;padding:7px 9px;font-weight:750;white-space:nowrap}
+.se-compact-table td{padding:8px 9px;border-bottom:1px solid #234456;color:#d9e8f1;vertical-align:top}
+.se-compact-table td:not(:first-child){font-variant-numeric:tabular-nums}
+.se-small-note{color:#9eb7c9;font-size:.74rem;margin:8px 0 0}
+.se-context-row{display:grid;grid-template-columns:85px minmax(0,1fr);gap:10px;padding:12px 0;border-bottom:1px solid #234456;font-size:.81rem;line-height:1.5}
+.se-context-row strong{color:#a1f0d1}.se-context-row span{color:#d6e5f1}
+.se-injury-table th:nth-child(1){width:30%}.se-injury-table th:nth-child(2){width:24%}
+.se-v2-expanded .se-injury-team{margin-top:10px}
+.se-v2-markets .se-detail-strip{margin:0}
+@media(max-width:1100px){.se-v2-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.se-v2-top{grid-template-columns:1fr}}
+@media(max-width:720px){.se-v2-metrics,.se-v2-lower{grid-template-columns:1fr}}
+
 @media(max-width:1000px){.se-expanded-grid{grid-template-columns:1fr}.se-injury-panel{order:2}}
 </style>""", unsafe_allow_html=True)
 
@@ -1064,6 +1088,53 @@ def _insight_card(title, entries, fallback):
     return f'<section class="se-insight-card"><h3>{esc(title)}</h3>{body}</section>'
 
 
+def _se_extract_metrics(sections, teams):
+    """Parse only explicitly saved numbers; no new fetches or fabricated metrics."""
+    recent = ' '.join(sections['recent'])
+    season = ' '.join(sections['season'])
+    home = ' '.join(sections['home'])
+    def stats_for(team, text):
+        short = team.split()[-1]
+        escaped = re.escape(team)
+        match = re.search(rf'{escaped}\s+last\s+(\d+)\s+completed[^:]*:\s*(\d+)-(\d+)(?:-(\d+))?;\s*([\d.]+)\s+goals scored and\s+([\d.]+)\s+allowed', text, re.I)
+        if not match:
+            return {}
+        n,w,l,ot,gf,ga = match.groups()
+        return {'record': f'{w}–{l}' + (f'–{ot}' if ot else ''), 'games': int(n), 'gf':gf, 'ga':ga}
+    return {team:stats_for(team,recent) for team in teams}
+
+
+def _se_comparison_card(title, teams, rows, note=''):
+    heads = ''.join(f'<th>{esc(team.split()[-1])}</th>' for team in teams)
+    body = ''.join('<tr><td>'+esc(label)+'</td>'+''.join(f'<td>{esc(str(value))}</td>' for value in values)+'</tr>' for label,values in rows)
+    if not body:
+        body='<tr><td colspan="3" class="se-muted">Verified comparable figures not available in saved research.</td></tr>'
+    footer = f'<p class="se-small-note">{esc(note)}</p>' if note else ''
+    return f'<section class="se-insight-card se-table-card"><h3>{esc(title)}</h3><div class="se-table-scroll"><table class="se-compact-table"><thead><tr><th>Metric</th>{heads}</tr></thead><tbody>{body}</tbody></table></div>{footer}</section>'
+
+
+def _se_injury_table(teams, injuries):
+    out=[]
+    for team in list(teams)+[t for t in injuries if t not in teams]:
+        items=list(dict.fromkeys(injuries.get(team, [])))
+        if not items:
+            continue
+        entries=[]
+        for raw in items:
+            parts=re.split(r'\s+[—–]\s+',raw,maxsplit=1)
+            player=parts[0].strip()
+            detail=parts[1].strip() if len(parts)>1 else ''
+            status_match=re.match(r'(Injured Reserve|Day-To-Day|Day-to-day|Questionable|Doubtful|Out|Probable|Active|IR|DTD)\b',detail,re.I)
+            status=status_match.group(1) if status_match else 'Unverified'
+            detail=re.sub(r'\s*Source:.*$', '', detail, flags=re.I).strip()
+            detail=re.sub(r'^'+re.escape(status)+r'\s*', '',detail,flags=re.I).strip(' ().')
+            if len(detail)>110: detail=detail[:107].rstrip()+'…'
+            entries.append(f'<tr><td>{esc(player)}</td><td>{esc(status)}</td><td>{esc(detail or "—")}</td></tr>')
+        if entries:
+            out.append(f'<div class="se-injury-team">{esc(team)}</div><div class="se-table-scroll"><table class="se-compact-table se-injury-table"><thead><tr><th>Player</th><th>Status</th><th>Details</th></tr></thead><tbody>{"".join(entries[:12])}</tbody></table></div>')
+    return ''.join(out) if out else '<p class="se-muted">No verified injury report saved; availability not confirmed.</p>'
+
+
 def full_pick_card(r, load_live=False):
     """Keep the existing pick header; redesign only its native HTML dropdown."""
     odds = number(r.get('odds'), None)
@@ -1095,30 +1166,27 @@ def full_pick_card(r, load_live=False):
             break
     takeaway_html = ('<ul>' + ''.join(f'<li>{esc(x)}</li>' for x in takeaways) + '</ul>') if takeaways else '<p class="se-muted">No verified matchup takeaways recorded.</p>'
 
-    injuries_html = ''
-    for team, entries in injuries.items():
-        injuries_html += f'<div class="se-injury-team">{esc(team)}</div>'
-        if entries:
-            unique = list(dict.fromkeys(entries))
-            injuries_html += ''.join(f'<div class="se-injury-entry">{esc(x)}</div>' for x in unique[:12])
-            if len(unique) > 12:
-                injuries_html += f'<p class="se-muted">{len(unique)-12} more recorded injuries.</p>'
-        else:
-            injuries_html += '<p class="se-muted">No saved player report; availability not confirmed.</p>'
-    if not injuries_html:
-        injuries_html = '<p class="se-muted">No verified injury report saved.</p>'
-
-    context_html = ''
-    for label, key, fallback in (
-        ('Rest', 'rest', 'Rest advantage not verified.'),
-        ('Travel', 'travel', 'Travel impact not verified.'),
-        ('Weather', 'weather', 'Weather context not recorded; indoor games may not require it.'),
-    ):
-        value = ' '.join(context[key][:2]) if context[key] else fallback
-        context_html += f'<div class="se-context-label">{label}</div><p class="se-context-text">{esc(value)}</p>'
-
-    # Read-only archived odds: the existing cached helper makes no Odds API calls.
+    teams = matchup_teams(r)
+    stats = _se_extract_metrics(sections, teams) if len(teams)==2 else {}
+    form_rows = []
+    if len(teams)==2:
+        for label, key in [('Record','record'),('Goals For / Game','gf'),('Goals Against / Game','ga')]:
+            if any(stats.get(t,{}).get(key) for t in teams):
+                form_rows.append((label,[stats.get(t,{}).get(key,'—') for t in teams]))
+    form_note = '; '.join(f'{t.split()[-1]}: {stats[t]["games"]} games' for t in teams if stats.get(t))
+    recent_card = _se_comparison_card('Recent Form (Last 10 Available)', teams, form_rows, form_note) if len(teams)==2 else _insight_card('Recent Form',sections['recent'],'No verified form data.')
+    # Season and matchup notes are retained verbatim where structured data is not saved.
+    season_card = _insight_card('Season Overview',sections['season'],'Season statistics not recorded.')
+    matchup_card = _insight_card('Matchup Metrics',sections['matchup']+sections['home']+sections['schedule'],'Comparable matchup metrics not recorded.')
+    injuries_html = _se_injury_table(teams,injuries)
+    context_rows=[]
+    for label,key,fallback in [('Rest','rest','Not verified'),('Travel','travel','Not verified'),('Weather','weather','Not recorded')]:
+        value=' '.join(context[key][:2]) if context[key] else fallback
+        context_rows.append(f'<div class="se-context-row"><strong>{label}</strong><span>{esc(value)}</span></div>')
+    context_html=''.join(context_rows)
     market_strip = market_strip_html(r, load_live=load_live)
+    bottom_line = (' '.join(takeaways[:2]) if takeaways else 'No additional verified matchup conclusion saved.')
+    if len(bottom_line)>310: bottom_line=bottom_line[:307].rstrip()+'…'
     return f'''<details class="se-pick{first}">
       <summary><div class="se-pick-head">
         <div class="se-rank">{rank}</div>
@@ -1130,21 +1198,22 @@ def full_pick_card(r, load_live=False):
         <div class="se-odds"><strong>{price}</strong><span>{units:g} {'unit' if units == 1 else 'units'}</span></div>
         <div class="se-chevron"></div>
       </div></summary>
-      <div class="se-pick-expanded">
-        <div class="se-expanded-grid">
-          <div class="se-left-stack">
-            <section class="se-insight-card se-takeaways"><h3>Key Takeaways</h3>{takeaway_html}</section>
-            <div class="se-metric-grid">
-              {_insight_card('Recent Form (up to last 10)', sections['recent'], 'No verified recent-game sample saved.')}
-              {_insight_card('Season Overview', sections['season'], 'Season statistics not recorded.')}
-              {_insight_card('Matchup: Key Metrics', sections['matchup'] + sections['home'] + sections['schedule'], 'Comparable matchup statistics not recorded.')}
-              <section class="se-insight-card"><h3>Game Context: Rest, Travel & Weather</h3>{context_html}</section>
-            </div>
-          </div>
-          <section class="se-insight-card se-injury-panel"><h3>Injury Report</h3>{injuries_html}</section>
+      <div class="se-pick-expanded se-v2-expanded">
+        <div class="se-v2-top">
+          <section class="se-insight-card se-takeaways"><h3>◎ Key Takeaways</h3>{takeaway_html}</section>
+          <section class="se-insight-card se-bottom-line"><h3>▥ Bottom Line</h3><p>{esc(bottom_line)}</p></section>
         </div>
-        <div class="se-expanded-footer">{market_strip}</div>
-        <p class="se-disclaimer">Research is from saved pick notes, not live injury, weather or lineup feeds. Recent-form sample sizes may be under 10. Confirm odds and availability before wagering.</p>
+        <div class="se-v2-metrics">
+          {recent_card}
+          {season_card}
+          {matchup_card}
+        </div>
+        <div class="se-v2-lower">
+          <section class="se-insight-card se-context-card"><h3>◇ Game Context</h3>{context_html}</section>
+          <section class="se-insight-card se-injury-panel"><h3>✚ Injury Report</h3>{injuries_html}</section>
+        </div>
+        <section class="se-insight-card se-v2-markets"><h3>◉ Betting Markets (Archived Odds)</h3>{market_strip}</section>
+        <p class="se-disclaimer">Research is from saved pick notes, not live injury, weather or lineup feeds. Figures and sample sizes are shown only when verified in saved notes. Confirm odds and availability before wagering.</p>
       </div>
     </details>'''
 

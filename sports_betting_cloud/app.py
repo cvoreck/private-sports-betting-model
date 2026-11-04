@@ -177,6 +177,10 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .se-archive-note {font-size:.75rem;color:#a7bfd3;margin:6px 2px 0}
 @media(max-width:900px){.se-detail-strip.se-template-strip{grid-template-columns:1fr 1fr}.se-template-strip .se-strip-item:nth-child(3){border-left:0;border-top:1px solid #315b7d}.se-template-strip .se-strip-item:nth-child(4){border-top:1px solid #315b7d}}
 @media(max-width:520px){.se-detail-strip.se-template-strip{font-size:.72rem}.se-template-strip .se-strip-item{padding:9px 6px}}
+
+/* Expanded matchup intelligence: presentation only; no new network or DB reads. */
+.se-expanded-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(290px,1fr);gap:14px}.se-left-stack{min-width:0;display:grid;gap:12px}.se-insight-card h3{margin:0 0 12px!important;font-size:1.05rem!important}.se-takeaways{border-color:#139d77;background:linear-gradient(115deg,#06332f,#071e2c)}.se-takeaways ul{padding-left:19px;margin:0}.se-takeaways li{margin:0 0 9px;font-size:.86rem;line-height:1.55;color:#dceef4}.se-takeaways li::marker{color:#15d99a}.se-metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.se-data-list{display:grid;gap:0}.se-data-row{display:grid;grid-template-columns:minmax(105px,.8fr) minmax(0,1.3fr);gap:9px;padding:9px 0;border-top:1px solid #1a4057;font-size:.81rem;line-height:1.45}.se-data-row:first-child{border-top:0}.se-data-row strong{color:#f2f8ff}.se-data-row span{color:#c2d7e7;overflow-wrap:anywhere}.se-context-label{font-weight:800;color:#8bdabf;margin:9px 0 4px;font-size:.82rem}.se-context-text{font-size:.82rem;line-height:1.55;color:#d0e2ef;margin:0 0 10px}.se-injury-team{background:#103859;border-radius:7px;padding:8px 10px;margin:10px 0 5px;font-weight:800;font-size:.88rem}.se-injury-entry{border-bottom:1px solid #1d4057;padding:7px 3px;font-size:.8rem;color:#d9e7f2;line-height:1.45;overflow-wrap:anywhere}.se-muted{font-size:.8rem;color:#a9bfd0;line-height:1.5}.se-injury-panel{align-self:stretch}.se-expanded-footer{margin-top:12px}
+@media(max-width:1000px){.se-expanded-grid{grid-template-columns:1fr}.se-injury-panel{order:2}}
 </style>""", unsafe_allow_html=True)
 
 if 'DATABASE_URL' not in st.secrets:
@@ -993,20 +997,80 @@ def pick_time_only(value):
     return re.sub(r'\s+', ' ', text).strip(' ·,|-')
 
 
+def _saved_research_sections(r):
+    """Only reuse existing pick notes. No external fetches, invented data or odds."""
+    rationale, warnings = pick_analysis(r)
+    sections = {key: [] for key in ('recent', 'matchup', 'home', 'schedule', 'season', 'other')}
+    labels = (
+        ('recent form:', 'recent'),
+        ('offensive vs. defensive matchup:', 'matchup'),
+        ('home/away performance:', 'home'),
+        ('strength of schedule:', 'schedule'),
+        ('season-long performance:', 'season'),
+    )
+    for raw in rationale.splitlines():
+        line = raw.strip().lstrip('•- ').strip()
+        if not line:
+            continue
+        low = line.lower()
+        key = next((category for prefix, category in labels if low.startswith(prefix)), None)
+        if key:
+            prefix = next(prefix for prefix, category in labels if category == key)
+            line = line[len(prefix):].strip()
+        elif any(token in low for token in ('last 10', 'last-10', 'last 9', 'recent form')):
+            key = 'recent'
+        elif any(token in low for token in ('home/away', 'at home', 'on road', 'on the road')):
+            key = 'home'
+        elif 'overall record' in low or 'season-long' in low:
+            key = 'season'
+        else:
+            key = 'other'
+        if line and line not in sections[key]:
+            sections[key].append(line)
+    context = {'rest': [], 'travel': [], 'weather': [], 'market': []}
+    injuries = {}
+    teams = matchup_teams(r)
+    for team in teams:
+        injuries[team] = []
+    for raw in warnings.splitlines():
+        line = raw.strip().lstrip('•- ').strip()
+        low = line.lower()
+        if not line:
+            continue
+        injury = re.match(r'^Injur(?:y|ies)\s*\(([^)]+)\):\s*(.*)$', line, re.I)
+        if injury:
+            team = injury.group(1).strip()
+            name = next((t for t in teams if _team_key(t) == _team_key(team)), team)
+            injuries.setdefault(name, []).append(injury.group(2).strip())
+        elif low.startswith(('rest:', 'travel:', 'travel context:', 'weather:', 'weather context:', 'market movement:', 'line movement:', 'odds movement:')):
+            key = ('rest' if low.startswith('rest:') else
+                   'travel' if low.startswith(('travel:', 'travel context:')) else
+                   'weather' if low.startswith(('weather:', 'weather context:')) else 'market')
+            context[key].append(line.split(':', 1)[1].strip())
+        elif low.startswith(('injur', 'suspension', 'lineup')):
+            injuries.setdefault('Additional injury / lineup notes', []).append(line)
+        else:
+            context['market'].append(line)
+    return sections, context, injuries
+
+
+def _insight_card(title, entries, fallback):
+    items = entries[:4] if entries else []
+    body = ''.join(f'<div class="se-injury-entry">{esc(item)}</div>' for item in items)
+    if not body:
+        body = f'<p class="se-muted">{esc(fallback)}</p>'
+    if len(entries) > 4:
+        body += f'<p class="se-muted">{len(entries)-4} additional recorded notes not shown.</p>'
+    return f'<section class="se-insight-card"><h3>{esc(title)}</h3>{body}</section>'
+
+
 def full_pick_card(r, load_live=False):
+    """Keep the existing pick header; redesign only its native HTML dropdown."""
     odds = number(r.get('odds'), None)
     prob = number(r.get('estimated_prob'), None)
     be = odds_break_even(odds) if odds is not None else None
     edge = prob * 100 - be if prob is not None and 0 < prob < 1 and be is not None else None
     rank = int(r['rank']) if pd.notna(r.get('rank')) else '—'
-    rationale, warnings = pick_analysis(r)
-    if not rationale:
-        rationale = 'Matchup-specific research has not been recorded.'
-    if not warnings:
-        warnings = 'Injuries and confirmed lineups have not been independently verified.'
-    # Show meaningful research, without fabricating news or suppressing warnings.
-    why_html = why_sections_html(rationale)
-    watch_html = watch_sections_html(warnings, r)
     selection = esc(r.get('selection'))
     matchup = esc(selection_matchup_display(r))
     start = esc(pick_time_only(r.get('start_pt'))) or 'Time unverified'
@@ -1017,11 +1081,45 @@ def full_pick_card(r, load_live=False):
     be_text = f'{be:.1f}%' if be is not None else '—'
     edge_text = f'{edge:+.1f} pp' if edge is not None else '—'
     edge_class = 'se-green' if edge is not None and edge >= 0 else 'se-red'
-    market = esc(r.get('market')) or 'Not recorded'
     first = ' se-first' if rank == 1 else ''
-    open_attr = ''
+
+    sections, context, injuries = _saved_research_sections(r)
+    takeaways = []
+    for key in ('recent', 'home', 'matchup', 'season', 'schedule', 'other'):
+        for note in sections[key]:
+            if note not in takeaways:
+                takeaways.append(note)
+            if len(takeaways) >= 3:
+                break
+        if len(takeaways) >= 3:
+            break
+    takeaway_html = ('<ul>' + ''.join(f'<li>{esc(x)}</li>' for x in takeaways) + '</ul>') if takeaways else '<p class="se-muted">No verified matchup takeaways recorded.</p>'
+
+    injuries_html = ''
+    for team, entries in injuries.items():
+        injuries_html += f'<div class="se-injury-team">{esc(team)}</div>'
+        if entries:
+            unique = list(dict.fromkeys(entries))
+            injuries_html += ''.join(f'<div class="se-injury-entry">{esc(x)}</div>' for x in unique[:12])
+            if len(unique) > 12:
+                injuries_html += f'<p class="se-muted">{len(unique)-12} more recorded injuries.</p>'
+        else:
+            injuries_html += '<p class="se-muted">No saved player report; availability not confirmed.</p>'
+    if not injuries_html:
+        injuries_html = '<p class="se-muted">No verified injury report saved.</p>'
+
+    context_html = ''
+    for label, key, fallback in (
+        ('Rest', 'rest', 'Rest advantage not verified.'),
+        ('Travel', 'travel', 'Travel impact not verified.'),
+        ('Weather', 'weather', 'Weather context not recorded; indoor games may not require it.'),
+    ):
+        value = ' '.join(context[key][:2]) if context[key] else fallback
+        context_html += f'<div class="se-context-label">{label}</div><p class="se-context-text">{esc(value)}</p>'
+
+    # Read-only archived odds: the existing cached helper makes no Odds API calls.
     market_strip = market_strip_html(r, load_live=load_live)
-    return f'''<details class="se-pick{first}"{open_attr}>
+    return f'''<details class="se-pick{first}">
       <summary><div class="se-pick-head">
         <div class="se-rank">{rank}</div>
         <div class="se-pick-logo">{card_image_html(r)}</div>
@@ -1033,12 +1131,20 @@ def full_pick_card(r, load_live=False):
         <div class="se-chevron"></div>
       </div></summary>
       <div class="se-pick-expanded">
-        <div class="se-research">
-          <section class="se-research-panel"><h3>Why This Pick?</h3>{why_html}</section>
-          <section class="se-research-panel"><h3>Watch Out For:</h3>{watch_html}</section>
+        <div class="se-expanded-grid">
+          <div class="se-left-stack">
+            <section class="se-insight-card se-takeaways"><h3>Key Takeaways</h3>{takeaway_html}</section>
+            <div class="se-metric-grid">
+              {_insight_card('Recent Form (up to last 10)', sections['recent'], 'No verified recent-game sample saved.')}
+              {_insight_card('Season Overview', sections['season'], 'Season statistics not recorded.')}
+              {_insight_card('Matchup: Key Metrics', sections['matchup'] + sections['home'] + sections['schedule'], 'Comparable matchup statistics not recorded.')}
+              <section class="se-insight-card"><h3>Game Context: Rest, Travel & Weather</h3>{context_html}</section>
+            </div>
+          </div>
+          <section class="se-insight-card se-injury-panel"><h3>Injury Report</h3>{injuries_html}</section>
         </div>
-        {market_strip}
-        <p class="se-disclaimer">Research reflects saved notes, not a live injury or news feed. Confirm prices, availability, and lineups before placing a wager.</p>
+        <div class="se-expanded-footer">{market_strip}</div>
+        <p class="se-disclaimer">Research is from saved pick notes, not live injury, weather or lineup feeds. Recent-form sample sizes may be under 10. Confirm odds and availability before wagering.</p>
       </div>
     </details>'''
 

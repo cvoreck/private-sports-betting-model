@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: sports-edge-daily-top5
@@ -36,6 +37,11 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          GH_WORKFLOW: daily-top5.yml
+          GH_RUN_ID: ${{ github.run_id }}
+          GH_RUN_NUMBER: ${{ github.run_number }}
         shell: bash
         run: |
           python - <<'PY'
@@ -43,6 +49,9 @@ jobs:
           from datetime import datetime
           from zoneinfo import ZoneInfo
           import psycopg
+          import json
+          from urllib.request import Request, urlopen
+          from urllib.error import URLError
 
           now = datetime.now(ZoneInfo('America/Los_Angeles'))
           today = now.date()
@@ -52,7 +61,36 @@ jobs:
           should_run = eligible
           reason = 'manual trigger' if manual else ('Pacific morning window' if in_window else 'outside Pacific morning window')
 
-          if eligible:
+          # Prevent duplicate scheduled processing even if the earlier attempt
+          # published no picks. Inspect GitHub run metadata, not Supabase.
+          if eligible and not manual:
+              url = (f"https://api.github.com/repos/{os.environ['GH_REPOSITORY']}"
+                     f"/actions/workflows/{os.environ['GH_WORKFLOW']}/runs?event=schedule&per_page=50")
+              try:
+                  req = Request(url, headers={
+                      'Authorization': f"Bearer {os.environ['GH_TOKEN']}",
+                      'Accept': 'application/vnd.github+json',
+                      'User-Agent': 'sports-edge-daily-gate'})
+                  with urlopen(req, timeout=15) as response:
+                      runs = json.load(response).get('workflow_runs', [])
+                  prior = []
+                  for run in runs:
+                      if int(run.get('run_number') or 0) >= int(os.environ['GH_RUN_NUMBER']):
+                          continue
+                      if run.get('status') != 'completed' or run.get('conclusion') != 'success':
+                          continue
+                      created = datetime.fromisoformat(run['created_at'].replace('Z', '+00:00'))
+                      if created.astimezone(ZoneInfo('America/Los_Angeles')).date() == today:
+                          prior.append(run['id'])
+                  if prior:
+                      should_run = False
+                      reason = f'Previous successful scheduled run(s) today: {prior}; skip duplicate'
+              except (URLError, TimeoutError, ValueError, KeyError, OSError) as exc:
+                  # Fail closed to protect egress/credits; manual dispatch remains available.
+                  should_run = False
+                  reason = f'Cannot verify prior runs ({exc}); skip scheduled attempt safely'
+
+          if should_run:
               with psycopg.connect(os.environ['DATABASE_URL'], connect_timeout=15) as conn:
                   # Skip API calls if today's ranked card already exists.
                   # The picks.date column is stored as TEXT.

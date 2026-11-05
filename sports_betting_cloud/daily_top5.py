@@ -212,20 +212,31 @@ def rank_candidates(candidates, card_date=None):
     and no invented candidates. Only positive adjusted-EV bets qualify.
     """
     best = {}
+    diagnostics = dict(raw_candidates=len(candidates), rejected_odds=0,
+                       rejected_raw_ev=0, rejected_adjusted_ev=0,
+                       surviving_quotes=0, distinct_surviving_events=0,
+                       duplicate_event_quotes=0)
     for candidate in candidates:
         odds = candidate['odds']
         if not MIN_NEGATIVE_AMERICAN_ODDS <= odds <= MAX_POSITIVE_AMERICAN_ODDS:
+            diagnostics['rejected_odds'] += 1
             continue
         if candidate['ev'] <= 0:
+            diagnostics['rejected_raw_ev'] += 1
             continue
         adjusted = value_adjustment(candidate)
         if adjusted['adjusted_ev'] <= 0:
+            diagnostics['rejected_adjusted_ev'] += 1
             continue
+        diagnostics['surviving_quotes'] += 1
         c = dict(candidate, **adjusted)
         key = (c['event_id'], c['market'], c['selection'], str(c['point']))
         if key not in best or c['adjusted_ev'] > best[key]['adjusted_ev']:
             best[key] = c
 
+    diagnostics['distinct_surviving_events'] = len({c['event_id'] for c in best.values()})
+    diagnostics['duplicate_event_quotes'] = len(best) - diagnostics['distinct_surviving_events']
+    logging.info('Adjusted-EV candidate diagnostics: %s', json.dumps(diagnostics, sort_keys=True))
     ordered = sorted(
         best.values(),
         key=lambda c: (-c['adjusted_ev'], -c['adjusted_edge_pp'],

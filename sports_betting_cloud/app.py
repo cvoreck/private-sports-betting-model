@@ -236,6 +236,13 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 @media(max-width:1150px){.se-v2-expanded .se-v2-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.se-v2-expanded .se-v2-top{grid-template-columns:1fr}}
 @media(max-width:850px){.se-v2-expanded .se-v2-metrics,.se-v2-expanded .se-v2-lower{grid-template-columns:1fr}}
 @media(max-width:580px){.se-v2-expanded .se-injury-columns{grid-template-columns:1fr}.se-pick-expanded.se-v2-expanded{padding:12px 10px}.se-v2-expanded .se-insight-card{padding:12px}}
+/* Team-logo images use an abbreviation underneath, visible if the image fails. */
+.team-logo-frame{position:relative;display:flex;align-items:center;justify-content:center;width:74px;height:67px;flex-shrink:0;border-radius:8px;overflow:hidden;background:#102e45}
+.team-logo-abbr{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#dcefff;font-size:1rem;font-weight:800;letter-spacing:.02em}
+.team-logo-frame>.pick-image{position:absolute;inset:0;width:100%!important;height:100%!important;object-fit:contain;background:#102e45;padding:2px!important}
+.se-pick-logo .pick-image-pair .team-logo-frame{width:36px;height:54px}
+@media(max-width:1120px){.se-pick-logo .team-logo-frame{width:56px;height:54px}}
+@media(max-width:760px){.se-pick-logo .team-logo-frame{width:45px;height:48px}.se-pick-logo .pick-image-pair .team-logo-frame{width:22px;height:42px}.team-logo-abbr{font-size:.72rem}}
 </style>""", unsafe_allow_html=True)
 
 if 'DATABASE_URL' not in st.secrets:
@@ -475,11 +482,7 @@ def matchup_teams(r):
 
 
 def team_logo(sport, team):
-    # Avoid blocking network requests during dashboard rendering.
-    live = {}
-    direct = live.get(_team_key(team))
-    if direct:
-        return direct
+    # Use deterministic ESPN CDN URLs; never make a network request on render.
     # Match punctuation variants (e.g. "St Louis Blues" vs "St. Louis Blues")
     # without fetching logos over the network during page rendering.
     known_teams = TEAM_LOGOS.get(sport, {})
@@ -489,40 +492,51 @@ def team_logo(sport, team):
         abbr = next((code for name, code in known_teams.items()
                      if _team_key(name) == normalized), None)
     if abbr:
-        league = {'NHL': 'nhl', 'NBA': 'nba', 'MLB': 'mlb'}.get(sport)
+        league = {'NFL': 'nfl', 'NHL': 'nhl', 'NBA': 'nba', 'MLB': 'mlb'}.get(sport)
         if league:
             return f'https://a.espncdn.com/i/teamlogos/{league}/500/{abbr}.png'
     return ''
+
+
+def _logo_abbreviation(sport, team):
+    """Short text fallback when a team's image cannot be loaded."""
+    known = TEAM_LOGOS.get(sport, {})
+    normalized = _team_key(team)
+    code = next((abbr for name, abbr in known.items()
+                 if _team_key(name) == normalized), None)
+    if code:
+        return code.upper()
+    words = re.findall(r'[A-Za-z0-9]+', clean_text(team))
+    return (''.join(word[0] for word in words[:3]) or '—').upper()
+
+
+def _team_logo_html(sport, team, url=''):
+    """Keep a readable abbreviation underneath the image, including broken URLs."""
+    abbr = _logo_abbreviation(sport, team)
+    image = (f'<img class="pick-image" src="{esc(url)}" alt="{esc(team)} logo" '
+             'loading="lazy" onerror="this.style.display=\'none\'">') if url else ''
+    return (f'<span class="team-logo-frame" title="{esc(team)}">'
+            f'<span class="team-logo-abbr" aria-label="{esc(team)}">{esc(abbr)}</span>'
+            f'{image}</span>')
 
 
 def card_image_html(r):
     sport = clean_text(r.get('sport'))
     selection = clean_text(r.get('selection'))
     teams = matchup_teams(r)
-    # Totals apply to both teams; show two team logos rather than a blank tile.
-    is_total = bool(re.match(r'^\s*(over|under)\b', selection, re.I)) or clean_text(r.get('market')).lower() in ('total', 'totals')
+    is_total = (bool(re.match(r'^\s*(over|under)\b', selection, re.I))
+                or clean_text(r.get('market')).lower() in ('total', 'totals'))
     if is_total and len(teams) == 2:
-        images = [team_logo(sport, team) for team in teams]
-        imgs = ''.join(
-            (f'<img class="pick-image" src="{esc(url)}" alt="{esc(team)} logo" loading="lazy">'
-             if url else f'<div class="pick-image pick-image-fallback" title="{esc(team)} logo unavailable">—</div>')
-            for team, url in zip(teams, images))
-        if imgs:
-            return f'<div class="pick-image-pair">{imgs}</div>'
+        return ('<div class="pick-image-pair">' + ''.join(
+            _team_logo_html(sport, team, team_logo(sport, team)) for team in teams
+        ) + '</div>')
     for team in teams:
         if _team_key(team) in _team_key(selection):
-            url = team_logo(sport, team)
-            if url:
-                return f'<img class="pick-image" src="{esc(url)}" alt="{esc(team)} logo" loading="lazy">'
-    saved = pick_image(r.get('notes'))
-    if saved:
-        return f'<img class="pick-image" src="{esc(saved)}" alt="Team image" loading="lazy">'
+            return _team_logo_html(sport, team, team_logo(sport, team) or pick_image(r.get('notes')))
     if teams:
-        url = team_logo(sport, teams[0])
-        if url:
-            return f'<img class="pick-image" src="{esc(url)}" alt="{esc(teams[0])} logo" loading="lazy">'
-    sport_icon = {'NFL':'🏈','NBA':'🏀','MLB':'⚾','NHL':'🏒','College Football':'🏈','College Basketball':'🏀'}.get(sport, '🏟️')
-    return '<div class="pick-image pick-image-fallback" role="img" aria-label="Team logo unavailable">—</div>'
+        return _team_logo_html(sport, teams[0], team_logo(sport, teams[0]) or pick_image(r.get('notes')))
+    saved = pick_image(r.get('notes'))
+    return _team_logo_html(sport, selection or sport, saved)
 
 
 def recorded_bookmaker(source):

@@ -100,6 +100,7 @@ def find_candidates(conn, today, now):
     candidates = []
     approved_diagnostics = {}
     closest_trained = {}
+    market_diagnostics = {}
     counts = dict(events=0, upcoming_today=0, verified=0, predictions=0,
                   positive_ev=0, above_odds_cap=0, stale_or_unapproved=0, trained=0, experimental=0, excluded_unvalidated=0)
     # Active promoted versions are authoritative. Reject stale superseded
@@ -174,6 +175,14 @@ def find_candidates(conn, today, now):
                         diag['quotes'] += 1
                         diag['events'].add(event_id)
                         diag['raw_positive' if ev > 0 else 'raw_nonpositive'] += 1
+                        group = market_diagnostics.setdefault((sport, mkey, quality),
+                            {'quotes': 0, 'raw_positive': 0, 'raw_nonpositive': 0,
+                             'best_raw_ev': None, 'events': set()})
+                        group['quotes'] += 1
+                        group['events'].add(event_id)
+                        group['raw_positive' if ev > 0 else 'raw_nonpositive'] += 1
+                        if group['best_raw_ev'] is None or ev > group['best_raw_ev']:
+                            group['best_raw_ev'] = ev
                         if quality == 'trained':
                             # The nearest-to-break-even trained line per game; log no probabilities or picks as fabricated edges.
                             prev = closest_trained.get(event_id)
@@ -198,6 +207,14 @@ def find_candidates(conn, today, now):
                         })
     logging.info('Candidate funnel: %s', json.dumps(counts, sort_keys=True))
     logging.info('Approved model quote diagnostics: %s', json.dumps({q: dict(v, events=len(v['events'])) for q, v in approved_diagnostics.items()}, sort_keys=True))
+    logging.info('Per-sport/market model diagnostics (raw EV, before provisional adjustment): %s',
+                 json.dumps([{'sport': sport, 'market': market, 'quality': quality,
+                              'quotes': d['quotes'], 'events': len(d['events']),
+                              'raw_positive': d['raw_positive'],
+                              'raw_nonpositive': d['raw_nonpositive'],
+                              'best_raw_ev': round(d['best_raw_ev'], 5) if d['best_raw_ev'] is not None else None}
+                             for (sport, market, quality), d in sorted(market_diagnostics.items())],
+                            sort_keys=True))
     logging.info('Closest trained moneylines (diagnostic only, including negative EV): %s',
                  json.dumps(sorted(closest_trained.values(), key=lambda row: -row['raw_ev'])[:5], sort_keys=True))
     return candidates

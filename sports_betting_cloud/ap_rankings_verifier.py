@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import requests
+from espn_event_match import build_index, lookup, diagnose
 
 PT = ZoneInfo('America/Los_Angeles')
 LEAGUES = {
@@ -156,27 +157,14 @@ def verify_college_events(conn, now, today, odds_by_sport, fetch_json=None):
                 logging.warning('AP verification: %s scoreboard unavailable: %s', sport, exc)
                 board_events = []
 
-        def normalize(s):
-            return re.sub(r'[^a-z0-9]+', '', unicodedata.normalize('NFKD', str(s or '')).encode('ascii', 'ignore').decode('ascii').lower())
-
-        match_index = {}
-        for e in board_events:
-            competitors = ((e.get('competitions') or [{}])[0]).get('competitors') or []
-            h = next((c for c in competitors if c.get('homeAway') == 'home'), None)
-            a = next((c for c in competitors if c.get('homeAway') == 'away'), None)
-            if not h or not a:
-                continue
-            ht, at = h.get('team') or {}, a.get('team') or {}
-            if not ht.get('id') or not at.get('id'):
-                continue
-            key = (normalize(ht.get('displayName')), normalize(at.get('displayName')))
-            match_index.setdefault(key, []).append((e, str(ht['id']), str(at['id'])))
+        match_index = build_index(board_events)
 
         eligible = 0
         reasons = {}
         for item in upcoming:
-            key = (normalize(item.get('home_team')), normalize(item.get('away_team')))
-            matches = match_index.get(key) or []
+            start = datetime.fromisoformat(item['commence_time'].replace('Z', '+00:00'))
+            pair = lookup(match_index, item.get('home_team'), item.get('away_team'), start)
+            matches = [(pair[0], str(pair[1]['team']['id']), str(pair[2]['team']['id']))] if pair else []
             valid = len(matches) == 1 and (matches[0][0].get('season') or {}).get('type') == 2
             ranked = bool(valid and poll and (matches[0][1] in poll[1] or matches[0][2] in poll[1]))
             eligible += int(ranked)
@@ -185,7 +173,7 @@ def verify_college_events(conn, now, today, odds_by_sport, fetch_json=None):
             elif poll is None:
                 reason = 'poll_unavailable_or_rejected'
             elif not matches:
-                reason = 'espn_match_not_found'
+                reason = diagnose(match_index, item.get('home_team'), item.get('away_team'), start)
             elif len(matches) != 1:
                 reason = 'ambiguous_espn_match'
             elif not valid:

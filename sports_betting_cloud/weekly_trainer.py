@@ -352,6 +352,11 @@ def main():
         conn.execute(SCHEMA)
         for sport in SPORTS:
             run(conn, sport)
+        if os.getenv('TRAIN_EVALUATION_ONLY', '0') == '1':
+            # Roll back all writes, including candidate model promotions and run logs.
+            # This mode is strictly observational and never changes production models.
+            conn.rollback()
+            logging.info('EVALUATION ONLY: all database changes rolled back; production models unchanged')
 
 
 if __name__ == '__main__':

@@ -140,6 +140,12 @@ jobs:
           ODDS_RESET_DAY: '1'
         run: python sports_betting_cloud/historical_collector.py
 
+      - name: Update compact completed-games history (no external API calls)
+        if: steps.gate.outputs.collect == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python sports_betting_cloud/update_compact_history.py
+
       - name: Generate predictions
         if: steps.gate.outputs.run == 'true'
         env:

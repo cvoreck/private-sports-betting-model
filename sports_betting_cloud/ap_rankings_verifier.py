@@ -128,7 +128,9 @@ def verify_college_events(conn, now, today, odds_by_sport, fetch_json=None):
             logging.warning('AP verification: %s has no complete, dated AP Top 25 poll within 9 days; failing closed', sport)
 
         board_events = []
-        if poll is not None:
+        # Fetch scoreboards even if the poll is stale, for accurate match diagnostics.
+        # This never grants eligibility without a verified AP poll.
+        if upcoming:
             try:
                 for offset in (-1, 0, 1):
                     board_date = today + timedelta(days=offset)
@@ -166,7 +168,9 @@ def verify_college_events(conn, now, today, odds_by_sport, fetch_json=None):
             valid = len(matches) == 1 and (matches[0][0].get('season') or {}).get('type') == 2
             ranked = bool(valid and poll and (matches[0][1] in poll[1] or matches[0][2] in poll[1]))
             eligible += int(ranked)
-            if poll is None:
+            if poll is None and not matches:
+                reason = 'poll_unavailable_and_espn_match_not_found'
+            elif poll is None:
                 reason = 'poll_unavailable_or_rejected'
             elif not matches:
                 reason = 'espn_match_not_found'

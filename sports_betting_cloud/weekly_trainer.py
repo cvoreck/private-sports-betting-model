@@ -238,10 +238,42 @@ def train_candidate(train, sport, details):
     return fit(train, learning_rate=lr, penalty=penalty, epochs=epochs)
 
 
+
+def load_training_rows(conn, sport):
+    """Opt-in canonical reader. Default preserves existing production behavior.
+
+    Set CANONICAL_HISTORY=1 only after running and checking the migration.
+    No API calls. Canonical data must exist for every enabled sport.
+    """
+    if os.getenv('CANONICAL_HISTORY', '0') != '1':
+        return conn.execute('''SELECT event_id,payload FROM historical_snapshots
+           WHERE source='espn' AND sport=%s AND category='game'
+           ORDER BY collected_at DESC LIMIT 30000''', (sport,)).fetchall()
+    rows = conn.execute('''SELECT event_id,played_at,home_team_id,away_team_id,
+             home_team,away_team,home_score,away_score,season_type
+             FROM canonical_completed_games WHERE sport=%s
+             ORDER BY played_at ASC,event_id ASC''', (sport,)).fetchall()
+    if not rows:
+        raise RuntimeError(f'Canonical history empty for {sport}; refusing training/promotion')
+    result = []
+    for r in rows:
+        payload = {
+            'id': r['event_id'],
+            'date': r['played_at'].isoformat(),
+            'season': {'type': r['season_type']},
+            'status': {'type': {'completed': True}},
+            'competitions': [{'competitors': [
+                {'homeAway': 'home', 'score': r['home_score'],
+                 'team': {'id': r['home_team_id'], 'displayName': r['home_team']}},
+                {'homeAway': 'away', 'score': r['away_score'],
+                 'team': {'id': r['away_team_id'], 'displayName': r['away_team']}}
+            ]}]
+        }
+        result.append({'event_id': r['event_id'], 'payload': payload})
+    return result
+
 def run(conn, sport):
-    rows = conn.execute('''SELECT event_id,payload FROM historical_snapshots
-      WHERE source='espn' AND sport=%s AND category='game'
-      ORDER BY collected_at DESC LIMIT 30000''', (sport,)).fetchall()
+    rows = load_training_rows(conn, sport)
     data, game_count = dataset(rows, sport)
     n = len(data)
     cut = int(n*.8)

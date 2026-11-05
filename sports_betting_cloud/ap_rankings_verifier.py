@@ -6,6 +6,7 @@ Includes diagnostics to distinguish excluded, unmatched, and unverifiable events
 """
 import logging
 import re
+import unicodedata
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -87,8 +88,19 @@ def _ap_poll(payload, today):
         return None
     poll_date = (_parse_date(poll.get('lastUpdated')) or _parse_date(poll.get('date'))
                  or _parse_date((payload.get('latestWeek') or {}).get('startDate')))
-    if poll_date is None or poll_date > today or today - poll_date > timedelta(days=9):
+    if poll_date is None or poll_date > today:
         return None
+    # The preseason AP poll can remain the latest official poll at the start
+    # of November. The standard 9-day limit incorrectly rejects it.
+    # Restrict the exception to the opening November days and an October poll.
+    preseason_window = (today.month == 11 and today.day <= 10
+                        and poll_date.month == 10
+                        and poll_date.year == today.year
+                        and (today - poll_date).days <= 24)
+    if (today - poll_date > timedelta(days=9)) and not preseason_window:
+        return None
+    if preseason_window and (today - poll_date).days > 9:
+        logging.warning('Accepting dated October preseason AP poll during early-November opening window: %s', poll_date)
     return poll_date, ids, str(poll.get('name') or 'AP Top 25')
 
 
@@ -145,7 +157,7 @@ def verify_college_events(conn, now, today, odds_by_sport, fetch_json=None):
                 board_events = []
 
         def normalize(s):
-            return re.sub(r'[^a-z0-9]+', '', str(s or '').lower())
+            return re.sub(r'[^a-z0-9]+', '', unicodedata.normalize('NFKD', str(s or '')).encode('ascii', 'ignore').decode('ascii').lower())
 
         match_index = {}
         for e in board_events:

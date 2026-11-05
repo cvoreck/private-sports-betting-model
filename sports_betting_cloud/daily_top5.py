@@ -98,6 +98,8 @@ def odds_events(conn, key, today):
 
 def find_candidates(conn, today, now):
     candidates = []
+    approved_diagnostics = {}
+    closest_trained = {}
     counts = dict(events=0, upcoming_today=0, verified=0, predictions=0,
                   positive_ev=0, above_odds_cap=0, stale_or_unapproved=0, trained=0, experimental=0, excluded_unvalidated=0)
     # Active promoted versions are authoritative. Reject stale superseded
@@ -168,6 +170,18 @@ def find_candidates(conn, today, now):
                         if not isinstance(p, (int, float)) or not math.isfinite(p) or not 0 < p < 1:
                             continue
                         ev = expected_value(p, odds)
+                        diag = approved_diagnostics.setdefault(quality, {'quotes': 0, 'raw_positive': 0, 'raw_nonpositive': 0, 'events': set()})
+                        diag['quotes'] += 1
+                        diag['events'].add(event_id)
+                        diag['raw_positive' if ev > 0 else 'raw_nonpositive'] += 1
+                        if quality == 'trained':
+                            # The nearest-to-break-even trained line per game; log no probabilities or picks as fabricated edges.
+                            prev = closest_trained.get(event_id)
+                            if prev is None or ev > prev['raw_ev']:
+                                closest_trained[event_id] = {'sport': sport, 'matchup': matchup, 'market': mkey,
+                                                            'selection': selection, 'odds': int(odds),
+                                                            'raw_ev': round(ev, 5),
+                                                            'edge_pp': round(100 * (p - american_break_even(odds)), 3)}
                         if ev <= 0:
                             continue
                         counts['positive_ev'] += 1
@@ -183,6 +197,9 @@ def find_candidates(conn, today, now):
                             'context': dict(context) if context else {}
                         })
     logging.info('Candidate funnel: %s', json.dumps(counts, sort_keys=True))
+    logging.info('Approved model quote diagnostics: %s', json.dumps({q: dict(v, events=len(v['events'])) for q, v in approved_diagnostics.items()}, sort_keys=True))
+    logging.info('Closest trained moneylines (diagnostic only, including negative EV): %s',
+                 json.dumps(sorted(closest_trained.values(), key=lambda row: -row['raw_ev'])[:5], sort_keys=True))
     return candidates
 
 def value_adjustment(candidate):

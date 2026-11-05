@@ -29,4 +29,7 @@ jobs:
       - name: Train and evaluate models
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        # Default is existing archive reader. Switch to '1' ONLY after
+        # canonical migration has been checked and approved.
+          CANONICAL_HISTORY: '0'
         run: python sports_betting_cloud/weekly_trainer.py

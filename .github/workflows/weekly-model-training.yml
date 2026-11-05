@@ -1,35 +1,57 @@
-
 name: Weekly Sports Edge Model Training
 
 on:
   schedule:
     - cron: '0 12 * * 1'
-
   workflow_dispatch:
+    inputs:
+      data_source:
+        description: 'Historical data source'
+        required: true
+        type: choice
+        default: canonical
+        options:
+          - canonical
+          - archive
+      run_mode:
+        description: 'Evaluation does not save or promote models'
+        required: true
+        type: choice
+        default: evaluate
+        options:
+          - evaluate
+          - promote
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sports-edge-weekly-model-training
+  cancel-in-progress: false
 
 jobs:
   train:
     name: Train and evaluate models
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests supabase scikit-learn "psycopg[binary]"
-
       - name: Train and evaluate models
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        # Default is existing archive reader. Switch to '1' ONLY after
-        # canonical migration has been checked and approved.
-          CANONICAL_HISTORY: '0'
-        run: python sports_betting_cloud/weekly_trainer.py
+          # Scheduled runs preserve original archive source and promotion behavior.
+          CANONICAL_HISTORY: ${{ github.event_name == 'workflow_dispatch' && inputs.data_source == 'canonical' && '1' || '0' }}
+          TRAIN_EVALUATION_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.run_mode == 'evaluate' && '1' || '0' }}
+        run: |
+          echo "Data source: ${CANONICAL_HISTORY} (1=canonical, 0=archive)"
+          echo "Evaluation only: ${TRAIN_EVALUATION_ONLY} (1=rollback all writes)"
+          python sports_betting_cloud/weekly_trainer.py

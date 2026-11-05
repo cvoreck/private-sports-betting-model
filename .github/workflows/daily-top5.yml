@@ -3,6 +3,15 @@ name: Daily Top 5 (06:00 Pacific)
 
 on:
   workflow_dispatch:
+    inputs:
+      run_mode:
+        description: 'Manual recovery: cached skips historical collection and Odds API calls'
+        required: true
+        type: choice
+        default: cached
+        options:
+          - cached
+          - full
   schedule:
     # 06:00 PDT / 06:00 PST; gate below handles DST and late starts.
     - cron: '0 13 * * *'
@@ -36,6 +45,7 @@ jobs:
         id: gate
         env:
           EVENT_NAME: ${{ github.event_name }}
+          RUN_MODE: ${{ inputs.run_mode }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
@@ -105,6 +115,7 @@ jobs:
 
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
               f.write(f"run={'true' if should_run else 'false'}\n")
+              f.write(f"collect={'true' if should_run and (not manual or os.environ.get('RUN_MODE') == 'full') else 'false'}\n")
           print(f'Pacific timestamp: {now.isoformat()}')
           print(f'Trigger: {os.environ.get("EVENT_NAME")}')
           print(f'Run publishing pipeline: {should_run}; reason: {reason}')
@@ -117,7 +128,7 @@ jobs:
         run: python sports_betting_cloud/settle_picks.py
 
       - name: Archive historical game, player and market data
-        if: steps.gate.outputs.run == 'true'
+        if: steps.gate.outputs.collect == 'true'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}

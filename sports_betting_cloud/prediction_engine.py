@@ -12,6 +12,7 @@ from matchup_research import completed_games, research
 from weekly_trainer import MARGIN_SCALE, NHL_FEATURES, LEGACY_FEATURES, append_history, nhl_features, features as trained_features, sigmoid as trained_sigmoid, parse_game
 from psycopg.rows import dict_row
 from ap_rankings_verifier import verify_college_events
+from espn_event_match import build_index, lookup, diagnose
 
 PT=ZoneInfo('America/Los_Angeles')
 SPORTS={'basketball_nba':('NBA','basketball','nba',6), 'icehockey_nhl':('NHL','hockey','nhl',6), 'americanfootball_nfl':('NFL','football','nfl',4), 'baseball_mlb':('MLB','baseball','mlb',4), 'americanfootball_ncaaf':('College Football','football','college-football',4), 'basketball_ncaab':('College Basketball','basketball','mens-college-basketball',4)}
@@ -253,7 +254,7 @@ def main():
             for d in (-1,0,1):
                 try:boards.extend(fetch(f'https://site.api.espn.com/apis/site/v2/sports/{esport}/{league}/scoreboard',{'dates':(today+timedelta(days=d)).strftime('%Y%m%d'),'limit':200}).get('events') or [])
                 except (requests.RequestException,ValueError) as exc:logging.warning('ESPN schedule unavailable: %s',exc)
-            by_match=match_info(boards)
+            by_match=build_index(boards)
             live_recent=completed_games(esport,league,today,lookback=24 if sport in ('NBA','NHL','MLB','College Basketball') else 80)
             archived=archived_completed_games(conn,sport_key,today) 
             trained_model=models.get(sport_key)
@@ -272,10 +273,10 @@ def main():
                     counts['other_pacific_date']+=1
                     continue
                 counts['events']+=1
-                pair=by_match.get((norm(event.get('home_team')),norm(event.get('away_team'))))
+                pair=lookup(by_match, event.get('home_team'), event.get('away_team'), start)
                 if not pair:
                     counts['unmatched_espn']+=1
-                    logging.info('Unmatched ESPN event sport=%s home=%r away=%r start=%s',sport,event.get('home_team'),event.get('away_team'),start.isoformat())
+                    logging.info('Unmatched ESPN event sport=%s home=%r away=%r start=%s reason=%s',sport,event.get('home_team'),event.get('away_team'),start.isoformat(),diagnose(by_match,event.get('home_team'),event.get('away_team'),start))
                     continue
                 counts['matched']+=1
                 e,h,a=pair

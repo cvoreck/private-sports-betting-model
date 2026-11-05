@@ -3,7 +3,7 @@ ESPN scoreboard regular-season verification and W/L record model for NFL/NBA/NHL
 NBA/NHL spread and total models require >=4 recent final games per team.
 Research only: not calibrated or backtested; missing data means no prediction.
 """
-import logging, math, os, re, statistics
+import logging, math, os, re, statistics, unicodedata
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS verified_events (event_id TEXT PRIMARY KEY, sport TEX
 CREATE TABLE IF NOT EXISTS prediction_context (event_id TEXT PRIMARY KEY, home_team TEXT, away_team TEXT, home_logo TEXT, away_logo TEXT, rationale TEXT, warnings TEXT, updated_at TIMESTAMPTZ NOT NULL);
 '''
 HEADERS={'User-Agent':'sports-edge-research/0.2'}
-def norm(s): return re.sub(r'[^a-z0-9]+','',(s or '').lower())
+def norm(s): return re.sub(r'[^a-z0-9]+','',unicodedata.normalize('NFKD',str(s or '')).encode('ascii','ignore').decode('ascii').lower())
 def fetch(url,params):
     r=requests.get(url,params=params,headers=HEADERS,timeout=25);r.raise_for_status();return r.json()
 def record(c):

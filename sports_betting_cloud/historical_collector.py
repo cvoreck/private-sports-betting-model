@@ -110,14 +110,20 @@ def archive_odds(conn, now, stats):
         logging.warning('ODDS_API_KEY absent: ESPN-only run')
         return
     day = now.astimezone(PT).date()
-    weekday = day.weekday()  # Saturday=5, Sunday=6
-    # Saturday gives CFB priority; Sunday NFL; weekdays NBA/NHL first.
-    if weekday == 5:
-        priority = ['americanfootball_ncaaf','basketball_nba','icehockey_nhl','americanfootball_nfl','basketball_ncaab','baseball_mlb']
-    elif weekday == 6:
-        priority = ['americanfootball_nfl','basketball_nba','icehockey_nhl','americanfootball_ncaaf','basketball_ncaab','baseball_mlb']
-    else:
-        priority = ['basketball_nba','icehockey_nhl','americanfootball_nfl','baseball_mlb','basketball_ncaab','americanfootball_ncaaf']
+    weekday = day.weekday()  # Monday=0 ... Sunday=6
+    # Football first on every day it may be scheduled, not only weekends.
+    # The existing free ESPN schedule precheck below skips football leagues
+    # without upcoming games; no additional paid Odds API calls are introduced.
+    # NFL leads on Monday/Thursday/Sunday; CFB leads on Friday/Saturday.
+    # On Tuesday/Wednesday, still check CFB before lower-priority sports in
+    # case of midweek games. Both football leagues remain eligible every day.
+    nfl = 'americanfootball_nfl'
+    cfb = 'americanfootball_ncaaf'
+    other_sports = ['basketball_nba', 'icehockey_nhl',
+                    'basketball_ncaab', 'baseball_mlb']
+    football_first = [cfb, nfl] if weekday in (1, 2, 4, 5) else [nfl, cfb]
+    priority = football_first + other_sports
+    logging.info('Odds collection priority for weekday=%s: %s', weekday, priority)
     # Quota allocation is adaptive to the *remaining* days in the billing cycle.
     # Configure ODDS_RESET_DAY to the day of month your provider resets credits.
     # Actual provider balance is authoritative; we do not assume calendar reset.

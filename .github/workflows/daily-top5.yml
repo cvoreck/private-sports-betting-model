@@ -61,7 +61,7 @@ jobs:
           import psycopg
           import json
           from urllib.request import Request, urlopen
-          from urllib.error import URLError
+          from urllib.error import URLError, HTTPError
 
           now = datetime.now(ZoneInfo('America/Los_Angeles'))
           today = now.date()
@@ -90,8 +90,28 @@ jobs:
                       if run.get('status') != 'completed' or run.get('conclusion') != 'success':
                           continue
                       created = datetime.fromisoformat(run['created_at'].replace('Z', '+00:00'))
-                      if created.astimezone(ZoneInfo('America/Los_Angeles')).date() == today:
+                      if created.astimezone(ZoneInfo('America/Los_Angeles')).date() != today:
+                          continue
+                      # A green workflow may have skipped every pipeline step.
+                      # Verify that prediction generation actually executed before
+                      # treating an earlier run as a completed daily attempt.
+                      jobs_url = (f"https://api.github.com/repos/{os.environ['GH_REPOSITORY']}"
+                                  f"/actions/runs/{run['id']}/jobs?per_page=100")
+                      jobs_req = Request(jobs_url, headers={
+                          'Authorization': f"Bearer {os.environ['GH_TOKEN']}",
+                          'Accept': 'application/vnd.github+json',
+                          'User-Agent': 'sports-edge-daily-gate'})
+                      with urlopen(jobs_req, timeout=15) as jobs_response:
+                          jobs = json.load(jobs_response).get('jobs', [])
+                      processed = any(
+                          step.get('name') == 'Generate predictions'
+                          and step.get('conclusion') == 'success'
+                          for job in jobs for step in job.get('steps', [])
+                      )
+                      if processed:
                           prior.append(run['id'])
+                      else:
+                          print(f"Ignoring successful but non-processing scheduled run {run['id']}")
                   if prior:
                       should_run = False
                       reason = f'Previous successful scheduled run(s) today: {prior}; skip duplicate'

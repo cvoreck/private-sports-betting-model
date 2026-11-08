@@ -124,62 +124,89 @@ def road_trip_note(home, away, home_games, away_games):
     return None
 
 
-def outdoor_weather(espn_event, start):
-    """Return a weather note only for ESPN-confirmed outdoor venues."""
+def venue_weather_note(espn_event, sport, start):
+    """Describe ESPN venue exposure and fetch forecast only for confirmed outdoor games.
+
+    This does not infer roof-open status from stadium names or historical usage.
+    Forecast is city-level, not a stadium sensor or a verified game-time observation.
+    """
     competition = (espn_event.get('competitions') or [{}])[0]
     venue = competition.get('venue') or {}
-    if venue.get('indoor') is not False:
-        return None
+    venue_name = str(venue.get('fullName') or venue.get('name') or 'Venue not specified').strip()
+    indoor = venue.get('indoor')
+    roof = str(venue.get('roofType') or venue.get('roof') or '').strip()
+    prefix = f'Weather: Venue: {venue_name}. '
+    if indoor is True:
+        return prefix + ('ESPN identifies this venue as indoor. Outdoor weather is not expected to directly affect play. '
+                         'Retractable-roof position is not independently verified.' if 'retract' in roof.lower() else
+                         'ESPN identifies this venue as indoor; outdoor weather is not expected to directly affect play.')
+    if indoor is not False:
+        return prefix + 'ESPN has not confirmed whether the playing surface is outdoors. Forecast and roof status unverified.'
+
     address = venue.get('address') or {}
     city, state = address.get('city'), address.get('state')
     if not city:
-        return None
+        return prefix + 'ESPN identifies this venue as outdoor, but location details are missing; forecast unavailable.'
+    # ESPN can return a state abbreviation, while Open-Meteo usually returns a full name.
+    state_names = {'AL':'Alabama','AZ':'Arizona','AR':'Arkansas','CA':'California','CO':'Colorado',
+                   'CT':'Connecticut','DC':'District of Columbia','FL':'Florida','GA':'Georgia',
+                   'HI':'Hawaii','ID':'Idaho','IL':'Illinois','IN':'Indiana','IA':'Iowa',
+                   'KS':'Kansas','KY':'Kentucky','LA':'Louisiana','ME':'Maine','MD':'Maryland',
+                   'MA':'Massachusetts','MI':'Michigan','MN':'Minnesota','MS':'Mississippi',
+                   'MO':'Missouri','MT':'Montana','NE':'Nebraska','NV':'Nevada','NH':'New Hampshire',
+                   'NJ':'New Jersey','NM':'New Mexico','NY':'New York','NC':'North Carolina',
+                   'ND':'North Dakota','OH':'Ohio','OK':'Oklahoma','OR':'Oregon','PA':'Pennsylvania',
+                   'RI':'Rhode Island','SC':'South Carolina','SD':'South Dakota','TN':'Tennessee',
+                   'TX':'Texas','UT':'Utah','VT':'Vermont','VA':'Virginia','WA':'Washington',
+                   'WV':'West Virginia','WI':'Wisconsin','WY':'Wyoming'}
+    state_full = state_names.get(str(state).upper(), str(state or '')).casefold()
     try:
         geo = get_json('https://geocoding-api.open-meteo.com/v1/search', {
-            'name': city, 'count': 10, 'language': 'en', 'format': 'json', 'countryCode': 'US'
-        })
+            'name': city, 'count': 10, 'language': 'en', 'format': 'json', 'countryCode': 'US'})
         results = geo.get('results') or []
-        matches = [r for r in results if not state or
-                   (r.get('admin1') or '').lower() == str(state).lower() or
-                   (r.get('admin1_code') or '').lower() == str(state).lower()]
-        # Don't select an unrelated city if the state doesn't match.
-        loc = (matches[0] if matches else None) if state else (results[0] if results else None)
-        if not loc:
-            return None
+        matches = [r for r in results if not state_full or
+                   str(r.get('admin1') or '').casefold() == state_full or
+                   str(r.get('admin1_code') or '').casefold() == str(state).casefold()]
+        loc = matches[0] if matches else None
+        if loc is None:
+            return prefix + 'ESPN confirms an outdoor venue; city/state could not be verified for forecasting.'
         forecast = get_json('https://api.open-meteo.com/v1/forecast', {
             'latitude': loc['latitude'], 'longitude': loc['longitude'],
-            'hourly': 'temperature_2m,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m',
+            'hourly': 'temperature_2m,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,weather_code',
             'wind_speed_unit': 'mph', 'temperature_unit': 'fahrenheit',
-            'precipitation_unit': 'inch', 'timezone': 'America/Los_Angeles',
-            'forecast_days': 7,
-        })
+            'precipitation_unit': 'inch', 'timezone': 'America/Los_Angeles', 'forecast_days': 7})
         hourly = forecast.get('hourly') or {}
+        target = start.astimezone(PT).strftime('%Y-%m-%dT%H:00')
         times = hourly.get('time') or []
-        local = start.astimezone(PT)
-        target = local.strftime('%Y-%m-%dT%H:00')
         if target not in times:
-            return None
+            return prefix + 'ESPN confirms an outdoor venue; kickoff forecast is outside the available forecast window.'
         idx = times.index(target)
-        def v(key):
+        def value(key):
             values = hourly.get(key) or []
             return values[idx] if idx < len(values) else None
-        temp, wind, gust = v('temperature_2m'), v('wind_speed_10m'), v('wind_gusts_10m')
-        chance, precip = v('precipitation_probability'), v('precipitation')
-        parts = [f'Outdoor forecast near {city} ({local:%I:%M %p PT}):']
-        if temp is not None:
-            parts.append(f'{temp:.0f}°F')
-        if wind is not None:
-            parts.append(f'wind {wind:.0f} mph')
-        if gust is not None:
-            parts.append(f'gusts {gust:.0f} mph')
-        if chance is not None:
-            parts.append(f'precipitation chance {chance:.0f}%')
-        if precip is not None:
-            parts.append(f'precipitation {precip:.2f} in')
-        return ', '.join(parts) + '. Open-Meteo city-level forecast; roof status may change.'
-    except (requests.RequestException, ValueError, KeyError, TypeError) as exc:
+        temp, wind, gust = value('temperature_2m'), value('wind_speed_10m'), value('wind_gusts_10m')
+        chance, precip, code = value('precipitation_probability'), value('precipitation'), value('weather_code')
+        descriptions = {0:'clear sky',1:'mainly clear',2:'partly cloudy',3:'overcast',
+                        45:'fog',48:'freezing fog',51:'light drizzle',53:'drizzle',55:'dense drizzle',
+                        61:'light rain',63:'rain',65:'heavy rain',71:'light snow',73:'snow',75:'heavy snow',
+                        80:'rain showers',81:'rain showers',82:'heavy rain showers',95:'thunderstorms'}
+        parts = [f'Outdoor kickoff forecast near {city} ({start.astimezone(PT):%I:%M %p PT})']
+        if code is not None:
+            parts.append(descriptions.get(int(code), 'conditions not classified'))
+        if temp is not None: parts.append(f'{temp:.0f}°F')
+        if wind is not None: parts.append(f'wind {wind:.0f} mph')
+        if gust is not None: parts.append(f'gusts {gust:.0f} mph')
+        if chance is not None: parts.append(f'precipitation chance {chance:.0f}%')
+        if precip is not None: parts.append(f'precipitation {precip:.2f} in')
+        return prefix + ', '.join(parts) + '. Open-Meteo city-level forecast, not a live observation; roof status may change.'
+    except (requests.RequestException, ValueError, KeyError, TypeError, OverflowError) as exc:
         logging.warning('Weather lookup failed for %s: %s', city, exc)
-        return None
+        return prefix + 'ESPN confirms an outdoor venue, but the weather forecast could not be retrieved.'
+
+
+def outdoor_weather(espn_event, start):
+    """Backward-compatible weather helper for existing callers."""
+    return venue_weather_note(espn_event, 'NFL', start)
 
 
 
@@ -424,7 +451,5 @@ def research(espn_event, sport, home, away, recent, start, home_probability=None
     injuries = verified_injury_notes(injury_reports, home, away)
     watch.extend(injuries if injuries else ['Injury report unavailable; player availability not verified.'])
     if (sport or '').upper() in WEATHER_SPORTS:
-        weather = outdoor_weather(espn_event, start)
-        if weather:
-            watch.append(weather)
+        watch.append(venue_weather_note(espn_event, sport, start))
     return why, watch

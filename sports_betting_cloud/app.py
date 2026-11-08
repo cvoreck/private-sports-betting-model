@@ -777,6 +777,18 @@ def morning_market_snapshots(day):
     return result
 
 
+def saved_model_label(r):
+    """Display only model provenance actually recorded with the pick."""
+    notes = clean_text(r.get('notes'))
+    for raw in notes.splitlines():
+        line = raw.strip().lstrip('-• ').strip()
+        if line.lower().startswith('model:'):
+            return line.split(':', 1)[1].strip()[:90] or 'Not specified'
+        if line.lower().startswith('model quality:'):
+            return line.split(':', 1)[1].strip()[:90] or 'Not specified'
+    return 'Not specified in saved research'
+
+
 def market_strip_html(r, load_live=False):
     """Display morning archived spreads/totals with zero additional Odds API calls."""
     day = clean_text(r.get('date'))[:10]
@@ -1120,6 +1132,8 @@ def _saved_research_sections(r):
               or 'wind' in low or 'precipitation' in low or 'roof status' in low
               or 'venue exposure' in low or 'forecast' in low):
             context['weather'].append(line)
+        elif low.startswith(('weather:', 'venue weather:', 'outdoor forecast', 'indoor venue', 'outdoor venue')):
+            context['weather'].append(line.split(':', 1)[1].strip() if ':' in line and low.startswith(('weather:', 'venue weather:')) else line)
         elif low.startswith(('injur', 'suspension', 'lineup', 'current injuries', 'confirmed starters')):
             injuries.setdefault('Availability verification', []).append(line)
         elif 'odds movement' in low or 'market movement' in low or 'sportsbook price' in low:

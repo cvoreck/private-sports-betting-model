@@ -495,6 +495,25 @@ def team_logo(sport, team):
         league = {'NFL': 'nfl', 'NHL': 'nhl', 'NBA': 'nba', 'MLB': 'mlb'}.get(sport)
         if league:
             return f'https://a.espncdn.com/i/teamlogos/{league}/500/{abbr}.png'
+    # College logos are identified through ESPN's cached team directory rather
+    # than professional-league abbreviation URLs. This also handles future
+    # ranked teams without maintaining a manual college-team list.
+    if sport in ('College Football', 'College Basketball'):
+        logos = espn_team_logos(sport)
+        normalized = _team_key(team)
+        matched = logos.get(normalized)
+        if matched:
+            return matched
+        # ESPN occasionally labels schools differently (e.g. a school name
+        # without its mascot). Only accept a unique normalized prefix match.
+        possible = {url for name, url in logos.items()
+                    if len(name) >= 6 and (normalized.startswith(name) or name.startswith(normalized))}
+        if len(possible) == 1:
+            return next(iter(possible))
+        # Reliable fallback for the Virginia Cavaliers when ESPN's directory
+        # endpoint is temporarily unavailable. ESPN's school ID is 258.
+        if sport == 'College Basketball' and normalized == 'virginiacavaliers':
+            return 'https://a.espncdn.com/i/teamlogos/ncaa/500/258.png'
     return ''
 
 

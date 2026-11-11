@@ -85,19 +85,37 @@ def event_match(row, events):
         hn, an, *_ = parsed
         if norm(home) in hn and norm(away) in an:
             matches.append((event, parsed))
-    # Never grade an ambiguous matchup. Log diagnostics without guessing.
-    if len(matches) != 1:
-        LOG.info('MATCH_DIAGNOSTIC matchup=%r candidates=%d ESPN_events=%d', matchup, len(matches), len(events))
-        for event in events:
-            parsed = teams_and_scores(event)
-            if parsed:
-                hn, an, *_ = parsed
-                # Limit diagnostics to plausible opponents to avoid noisy logs.
-                if norm(home) in hn or norm(away) in an or any(
-                    norm(x) in norm(home) or norm(x) in norm(away)
-                    for x in hn | an if len(x) >= 6
-                ):
-                    LOG.info('MATCH_CANDIDATE event=%s home=%s away=%s', event.get('id'), sorted(hn), sorted(an))
+    # ESPN scoreboards for adjacent UTC dates can contain separate games
+    # between the same teams. Use the saved Pacific pick date to disambiguate.
+    # Never choose by list order or assume the latest matching game is correct.
+    if len(matches) > 1:
+        try:
+            pick_day = date.fromisoformat(str(row['date'])[:10])
+        except (TypeError, ValueError):
+            pick_day = None
+        dated = []
+        for event, parsed in matches:
+            raw = event.get('date') or ((event.get('competitions') or [{}])[0].get('date'))
+            try:
+                event_time = datetime.fromisoformat(str(raw).replace('Z', '+00:00'))
+                if event_time.tzinfo is None:
+                    raise ValueError('Event time has no timezone')
+                event_day = event_time.astimezone(PT).date()
+            except (TypeError, ValueError):
+                event_day = None
+            LOG.info('MATCH_DATE event=%s utc=%s pacific_date=%s pick_date=%s',
+                     event.get('id'), raw, event_day, pick_day)
+            if pick_day is not None and event_day == pick_day:
+                dated.append((event, parsed))
+        if len(dated) == 1:
+            LOG.info('MATCH_RESOLVED id=%s event=%s by Pacific game date',
+                     row.get('id'), dated[0][0].get('id'))
+            return dated[0]
+        LOG.warning('MATCH_AMBIGUOUS id=%s matchup=%r candidates=%d same_day=%d; left pending',
+                    row.get('id'), matchup, len(matches), len(dated))
+        return None
+    if not matches:
+        LOG.info('MATCH_DIAGNOSTIC matchup=%r candidates=0 ESPN_events=%d', matchup, len(events))
     return matches[0] if len(matches) == 1 else None
 
 

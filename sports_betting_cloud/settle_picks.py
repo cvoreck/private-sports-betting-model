@@ -53,7 +53,13 @@ def teams_and_scores(event):
         return None
     def info(c):
         t = c.get('team') or {}
-        names = {norm(x) for x in (t.get('displayName'), t.get('name'), t.get('shortDisplayName')) if x}
+        names = {norm(x) for x in (
+            t.get('displayName'), t.get('name'), t.get('shortDisplayName'),
+            t.get('location'), t.get('abbreviation'),
+            ' '.join(str(t.get(k) or '') for k in ('location', 'name')).strip(),
+        ) if x}
+        # ESPN may omit the city in its displayName or supply a short nickname.
+        # Retain all verified ESPN-provided variants; never fuzzy-match arbitrary teams.
         try:
             score = int(c['score'])
         except (ValueError, TypeError, KeyError):
@@ -79,7 +85,19 @@ def event_match(row, events):
         hn, an, *_ = parsed
         if norm(home) in hn and norm(away) in an:
             matches.append((event, parsed))
-    # Never grade an ambiguous matchup.
+    # Never grade an ambiguous matchup. Log diagnostics without guessing.
+    if len(matches) != 1:
+        LOG.info('MATCH_DIAGNOSTIC matchup=%r candidates=%d ESPN_events=%d', matchup, len(matches), len(events))
+        for event in events:
+            parsed = teams_and_scores(event)
+            if parsed:
+                hn, an, *_ = parsed
+                # Limit diagnostics to plausible opponents to avoid noisy logs.
+                if norm(home) in hn or norm(away) in an or any(
+                    norm(x) in norm(home) or norm(x) in norm(away)
+                    for x in hn | an if len(x) >= 6
+                ):
+                    LOG.info('MATCH_CANDIDATE event=%s home=%s away=%s', event.get('id'), sorted(hn), sorted(an))
     return matches[0] if len(matches) == 1 else None
 
 

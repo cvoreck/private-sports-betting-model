@@ -141,8 +141,10 @@ jobs:
           print(f'Run publishing pipeline: {should_run}; reason: {reason}')
           PY
 
+      # Settlement is independent of whether today's card needs publishing.
+      # This runs on scheduled and manual (including cached) invocations,
+      # even when the gate suppresses duplicate publishing.
       - name: Settle unresolved picks from previous days (ESPN only)
-        if: steps.gate.outputs.run == 'true'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python sports_betting_cloud/settle_picks.py

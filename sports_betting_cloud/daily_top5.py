@@ -30,12 +30,11 @@ TRAINED_PREFIXES = ('rolling-homewin-v2-', 'nhl-context-v3-')
 MAX_POSITIVE_AMERICAN_ODDS = 200  # +200 allowed; +201 and above excluded
 MIN_NEGATIVE_AMERICAN_ODDS = -200  # -200 allowed; -201 and below excluded
 
-# Conservative, provisional ranking adjustments. These are NOT empirically
-# calibrated probabilities; replace with holdout-calibrated estimates later.
-# They use only already-loaded candidates: zero new Odds API/DB requests.
-RANKING_SHRINKAGE = {'trained': 0.80, 'experimental': 0.60}
-RANKING_UNCERTAINTY_PP = {'trained': 1.0, 'experimental': 1.0}
-MAX_EXPERIMENTAL_UNITS = 2
+# Provisional market-aware estimate, NOT a validated calibration.
+# Use only same-bookmaker, same-market two-way quotes already cached.
+# 35% independent model + 65% no-vig market, minus 1 pp uncertainty.
+MODEL_WEIGHT = 0.35
+UNCERTAINTY_HAIRCUT_PP = 1.0
 
 ODDS_URL = 'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
 SCHEMA = '''
@@ -69,6 +68,25 @@ def american_break_even(odds):
 def expected_value(p, odds):
     profit_per_unit = odds / 100 if odds > 0 else 100 / abs(odds)
     return p * profit_per_unit - (1 - p)
+
+def no_vig_probability(market, outcome):
+    """Two-way, same-bookmaker no-vig probability; never a standalone model."""
+    outcomes = market.get('outcomes') or []
+    if len(outcomes) != 2:
+        return None
+    prices = [o.get('price') for o in outcomes]
+    if any(not isinstance(x, (int, float)) or isinstance(x, bool) or
+           not math.isfinite(x) or x == 0 or -100 < x < 100 for x in prices):
+        return None
+    probs = [american_break_even(x) for x in prices]
+    total = sum(probs)
+    if total <= 0:
+        return None
+    for o, implied in zip(outcomes, probs):
+        if o.get('name') == outcome.get('name') and o.get('point') == outcome.get('point'):
+            return implied / total
+    return None
+
 
 def suggested_units(edge_pp):
     """Experimental 1u–5u stake tier from *unrounded* estimated edge (pp).
@@ -191,6 +209,15 @@ def find_candidates(conn, today, now):
                                                             'selection': selection, 'odds': int(odds),
                                                             'raw_ev': round(ev, 5),
                                                             'edge_pp': round(100 * (p - american_break_even(odds)), 3)}
+                        # Spreads/totals remain stored as shadow predictions by the
+                        # engine, but are not eligible for live Top 5 publication.
+                        if mkey != 'h2h':
+                            counts['excluded_unvalidated'] += 1
+                            continue
+                        fair_prob = no_vig_probability(market, outcome)
+                        if fair_prob is None:
+                            counts['excluded_unvalidated'] += 1
+                            continue
                         if ev <= 0:
                             continue
                         counts['positive_ev'] += 1
@@ -200,7 +227,7 @@ def find_candidates(conn, today, now):
                             'event_id': event_id, 'sport': sport, 'matchup': matchup,
                             'market': mkey, 'selection': selection, 'point': point,
                             'odds': int(odds), 'prob': p, 'edge_pp': 100*(p-american_break_even(odds)),
-                            'ev': ev, 'start': start, 'bookmaker': bookmaker.get('title','Unknown'),
+                            'ev': ev, 'market_fair_prob': fair_prob, 'start': start, 'bookmaker': bookmaker.get('title','Unknown'),
                             'model_version': prediction['model_version'],
                             'verification_source': verified['verification_source'],
                             'context': dict(context) if context else {}
@@ -220,18 +247,19 @@ def find_candidates(conn, today, now):
     return candidates
 
 def value_adjustment(candidate):
-    """Conservative provisional value score, NOT a calibrated model output.
+    """Provisional market-aware estimate used for ranking AND publication.
 
-    Shrink raw estimated edge toward the sportsbook break-even probability,
-    then subtract a model-quality uncertainty haircut. The published model
-    probability is left untouched to avoid misrepresenting this heuristic.
+    This is a conservative heuristic, not proven calibration or betting edge.
+    Preserve original model probability in notes for retrospective audits.
     """
     odds = candidate['odds']
     implied = american_break_even(odds)
-    quality = candidate['quality']
-    shrink = RANKING_SHRINKAGE.get(quality, 0.35)
-    haircut = RANKING_UNCERTAINTY_PP.get(quality, 3.0) / 100
-    adjusted_prob = max(0.001, min(0.999, implied + shrink * (candidate['prob'] - implied) - haircut))
+    fair = candidate.get('market_fair_prob')
+    if fair is None or not 0 < fair < 1:
+        return None
+    model = candidate['prob']
+    adjusted_prob = max(0.001, min(0.999,
+        fair + MODEL_WEIGHT * (model - fair) - UNCERTAINTY_HAIRCUT_PP / 100))
     return {
         'adjusted_prob': adjusted_prob,
         'adjusted_edge_pp': 100 * (adjusted_prob - implied),
@@ -240,97 +268,55 @@ def value_adjustment(candidate):
 
 
 def rank_candidates(candidates, card_date=None):
-    """Tiered Top 5: adjusted EV, then raw EV, then additional nonconflicting bets.
+    """Select five only when five independent, positive conservative-EV moneylines exist.
 
-    All candidates must have positive *raw* modeled EV, verified upcoming games,
-    approved models and capped real sportsbook prices (enforced upstream).
-    No fallback guarantees five picks; insufficient supply halts publication.
+    Never fill with unvalidated markets, negative adjusted EV, or correlated
+    same-game bets. A shortage means no card is published.
     """
     best = {}
     diagnostics = dict(raw_candidates=len(candidates), rejected_odds=0,
-                       rejected_raw_ev=0, rejected_adjusted_ev=0,
-                       surviving_quotes=0, distinct_surviving_events=0,
-                       duplicate_event_quotes=0)
+                     rejected_raw_ev=0, rejected_adjusted_ev=0,
+                     rejected_market=0, surviving_quotes=0)
     for candidate in candidates:
         odds = candidate['odds']
         if not MIN_NEGATIVE_AMERICAN_ODDS <= odds <= MAX_POSITIVE_AMERICAN_ODDS:
             diagnostics['rejected_odds'] += 1
             continue
+        if candidate.get('market') != 'h2h' or candidate.get('quality') != 'trained':
+            diagnostics['rejected_market'] += 1
+            continue
         if candidate['ev'] <= 0:
             diagnostics['rejected_raw_ev'] += 1
             continue
         adjusted = value_adjustment(candidate)
-        if adjusted['adjusted_ev'] <= 0:
+        if adjusted is None or adjusted['adjusted_ev'] <= 0:
             diagnostics['rejected_adjusted_ev'] += 1
-        else:
-            diagnostics['surviving_quotes'] += 1
+            continue
         c = dict(candidate, **adjusted)
-        # Same outcome/line from different bookmakers: retain the best available
-        # quoted price, never count it as two separate picks.
+        diagnostics['surviving_quotes'] += 1
         key = (c['event_id'], c['market'], c['selection'], str(c['point']))
-        if key not in best or c['ev'] > best[key]['ev']:
+        if key not in best or c['adjusted_ev'] > best[key]['adjusted_ev']:
             best[key] = c
-
-    diagnostics['distinct_surviving_events'] = len({
-        c['event_id'] for c in best.values() if c['adjusted_ev'] > 0})
-    diagnostics['duplicate_event_quotes'] = sum(
-        c['adjusted_ev'] > 0 for c in best.values()) - diagnostics['distinct_surviving_events']
-    logging.info('Adjusted-EV candidate diagnostics: %s', json.dumps(diagnostics, sort_keys=True))
-
-    strong = sorted((c for c in best.values() if c['adjusted_ev'] > 0),
-                    key=lambda c: (-c['adjusted_ev'], -c['ev'], c['event_id']))
-    fallback = sorted((c for c in best.values() if c['adjusted_ev'] <= 0),
-                      key=lambda c: (-c['ev'], -c['edge_pp'], c['event_id']))
-    selected, selected_keys, used_events = [], set(), set()
-    # Tier 1: positive adjusted EV, one bet per game.
-    # Tier 2: positive raw EV only, one bet per game.
-    # Tier 3: extra positive raw EV bets from already selected games.
-    # Avoid opposing selections on the same market and point within a game.
-    def compatible(c):
-        key = (c['event_id'], c['market'], c['selection'], str(c['point']))
-        if key in selected_keys:
-            return False
-        for existing in selected:
-            if (existing['event_id'] == c['event_id'] and
-                existing['market'] == c['market'] and
-                str(existing['point']) == str(c['point']) and
-                existing['selection'] != c['selection']):
-                return False
-        return True
-
-    for tier, pool, distinct in ((1, strong, True), (2, fallback, True),
-                                 (3, strong + fallback, False)):
-        for c in pool:
-            if len(selected) == 5:
-                break
-            if distinct and c['event_id'] in used_events:
-                continue
-            if not distinct and c['event_id'] not in used_events:
-                continue
-            if not compatible(c):
-                continue
-            picked = dict(c)
-            picked['selection_tier'] = tier
-            picked['same_game_exposure'] = c['event_id'] in used_events
-            selected.append(picked)
-            selected_keys.add((c['event_id'], c['market'], c['selection'], str(c['point'])))
-            used_events.add(c['event_id'])
+    logging.info('Market-aware candidate diagnostics: %s', json.dumps(diagnostics, sort_keys=True))
+    ordered = sorted(best.values(), key=lambda c: (-c['adjusted_ev'], -c['ev'], c['event_id']))
+    selected, used_events = [], set()
+    for c in ordered:
+        if c['event_id'] in used_events:
+            continue
+        picked = dict(c)
+        picked['selection_tier'] = 1
+        picked['same_game_exposure'] = False
+        selected.append(picked)
+        used_events.add(c['event_id'])
         if len(selected) == 5:
             break
-
-    by_sport, by_quality, by_tier = {}, {}, {}
-    for c in selected:
-        by_sport[c['sport']] = by_sport.get(c['sport'], 0) + 1
-        by_quality[c['quality']] = by_quality.get(c['quality'], 0) + 1
-        by_tier[c['selection_tier']] = by_tier.get(c['selection_tier'], 0) + 1
-    logging.info('Tiered Top 5: day=%s available_unique=%s selected=%s distinct_games=%s sports=%s quality=%s tiers=%s',
-                 card_date, len(best), len(selected), len(used_events),
-                 json.dumps(by_sport, sort_keys=True), json.dumps(by_quality, sort_keys=True),
-                 json.dumps(by_tier, sort_keys=True))
+    logging.info('Market-aware Top 5: day=%s eligible_outcomes=%s distinct_events=%s selected=%s',
+                 card_date, len(best), len(used_events), len(selected))
     if len(selected) < 5:
-        logging.error('FIVE-PICK REQUIREMENT NOT MET: only %s compatible positive-raw-EV '
-                      'bets from verified upcoming events; no invented picks published.', len(selected))
+        logging.warning('FIVE-PICK REQUIREMENT NOT MET: only %s independent positive '
+                      'conservative-EV trained moneylines; publishing halted.', len(selected))
     return selected
+
 
 def research_notes(context, selection, market, model_version=None, edge_pp=None, ev=None, bookmaker=None, verification_source=None, quality=None):
     # Prefix each line to preserve the separate dashboard columns.
@@ -471,6 +457,7 @@ def refresh_existing_card_research(conn, today):
                      if line.startswith(('Image URL:', 'Source:'))
                      or ('MODEL QUALITY:' in line)
                      or ('estimated edge' in line)
+                      or ('MARKET-AWARE ESTIMATE' in line)
                      or ('unvalidated research estimates' in line)
                      or ('not historically validated' in line)]
             notes = '\n'.join([f'Why: {x}' for x in why] +
@@ -529,39 +516,33 @@ def main():
                         pick_label += f" ({c['point']:+g})" if isinstance(c['point'], (int,float)) else f" ({c['point']})"
                     ctx = c.get('context') or {}
                     notes = research_notes(ctx, c['selection'], c['market'], c['model_version'],
-                                           c['edge_pp'], c['ev'], c['bookmaker'], c['verification_source'], c['quality'])
-                    tier = c['selection_tier']
-                    notes += (f'\nWhy: SELECTION TIER {tier}: ' +
-                              ('positive conservative adjusted EV' if tier == 1 else
-                               'positive raw model EV; conservative adjusted EV not positive' if tier == 2 else
-                               'additional positive raw model EV from a previously selected game; correlated exposure possible'))
-                    if c['same_game_exposure']:
-                        notes += '\nWatch out for: SAME-GAME EXPOSURE: results may be correlated with another ranked pick.'
-                    if tier != 1:
-                        notes += '\nWatch out for: LOWER CONFIDENCE FALLBACK: model edge is not independently validated.'
-                    # Flat research stake until calibration/backtests justify sizing.
+                                           c['adjusted_edge_pp'], c['adjusted_ev'], c['bookmaker'], c['verification_source'], c['quality'])
+                    # Flat 1u hypothetical research stake. Published probability,
+                    # edge and EV all use the SAME conservative estimate.
                     units = 1
-                    notes += (f'\\nWhy: VALUE RANKING (provisional, not calibrated): '
-                              f'adjusted EV {c["adjusted_ev"]:+.3f} units/unit; '
-                              f'adjusted edge {c["adjusted_edge_pp"]:+.2f} pp. '
-                              'Conservative model-quality shrinkage and uncertainty haircut; '
-                              'published probability remains the original model estimate. '
-                              'Flat 1u research stake pending validation.')
+                    notes += (f'\nWhy: MARKET-AWARE ESTIMATE (provisional, not calibrated): '
+                              f'published probability {c["adjusted_prob"]:.4f}; '
+                              f'published edge {c["adjusted_edge_pp"]:+.2f} pp; '
+                              f'published EV {c["adjusted_ev"]:+.3f} units/unit. '
+                              f'Raw trained-model probability {c["prob"]:.4f}; '
+                              f'same-bookmaker no-vig probability {c["market_fair_prob"]:.4f}. '
+                              f'35% model / 65% market minus 1 pp uncertainty; '
+                              'heuristic, not independently validated. Flat 1u stake.')
                     conn.execute('''INSERT INTO picks
                       (date,sport,matchup,market,selection,odds,stake,kind,result,source,
                        notes,rank,start_pt,estimated_prob)
                       VALUES (%s,%s,%s,%s,%s,%s,%s,'Hypothetical','Pending',%s,%s,%s,%s,%s)''',
                       (today.isoformat(),c['sport'],c['matchup'],c['market'],pick_label,c['odds'],units,
                        f"Auto: The Odds API / {c['bookmaker']}",notes,rank,
-                       c['start'].astimezone(PT).strftime('%Y-%m-%d %I:%M %p PT'),c['prob']))
+                       c['start'].astimezone(PT).strftime('%Y-%m-%d %I:%M %p PT'),c['adjusted_prob']))
                     logging.info('Published rank=%s selection=%s edge_pp=%.3f suggested_units=%su',
-                                 rank, pick_label, c['edge_pp'], units)
+                                 rank, pick_label, c['adjusted_edge_pp'], units)
             conn.execute('''INSERT INTO daily_card_runs (card_date,status,candidates,published,detail)
               VALUES (%s,%s,%s,%s,%s) ON CONFLICT(card_date) DO UPDATE SET
               status=EXCLUDED.status,candidates=EXCLUDED.candidates,published=EXCLUDED.published,
               detail=EXCLUDED.detail,updated_at=NOW()''',
               (today,status,len(candidates),len(top),
-               'Tiered card: odds -200 through +200; Tier 1 positive adjusted EV from distinct games; Tier 2 positive raw EV from distinct games; Tier 3 nonconflicting same-game additional bets. Five picks required, otherwise no publication. Lower-confidence and same-game exposure labeled in notes. Flat 1u research stakes; no props or new paid API requests.'))
+               'Market-aware card: trained moneylines only; same-bookmaker two-way no-vig market baseline; 35% model / 65% market with 1 pp uncertainty haircut. Five independent positive conservative-EV games required, otherwise no publication. Experimental spreads/totals remain shadow-only. Flat 1u stakes; no paid API requests.'))
         # Enrich newly published picks on the first daily run; the 6 AM workflow
         # normally runs only once, so waiting for a second invocation is unsafe.
         # Keep the card intact if optional ESPN research is unavailable.

@@ -1,4 +1,4 @@
-"""Experimental sports model using archived results and market-aware shrinkage.
+"""Sports prediction engine preserving raw trained moneylines for independent audits.
 ESPN scoreboard regular-season verification and W/L record model for NFL/NBA/NHL.
 NBA/NHL spread and total models require >=4 recent final games per team.
 Research only: not calibrated or backtested; missing data means no prediction.
@@ -319,6 +319,10 @@ def main():
                 VALUES(%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(event_id) DO UPDATE SET home_logo=EXCLUDED.home_logo,away_logo=EXCLUDED.away_logo,rationale=EXCLUDED.rationale,warnings=EXCLUDED.warnings,updated_at=EXCLUDED.updated_at''',
                 (eid,hn,an,logo(h),logo(a),'\n'.join(rationale),warnings,now))
                 if p is not None:
+                    # Keep the original trained estimate in model_predictions.
+                    # The publisher applies its same-bookmaker market-aware
+                    # adjustment to the published pick, avoiding double shrinkage
+                    # and preserving a raw baseline for future audits.
                     for team,prob in ((hn,p),(an,1-p)):
                         if save_prediction(conn,eid,'h2h',team,None,prob,now,trained_model[0]):
                             counts['moneyline_predictions']+=1
@@ -359,5 +363,5 @@ def main():
                             if save_prediction(conn,eid,m,sel,point,prob,now,'archive-market-shrink-v1-experimental'):
                                 counts['spread_predictions' if m=='spreads' else 'total_predictions']+=1
         logging.info('Prediction engine funnel: %s',counts)
-        logging.warning('Moneylines use promoted trained models only. Spreads/totals remain unvalidated price-anchored heuristics, one reference quote per line. College predictions require AP Top 25 verification; no props or injury model.')
+        logging.warning('Raw trained moneyline predictions are retained for auditing; publisher applies provisional market-aware adjustment. Experimental spreads/totals are generated for shadow evaluation only, not published. College requires AP Top 25 verification; no props or injury model.')
 if __name__=='__main__':main()

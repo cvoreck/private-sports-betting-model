@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import requests, psycopg
-from matchup_research import completed_games, research
+from matchup_research import research
 from weekly_trainer import MARGIN_SCALE, NHL_FEATURES, LEGACY_FEATURES, append_history, nhl_features, features as trained_features, sigmoid as trained_sigmoid, parse_game
 from psycopg.rows import dict_row
 from ap_rankings_verifier import verify_college_events
@@ -74,7 +74,7 @@ def recent_scoring(sport,league,day,days=15):
     return {k:v[:10] for k,v in data.items()}
 
 def archived_completed_games(conn, sport_key, before, max_games=30):
-    """Compact completed games; fall back to legacy snapshots unless explicitly enabled."""
+    """Read completed games from compact history when enabled."""
     if os.getenv('CANONICAL_HISTORY', '0') == '1':
         rows = conn.execute("""SELECT event_id, played_at, home_team, away_team,
                  home_score, away_score FROM canonical_completed_games
@@ -277,13 +277,15 @@ def main():
                 try:boards.extend(fetch(f'https://site.api.espn.com/apis/site/v2/sports/{esport}/{league}/scoreboard',{'dates':(today+timedelta(days=d)).strftime('%Y%m%d'),'limit':200}).get('events') or [])
                 except (requests.RequestException,ValueError) as exc:logging.warning('ESPN schedule unavailable: %s',exc)
             by_match=build_index(boards)
-            live_recent=completed_games(esport,league,today,lookback=24 if sport in ('NBA','NHL','MLB','College Basketball') else 80)
             archived=archived_completed_games(conn,sport_key,today) 
             shadow_model=train_shadow(conn, now) if sport_key == 'icehockey_nhl' else None
             trained_model=models.get(sport_key)
             trained_history=archived_training_history(conn,sport_key,now) if trained_model else {}
-            recent=merge_games(live_recent,archived)
-            logging.info('%s archive team histories=%d; live team histories=%d',sport,len(archived),len(live_recent))
+            # The compact table already contains completed games; do not refetch
+            # 24-80 ESPN scoreboards per sport just to rebuild recent form.
+            # Each team list is newest-first, with a maximum of 30 games.
+            recent=archived
+            logging.info('%s completed-game archive team histories=%d (no recent-scoreboard fetch)',sport,len(archived))
             for event in odds:
                 try:start=datetime.fromisoformat(event['commence_time'].replace('Z','+00:00'))
                 except (KeyError,ValueError,TypeError):

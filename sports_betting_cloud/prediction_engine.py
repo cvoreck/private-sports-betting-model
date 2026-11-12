@@ -13,6 +13,7 @@ from weekly_trainer import MARGIN_SCALE, NHL_FEATURES, LEGACY_FEATURES, append_h
 from psycopg.rows import dict_row
 from ap_rankings_verifier import verify_college_events
 from espn_event_match import build_index, lookup, diagnose
+from nhl_elo_shadow import SCHEMA as NHL_SHADOW_SCHEMA, train_shadow, save_shadow
 
 PT=ZoneInfo('America/Los_Angeles')
 SPORTS={'basketball_nba':('NBA','basketball','nba',6), 'icehockey_nhl':('NHL','hockey','nhl',6), 'americanfootball_nfl':('NFL','football','nfl',4), 'baseball_mlb':('MLB','baseball','mlb',4), 'americanfootball_ncaaf':('College Football','football','college-football',4), 'basketball_ncaab':('College Basketball','basketball','mens-college-basketball',4)}
@@ -239,6 +240,7 @@ def main():
     counts={'events':0,'matched':0,'regular':0,'moneyline_predictions':0,'spread_predictions':0,'total_predictions':0,'trained_moneyline_events':0,'no_trained_model':0,'insufficient_team_history':0,'college_events_awaiting_ap_verification':0,'trained_noncollege_events':0,'cached_odds_events':0,'missing_commence_time':0,'already_started':0,'other_pacific_date':0,'unmatched_espn':0,'non_regular_season':0,'missing_event_id':0}
     with psycopg.connect(os.environ['DATABASE_URL'],row_factory=dict_row) as conn:
         conn.execute(SCHEMA)
+        conn.execute(NHL_SHADOW_SCHEMA)
         models=load_promoted_models(conn)
         logging.info('Promoted models available: %s', sorted(models))
         college_odds = {key: cached_odds_events(conn, key, today) for key in ('americanfootball_ncaaf', 'basketball_ncaab')}
@@ -257,6 +259,7 @@ def main():
             by_match=build_index(boards)
             live_recent=completed_games(esport,league,today,lookback=24 if sport in ('NBA','NHL','MLB','College Basketball') else 80)
             archived=archived_completed_games(conn,sport_key,today) 
+            shadow_model=train_shadow(conn, now) if sport_key == 'icehockey_nhl' else None
             trained_model=models.get(sport_key)
             trained_history=archived_training_history(conn,sport_key,now) if trained_model else {}
             recent=merge_games(live_recent,archived)
@@ -318,6 +321,8 @@ def main():
                 conn.execute('''INSERT INTO prediction_context(event_id,home_team,away_team,home_logo,away_logo,rationale,warnings,updated_at)
                 VALUES(%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(event_id) DO UPDATE SET home_logo=EXCLUDED.home_logo,away_logo=EXCLUDED.away_logo,rationale=EXCLUDED.rationale,warnings=EXCLUDED.warnings,updated_at=EXCLUDED.updated_at''',
                 (eid,hn,an,logo(h),logo(a),'\n'.join(rationale),warnings,now))
+                if sport_key == 'icehockey_nhl':
+                    save_shadow(conn, shadow_model, event, e, p, now)
                 if p is not None:
                     # Keep the original trained estimate in model_predictions.
                     # The publisher applies its same-bookmaker market-aware

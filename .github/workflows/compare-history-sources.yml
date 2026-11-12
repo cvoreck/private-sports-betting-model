@@ -1,0 +1,28 @@
+name: Compare Raw vs Compact History (READ ONLY)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install database driver
+        run: python -m pip install 'psycopg[binary]>=3.1,<4'
+      - name: Compare history without changing database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python sports_betting_cloud/compare_history_sources.py
+      - name: Upload comparison report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: history-source-comparison-report
+          path: history_source_comparison_report.json
+          retention-days: 7
+          if-no-files-found: warn

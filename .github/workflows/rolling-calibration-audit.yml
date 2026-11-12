@@ -28,6 +28,11 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python sports_betting_cloud/betting_edge_audit.py
+      - name: Run read-only NHL rolling diagnostic
+        if: success() || failure()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python sports_betting_cloud/nhl_rolling_diagnostic.py
       - name: Upload combined model audit reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -36,4 +41,5 @@ jobs:
           path: |
             sports_edge_rolling_calibration_report.json
             reports/betting_edge_audit.json
+            nhl_rolling_diagnostic_report.json
           if-no-files-found: warn

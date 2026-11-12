@@ -1,0 +1,39 @@
+name: MLB 2026 Compact History Recovery (Manual)
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry-run (no writes) or execute (canonical game rows only)'
+        required: true
+        type: choice
+        options:
+          - dry-run
+          - execute
+      max_days:
+        description: 'Number of unprocessed days to fetch (1-300)'
+        required: true
+        default: '120'
+permissions:
+  contents: read
+jobs:
+  recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install 'psycopg[binary]>=3.1,<4' 'requests>=2.31,<3'
+      - name: Recover ESPN MLB 2026 completed games to compact table
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MODE: ${{ inputs.mode }}
+          MAX_DAYS: ${{ inputs.max_days }}
+        run: |
+          if [ "$MODE" = "execute" ]; then
+            python sports_betting_cloud/mlb_2026_canonical_backfill.py --execute --max-days "$MAX_DAYS"
+          else
+            python sports_betting_cloud/mlb_2026_canonical_backfill.py --dry-run --max-days "$MAX_DAYS"
+          fi

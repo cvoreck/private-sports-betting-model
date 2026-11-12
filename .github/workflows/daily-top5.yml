@@ -172,6 +172,7 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CANONICAL_HISTORY: '1'
         run: python sports_betting_cloud/prediction_engine.py
 
       - name: Publish Top 5 once

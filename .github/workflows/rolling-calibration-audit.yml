@@ -38,6 +38,11 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python sports_betting_cloud/nhl_model_experiment.py
+      - name: Run read-only NHL final holdout confirmation
+        if: success() || failure()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python sports_betting_cloud/nhl_final_holdout.py
       - name: Upload combined model audit reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -48,4 +53,5 @@ jobs:
             reports/betting_edge_audit.json
             nhl_rolling_diagnostic_report.json
             nhl_model_experiment_report.json
+            nhl_final_holdout_report.json
           if-no-files-found: warn

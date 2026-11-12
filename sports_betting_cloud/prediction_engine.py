@@ -74,22 +74,34 @@ def recent_scoring(sport,league,day,days=15):
     return {k:v[:10] for k,v in data.items()}
 
 def archived_completed_games(conn, sport_key, before, max_games=30):
-    """Read deduplicated, completed regular-season games saved before prediction day.
-
-    ESPN scoreboard game payloads have scores and final status. Exclude today's
-    games to avoid lookahead. This uses game results, not player-prop prices.
-    """
+    """Compact completed games; fall back to legacy snapshots unless explicitly enabled."""
+    if os.getenv('CANONICAL_HISTORY', '0') == '1':
+        rows = conn.execute("""SELECT event_id, played_at, home_team, away_team,
+                 home_score, away_score FROM canonical_completed_games
+                 WHERE sport=%s AND season_type=2 AND played_at < %s
+                 ORDER BY played_at DESC, event_id DESC""",
+                 (sport_key, datetime.combine(before, datetime.min.time(), PT).astimezone(timezone.utc))).fetchall()
+        if not rows:
+            raise RuntimeError(f'Canonical completed games missing for {sport_key}; refusing silent fallback')
+        data = {}
+        for r in rows:
+            for name, scored, allowed, home in (
+                (r['home_team'], r['home_score'], r['away_score'], True),
+                (r['away_team'], r['away_score'], r['home_score'], False),
+            ):
+                key = norm(name)
+                if len(data.get(key, [])) >= max_games:
+                    continue
+                data.setdefault(key, []).append({
+                    'scored': float(scored), 'allowed': float(allowed),
+                    'win': scored > allowed, 'home': home,
+                    'game_id': r['event_id'], 'date': r['played_at'],
+                })
+        return data
     data, seen = {}, set()
-    if not conn.execute("SELECT to_regclass('public.historical_snapshots') AS tbl").fetchone()['tbl']:
-        return {}
-    try:
-        rows = conn.execute("""SELECT event_id,payload FROM historical_snapshots
-          WHERE source='espn' AND sport=%s AND category='game'
-          ORDER BY collected_at DESC LIMIT 30000""",
-          (sport_key,)).fetchall()
-    except psycopg.errors.UndefinedTable:
-        conn.rollback()
-        return {}
+    rows = conn.execute("""SELECT event_id,payload FROM historical_snapshots
+        WHERE source='espn' AND sport=%s AND category='game'
+        ORDER BY collected_at DESC LIMIT 30000""", (sport_key,)).fetchall()
     for row in rows:
         eid = row['event_id']
         if eid in seen: continue
@@ -107,9 +119,6 @@ def archived_completed_games(conn, sport_key, before, max_games=30):
         for i, c in enumerate(cs):
             name = (c.get('team') or {}).get('displayName')
             if name:
-                # Match matchup_research.completed_games() record schema exactly.
-                # Keep timezone-aware datetime for rest calculations, and derive
-                # actual win/home values from the ESPN box score and competitors.
                 data.setdefault(norm(name), []).append({
                     'scored': scores[i], 'allowed': scores[1-i],
                     'win': scores[i] > scores[1-i],
@@ -202,24 +211,35 @@ def load_promoted_models(conn):
 
 
 def archived_training_history(conn, sport, cutoff):
-    """Rebuild exact trainer feature history using games before the matchup."""
+    """Build pregame trainer history from compact rows when explicitly enabled."""
+    if os.getenv('CANONICAL_HISTORY', '0') == '1':
+        rows = conn.execute("""SELECT played_at, event_id, home_team_id,
+                away_team_id, home_score, away_score
+                FROM canonical_completed_games
+                WHERE sport=%s AND season_type=2 AND played_at < %s
+                ORDER BY played_at ASC, event_id ASC""",
+                (sport, cutoff - timedelta(hours=6))).fetchall()
+        if not rows:
+            raise RuntimeError(f'Canonical training history missing for {sport}')
+        history = defaultdict(list)
+        for r in rows:
+            append_history(history, r['played_at'], str(r['home_team_id']),
+                           str(r['away_team_id']), float(r['home_score']),
+                           float(r['away_score']), sport)
+        return history
     rows = conn.execute("""SELECT event_id,payload FROM historical_snapshots
        WHERE source='espn' AND sport=%s AND category='game'
        ORDER BY collected_at DESC LIMIT 30000""", (sport,)).fetchall()
     games = {}
     for row in rows:
-        if not isinstance(row['payload'], dict):
-            continue
+        if not isinstance(row['payload'], dict): continue
         parsed = parse_game(row['payload'], sport)
-        # Require a final game to be in the archive before prediction time.
-        # Avoid assuming a final score was knowable at its scheduled tipoff.
         if parsed and parsed[0] + timedelta(hours=6) < cutoff and parsed[1] and parsed[1] not in games:
             games[parsed[1]] = parsed
     history = defaultdict(list)
     for dt, eid, h, a, hs, aa in sorted(games.values(), key=lambda x: (x[0], x[1])):
         append_history(history, dt, h, a, hs, aa, sport)
     return history
-
 
 def trained_home_probability(event, history, sport, weights, asof):
     cs = (event.get('competitions') or [{}])[0].get('competitors') or []

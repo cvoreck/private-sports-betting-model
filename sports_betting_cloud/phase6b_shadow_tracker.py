@@ -23,7 +23,8 @@ UTC = dt.timezone.utc
 SCHEMA = 1
 BRANCH = 'phase6b-shadow-ledger'
 MAX_CAPTURE_AGE = dt.timedelta(hours=24)
-MAX_TIME_TO_EVENT = dt.timedelta(hours=36)
+DEFAULT_CAPTURE_WINDOW_HOURS = 72
+MAX_ALLOWED_CAPTURE_WINDOW_HOURS = 72
 MIN_TIME_TO_EVENT = dt.timedelta(minutes=30)
 RESULTS_LAG = dt.timedelta(hours=24)
 FINAL_TIME_TOLERANCE = dt.timedelta(hours=18)
@@ -142,12 +143,15 @@ def quote_structure_is_valid(market, data):
         return False
 
 
-def extract_candidates(report, now):
+def extract_candidates(report, now, capture_window_hours=DEFAULT_CAPTURE_WINDOW_HOURS):
     """Capture only *fresh, genuinely prospective* 6A report predictions.
 
     Never import an old report retrospectively. A scheduled run builds the report
     and immediately captures it in the same process.
     """
+    if not isinstance(capture_window_hours, int) or isinstance(capture_window_hours, bool) or not (1 <= capture_window_hours <= MAX_ALLOWED_CAPTURE_WINDOW_HOURS):
+        raise ValueError('Capture window must be an integer between 1 and 72 hours')
+    max_time_to_event = dt.timedelta(hours=capture_window_hours)
     counts = collections.Counter()
     asof = stamp(report.get('as_of'))
     generated = stamp(report.get('generated_at'))
@@ -180,7 +184,7 @@ def extract_candidates(report, now):
                         or output.get('model_version') != report.get('model_version')):
                     counts['nonforecast_market'] += 1
                     continue
-                if not (MIN_TIME_TO_EVENT <= start-now <= MAX_TIME_TO_EVENT):
+                if not (MIN_TIME_TO_EVENT <= start-now <= max_time_to_event):
                     counts['outside_capture_window'] += 1
                     continue
                 captured = stamp(output.get('capture_time'))
@@ -362,7 +366,7 @@ def apply_grades(ledger, finals_by_sport, events_by_sport, now):
     return {'counts': dict(counts), 'pending_reasons': dict(blockers)}
 
 
-def summarize(ledger, now, capture, grading, candidate_counts):
+def summarize(ledger, now, capture, grading, candidate_counts, capture_window_hours=DEFAULT_CAPTURE_WINDOW_HOURS):
     by_sport_market = collections.defaultdict(list)
     for rec in ledger['forecasts']:
         fc = rec['forecast']
@@ -425,7 +429,7 @@ def summarize(ledger, now, capture, grading, candidate_counts):
             'real_bets_selected': 0, 'model_promotions': 0,
             'probability_calibrated': False,
             'first_capture_per_sport_event_market_version': True,
-            'capture_window_hours_before_start': 36,
+            'capture_window_hours_before_start': capture_window_hours,
             'max_age_of_quote_when_recorded_hours': 24,
             'grading_wait_hours_after_start': 24,
             'accuracy_comparisons_exclude_abstentions': True,
@@ -502,13 +506,13 @@ def fetch_relevant_finals(conn, ledger, now):
     return dict(fetched), read_counts
 
 
-def perform(conn, ledger, now):
+def perform(conn, ledger, now, capture_window_hours=DEFAULT_CAPTURE_WINDOW_HOURS):
     from psycopg.rows import dict_row
     from phase6a_market_anchor_shadow import produce_report, SPORTS
     from phase5b_real_line_backtest import gather_events
     conn.execute('SET TRANSACTION READ ONLY')
     prospective = produce_report(conn, now)
-    candidates, cnt = extract_candidates(prospective, now)
+    candidates, cnt = extract_candidates(prospective, now, capture_window_hours)
     capture = add_new_forecasts(ledger, candidates, now)
     # Only read completed-game score windows tied to recorded forecasts.
     # This avoids a redundant full-history scoreboard download each run.
@@ -522,7 +526,7 @@ def perform(conn, ledger, now):
     grading = apply_grades(ledger, finals_by_sport, events_by_sport, now)
     conn.rollback()
     ledger['updated_at'] = utc_iso(now)
-    report = summarize(ledger, now, capture, grading, dict(cnt))
+    report = summarize(ledger, now, capture, grading, dict(cnt), capture_window_hours)
     report['grading_database_read_counts'] = final_read_counts
     return report
 
@@ -532,6 +536,9 @@ def main():
     cli.add_argument('--ledger-in', default='phase6b_previous_ledger.json')
     cli.add_argument('--ledger-out', default='phase6b_shadow_ledger.json')
     cli.add_argument('--report-out', default='phase6b_shadow_summary.json')
+    cli.add_argument('--capture-window-hours', type=int, default=DEFAULT_CAPTURE_WINDOW_HOURS,
+                     choices=range(1, MAX_ALLOWED_CAPTURE_WINDOW_HOURS + 1),
+                     metavar='1..72', help='Prospective capture horizon (default: 72 hours)')
     args = cli.parse_args()
     now = dt.datetime.now(UTC)
     ledger = load_ledger(Path(args.ledger_in), now)
@@ -541,7 +548,7 @@ def main():
     import psycopg
     from psycopg.rows import dict_row
     with psycopg.connect(url, row_factory=dict_row, connect_timeout=20) as conn:
-        summary = perform(conn, ledger, now)
+        summary = perform(conn, ledger, now, args.capture_window_hours)
     Path(args.ledger_out).write_text(json.dumps(ledger, indent=2, sort_keys=True,
                                                allow_nan=False)+'\n', encoding='utf-8')
     Path(args.report_out).write_text(json.dumps(summary, indent=2, sort_keys=True,

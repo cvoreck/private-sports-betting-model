@@ -88,9 +88,25 @@ class ShadowTrackerTests(unittest.TestCase):
         report = sample_report(start=NOW+dt.timedelta(minutes=20))
         self.assertEqual(extract_candidates(report, NOW)[0], [])
 
-    def test_36_hour_maximum_before_game(self):
+    def test_72_hour_default_accepts_48_hour_game(self):
         report = sample_report(start=NOW+dt.timedelta(hours=48))
+        self.assertEqual(len(extract_candidates(report, NOW)[0]), 1)
+
+    def test_36_hour_override_rejects_48_hour_game(self):
+        report = sample_report(start=NOW+dt.timedelta(hours=48))
+        self.assertEqual(extract_candidates(report, NOW, 36)[0], [])
+
+    def test_72_hour_limit_rejects_73_hour_game(self):
+        report = sample_report(start=NOW+dt.timedelta(hours=73))
         self.assertEqual(extract_candidates(report, NOW)[0], [])
+
+    def test_invalid_capture_windows_rejected(self):
+        for value in (0, -1, 73, 72.5, True):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                extract_candidates(sample_report(), NOW, value)
+
+    def test_summary_reports_configured_capture_window(self):
+        self.assertEqual(summarize(empty_ledger(NOW), NOW, {}, {}, {}, 48)['capture_window_hours_before_start'], 48)
 
     def test_stale_bookmaker_snapshot_rejected(self):
         report = sample_report(captured=NOW-dt.timedelta(hours=28))

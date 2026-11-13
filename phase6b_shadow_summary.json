@@ -1,6 +1,7 @@
 {
   "accuracy_comparisons_exclude_abstentions": true,
   "candidate_screening": {
+    "stale_or_late_snapshot": 24,
     "valid_capture_candidates": 24
   },
   "capture_this_run": {
@@ -12,12 +13,12 @@
   "database_writes": 0,
   "evaluation_mode": "IMMUTABLE_PROSPECTIVE_SHADOW_GRADING",
   "first_capture_per_sport_event_market_version": true,
-  "generated_at": "2026-11-13T05:01:29.324914+00:00",
+  "generated_at": "2026-11-13T16:48:35.201141+00:00",
   "github_branch_write": true,
   "grading_database_read_counts": {},
   "grading_this_run": {
     "counts": {
-      "awaiting_result_lag": 24
+      "awaiting_result_lag": 48
     },
     "pending_reasons": {}
   },
@@ -43,8 +44,8 @@
   "read_only_database": true,
   "real_bets_selected": 0,
   "records_graded": 0,
-  "records_pending": 24,
-  "records_total": 24,
+  "records_pending": 48,
+  "records_total": 48,
   "returns_or_ev_reported": false,
   "sports": {
     "americanfootball_nfl": {
@@ -73,6 +74,62 @@
         "nonpush_conditional_brier": {},
         "nonpush_sample": 0,
         "pending": 12
+      }
+    },
+    "basketball_nba": {
+      "spreads": {
+        "abstained": 0,
+        "calibration_bins": [],
+        "captured": 9,
+        "graded": 0,
+        "graded_non_abstained": 0,
+        "line_movement_sample": 0,
+        "mean_absolute_error": {},
+        "mean_later_observed_line_shift": null,
+        "nonpush_conditional_brier": {},
+        "nonpush_sample": 0,
+        "pending": 9
+      },
+      "totals": {
+        "abstained": 0,
+        "calibration_bins": [],
+        "captured": 9,
+        "graded": 0,
+        "graded_non_abstained": 0,
+        "line_movement_sample": 0,
+        "mean_absolute_error": {},
+        "mean_later_observed_line_shift": null,
+        "nonpush_conditional_brier": {},
+        "nonpush_sample": 0,
+        "pending": 9
+      }
+    },
+    "icehockey_nhl": {
+      "spreads": {
+        "abstained": 0,
+        "calibration_bins": [],
+        "captured": 3,
+        "graded": 0,
+        "graded_non_abstained": 0,
+        "line_movement_sample": 0,
+        "mean_absolute_error": {},
+        "mean_later_observed_line_shift": null,
+        "nonpush_conditional_brier": {},
+        "nonpush_sample": 0,
+        "pending": 3
+      },
+      "totals": {
+        "abstained": 0,
+        "calibration_bins": [],
+        "captured": 3,
+        "graded": 0,
+        "graded_non_abstained": 0,
+        "line_movement_sample": 0,
+        "mean_absolute_error": {},
+        "mean_later_observed_line_shift": null,
+        "nonpush_conditional_brier": {},
+        "nonpush_sample": 0,
+        "pending": 3
       }
     }
   },

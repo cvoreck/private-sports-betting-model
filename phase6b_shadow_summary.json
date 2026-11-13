@@ -1,0 +1,50 @@
+{
+  "accuracy_comparisons_exclude_abstentions": true,
+  "candidate_screening": {
+    "outside_capture_window": 24,
+    "valid_capture_candidates": 0
+  },
+  "capture_this_run": {
+    "already_frozen": 0,
+    "duplicate_matchup_filtered": 0,
+    "new": 0
+  },
+  "capture_window_hours_before_start": 36,
+  "database_writes": 0,
+  "evaluation_mode": "IMMUTABLE_PROSPECTIVE_SHADOW_GRADING",
+  "first_capture_per_sport_event_market_version": true,
+  "generated_at": "2026-11-13T04:46:27.140186+00:00",
+  "github_branch_write": true,
+  "grading_database_read_counts": {},
+  "grading_this_run": {
+    "counts": {},
+    "pending_reasons": {}
+  },
+  "grading_wait_hours_after_start": 24,
+  "ledger_branch": "phase6b-shadow-ledger",
+  "limitations": [
+    "This does not establish a betting edge, profitability, or calibrated probability.",
+    "Sportsbook market line is the forecast anchor; MAE comparison alone is not an edge.",
+    "Same-game spread and total grades are correlated; count independent games separately.",
+    "Probabilities are conditional on nonpush; whole-point push probability is not modeled.",
+    "Later observed line is not a guaranteed market close; same bookmaker only.",
+    "Quotes may be stale or unavailable in stored snapshots; no paid Odds API requests.",
+    "No injuries, lineups, pace, goaltender or late injury news features.",
+    "Historical game records may be corrected; conflicting locked grades fail closed.",
+    "Data lives on a dedicated GitHub branch in a private repository; protect that branch.",
+    "A single matched final uses exact normalized home/away names within 18h of start."
+  ],
+  "max_age_of_quote_when_recorded_hours": 24,
+  "model_promotions": 0,
+  "moneyline_changed": false,
+  "probability_calibrated": false,
+  "publisher_changed": false,
+  "read_only_database": true,
+  "real_bets_selected": 0,
+  "records_graded": 0,
+  "records_pending": 0,
+  "records_total": 0,
+  "returns_or_ev_reported": false,
+  "sports": {},
+  "vendor_api_calls": 0
+}

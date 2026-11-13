@@ -1,23 +1,24 @@
 {
   "accuracy_comparisons_exclude_abstentions": true,
   "candidate_screening": {
-    "outside_capture_window": 24,
-    "valid_capture_candidates": 0
+    "valid_capture_candidates": 24
   },
   "capture_this_run": {
     "already_frozen": 0,
     "duplicate_matchup_filtered": 0,
-    "new": 0
+    "new": 24
   },
-  "capture_window_hours_before_start": 36,
+  "capture_window_hours_before_start": 72,
   "database_writes": 0,
   "evaluation_mode": "IMMUTABLE_PROSPECTIVE_SHADOW_GRADING",
   "first_capture_per_sport_event_market_version": true,
-  "generated_at": "2026-11-13T04:46:27.140186+00:00",
+  "generated_at": "2026-11-13T05:01:29.324914+00:00",
   "github_branch_write": true,
   "grading_database_read_counts": {},
   "grading_this_run": {
-    "counts": {},
+    "counts": {
+      "awaiting_result_lag": 24
+    },
     "pending_reasons": {}
   },
   "grading_wait_hours_after_start": 24,
@@ -42,9 +43,38 @@
   "read_only_database": true,
   "real_bets_selected": 0,
   "records_graded": 0,
-  "records_pending": 0,
-  "records_total": 0,
+  "records_pending": 24,
+  "records_total": 24,
   "returns_or_ev_reported": false,
-  "sports": {},
+  "sports": {
+    "americanfootball_nfl": {
+      "spreads": {
+        "abstained": 0,
+        "calibration_bins": [],
+        "captured": 12,
+        "graded": 0,
+        "graded_non_abstained": 0,
+        "line_movement_sample": 0,
+        "mean_absolute_error": {},
+        "mean_later_observed_line_shift": null,
+        "nonpush_conditional_brier": {},
+        "nonpush_sample": 0,
+        "pending": 12
+      },
+      "totals": {
+        "abstained": 0,
+        "calibration_bins": [],
+        "captured": 12,
+        "graded": 0,
+        "graded_non_abstained": 0,
+        "line_movement_sample": 0,
+        "mean_absolute_error": {},
+        "mean_later_observed_line_shift": null,
+        "nonpush_conditional_brier": {},
+        "nonpush_sample": 0,
+        "pending": 12
+      }
+    }
+  },
   "vendor_api_calls": 0
 }

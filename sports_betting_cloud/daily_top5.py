@@ -268,10 +268,10 @@ def value_adjustment(candidate):
 
 
 def rank_candidates(candidates, card_date=None):
-    """Select five only when five independent, positive conservative-EV moneylines exist.
+    """Select up to five independent, positive conservative-EV moneylines.
 
     Never fill with unvalidated markets, negative adjusted EV, or correlated
-    same-game bets. A shortage means no card is published.
+    same-game bets. An eligible shortage produces a partial published card.
     """
     best = {}
     diagnostics = dict(raw_candidates=len(candidates), rejected_odds=0,
@@ -313,8 +313,8 @@ def rank_candidates(candidates, card_date=None):
     logging.info('Market-aware Top 5: day=%s eligible_outcomes=%s distinct_events=%s selected=%s',
                  card_date, len(best), len(used_events), len(selected))
     if len(selected) < 5:
-        logging.warning('FIVE-PICK REQUIREMENT NOT MET: only %s independent positive '
-                      'conservative-EV trained moneylines; publishing halted.', len(selected))
+        logging.warning('FEWER THAN FIVE ELIGIBLE PICKS: %s independent positive '
+                      'conservative-EV trained moneylines; publisher may emit a partial card.', len(selected))
     return selected
 
 
@@ -472,6 +472,23 @@ def refresh_existing_card_research(conn, today):
                  len(rows), matched, updated, missing)
     return updated
 
+def record_card_run(conn, card_date, status, candidates, published):
+    """Record actual publication outcomes, including zero-pick days.
+
+    This is a small database write with no Odds API requests.
+    """
+    detail = ('Market-aware trained moneylines only; same-bookmaker two-way '
+              'no-vig baseline; 35% model / 65% market with 1 pp uncertainty '
+              'haircut. Publish up to five independent positive adjusted-EV '
+              'selections; fewer than five are explicitly marked partial. '
+              'Experimental spreads/totals remain shadow-only; flat 1u stakes.')
+    conn.execute('''INSERT INTO daily_card_runs (card_date,status,candidates,published,detail)
+      VALUES (%s,%s,%s,%s,%s) ON CONFLICT(card_date) DO UPDATE SET
+      status=EXCLUDED.status,candidates=EXCLUDED.candidates,published=EXCLUDED.published,
+      detail=EXCLUDED.detail,updated_at=NOW()''',
+      (card_date, status, candidates, published, detail))
+
+
 def main():
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
     now = datetime.now(timezone.utc)
@@ -496,12 +513,26 @@ def main():
         candidates = find_candidates(conn, today, now)
         top = rank_candidates(candidates, today)
         status = ('published' if len(top) == 5 else
-                  'insufficient_verified_candidates')
-        # Never publish a partial card: preserve the exactly-five requirement.
-        # Log the shortage for investigation; do not invent odds or probabilities.
-        if len(top) != 5:
-            logging.error('Publishing halted: required exactly five eligible picks, found %s', len(top))
+                  'partial_card' if top else 'insufficient_verified_candidates')
+        # Publish independently verified selections even when the strict filters
+        # yield fewer than five. Never fill gaps with negative adjusted EV,
+        # unvalidated spreads/totals, or fabricated odds/probabilities.
+        if not top:
+            logging.warning('NO QUALIFYING PICKS: zero independent positive '
+                            'conservative-EV trained moneylines; no card published.')
+            with conn.transaction():
+                conn.execute('SELECT pg_advisory_xact_lock(%s)', (20261027,))
+                existing = conn.execute('''SELECT count(*) AS n FROM picks
+                  WHERE date=%s AND kind='Hypothetical' AND rank IS NOT NULL''',
+                  (today.isoformat(),)).fetchone()['n']
+                if existing:
+                    logging.info('Another run already published %s picks; preserving card', existing)
+                    return
+                record_card_run(conn, today, status, len(candidates), 0)
             return
+        if len(top) < 5:
+            logging.warning('PARTIAL CARD: %s of 5 independently qualified '
+                            'moneylines; publishing valid picks without filling gaps.', len(top))
         with conn.transaction():
             conn.execute('SELECT pg_advisory_xact_lock(%s)', (20261027,))
             existing = conn.execute('''SELECT count(*) AS n FROM picks
@@ -517,6 +548,10 @@ def main():
                     ctx = c.get('context') or {}
                     notes = research_notes(ctx, c['selection'], c['market'], c['model_version'],
                                            c['adjusted_edge_pp'], c['adjusted_ev'], c['bookmaker'], c['verification_source'], c['quality'])
+                    if status == 'partial_card':
+                        notes += (f'\nWatch out for: PARTIAL CARD ({len(top)}/5): '
+                                  'the remaining slots did not meet independent, '
+                                  'positive conservative-EV verification criteria.')
                     # Flat 1u hypothetical research stake. Published probability,
                     # edge and EV all use the SAME conservative estimate.
                     units = 1
@@ -537,12 +572,7 @@ def main():
                        c['start'].astimezone(PT).strftime('%Y-%m-%d %I:%M %p PT'),c['adjusted_prob']))
                     logging.info('Published rank=%s selection=%s edge_pp=%.3f suggested_units=%su',
                                  rank, pick_label, c['adjusted_edge_pp'], units)
-            conn.execute('''INSERT INTO daily_card_runs (card_date,status,candidates,published,detail)
-              VALUES (%s,%s,%s,%s,%s) ON CONFLICT(card_date) DO UPDATE SET
-              status=EXCLUDED.status,candidates=EXCLUDED.candidates,published=EXCLUDED.published,
-              detail=EXCLUDED.detail,updated_at=NOW()''',
-              (today,status,len(candidates),len(top),
-               'Market-aware card: trained moneylines only; same-bookmaker two-way no-vig market baseline; 35% model / 65% market with 1 pp uncertainty haircut. Five independent positive conservative-EV games required, otherwise no publication. Experimental spreads/totals remain shadow-only. Flat 1u stakes; no paid API requests.'))
+            record_card_run(conn, today, status, len(candidates), len(top))
         # Enrich newly published picks on the first daily run; the 6 AM workflow
         # normally runs only once, so waiting for a second invocation is unsafe.
         # Keep the card intact if optional ESPN research is unavailable.

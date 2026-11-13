@@ -1,0 +1,115 @@
+name: Phase 6B Prospective Shadow Ledger (NO LIVE PICKS)
+
+on:
+  workflow_dispatch:
+  # Twice daily in FIXED PST (UTC-8), regardless of daylight saving.
+  # 08:00 PST => 16:00 UTC; 20:00 PST => 04:00 UTC.
+  # During PDT, these occur at 09:00 and 21:00 local clock time.
+  # Collection jobs and production schedules are unchanged.
+  schedule:
+    - cron: '0 4,16 * * *'
+
+# GitHub contents write is used ONLY to persist immutable research records
+# on an isolated 'phase6b-shadow-ledger' branch; Supabase remains READ ONLY.
+permissions:
+  contents: write
+
+concurrency:
+  group: phase6b-prospective-shadow-ledger
+  cancel-in-progress: false
+
+jobs:
+  track-and-grade:
+    # Only run on the repository's default branch, never a feature/data branch.
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code from default branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PostgreSQL driver
+        run: python -m pip install 'psycopg[binary]>=3.1,<4'
+
+      - name: Run independent offline safeguards
+        run: |
+          python -m unittest discover -s sports_betting_cloud -p 'test_phase6b_shadow_tracker.py' -v
+          python -m unittest discover -s sports_betting_cloud -p 'test_phase6a_market_anchor_shadow.py' -v
+
+      - name: Fetch previous independent shadow ledger (fail closed on network/error)
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_ref="$(git ls-remote origin refs/heads/phase6b-shadow-ledger)"
+          if [[ -n "$remote_ref" ]]; then
+            git fetch --no-tags origin refs/heads/phase6b-shadow-ledger:refs/remotes/origin/phase6b-shadow-ledger
+            git show refs/remotes/origin/phase6b-shadow-ledger:phase6b_shadow_ledger.json > phase6b_previous_ledger.json
+            echo 'PHASE6B_BRANCH_EXISTS=1' >> "$GITHUB_ENV"
+            echo 'Reusing existing permanent shadow ledger.'
+          else
+            PYTHONPATH=sports_betting_cloud python - <<'PY'
+          import datetime as dt
+          import json
+          from pathlib import Path
+          from phase6b_shadow_tracker import empty_ledger
+          p = Path('phase6b_previous_ledger.json')
+          p.write_text(json.dumps(empty_ledger(dt.datetime.now(dt.timezone.utc)), indent=2)+'\n')
+          print('First run: initialized empty shadow ledger.')
+          PY
+            echo 'PHASE6B_BRANCH_EXISTS=0' >> "$GITHUB_ENV"
+          fi
+
+      - name: Generate NEW real-time shadow forecasts and grade prior frozen forecasts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python sports_betting_cloud/phase6b_shadow_tracker.py \
+            --ledger-in phase6b_previous_ledger.json \
+            --ledger-out phase6b_shadow_ledger.json \
+            --report-out phase6b_shadow_summary.json
+          python -m json.tool phase6b_shadow_ledger.json > /dev/null
+          python -m json.tool phase6b_shadow_summary.json > /dev/null
+
+      - name: Commit data ONLY to the dedicated shadow branch (never default branch)
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch='phase6b-shadow-ledger'
+          dest="$RUNNER_TEMP/phase6b-data-worktree"
+          if [[ "$PHASE6B_BRANCH_EXISTS" == '1' ]]; then
+            git worktree add --detach "$dest" "refs/remotes/origin/$branch"
+          else
+            git worktree add --detach "$dest" HEAD
+            git -C "$dest" switch --orphan "$branch"
+          fi
+          cp phase6b_shadow_ledger.json "$dest/phase6b_shadow_ledger.json"
+          cp phase6b_shadow_summary.json "$dest/phase6b_shadow_summary.json"
+          git -C "$dest" config user.name 'github-actions[bot]'
+          git -C "$dest" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C "$dest" add -- phase6b_shadow_ledger.json phase6b_shadow_summary.json
+          if git -C "$dest" diff --cached --quiet; then
+            echo 'No data changes to commit.'
+          else
+            git -C "$dest" commit -m 'Phase 6B: append prospective shadow forecasts and verified grades'
+            git -C "$dest" push origin "HEAD:refs/heads/$branch"
+          fi
+          echo 'Data persisted separately; no production code branch changes.'
+
+      - name: Provide downloadable run report and backup ledger
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase6b-shadow-ledger-report
+          path: |
+            phase6b_shadow_summary.json
+            phase6b_shadow_ledger.json
+          if-no-files-found: ignore
+          retention-days: 30

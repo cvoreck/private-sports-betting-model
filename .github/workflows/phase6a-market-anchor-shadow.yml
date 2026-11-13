@@ -1,0 +1,40 @@
+name: Phase 6A Market-Anchored Shadow (READ ONLY)
+
+on:
+  workflow_dispatch:
+  # Intentionally manual-first: review first report before opting into a daily schedule.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase6a-market-anchor-shadow
+  cancel-in-progress: false
+
+jobs:
+  shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PostgreSQL driver
+        run: python -m pip install 'psycopg[binary]>=3.1,<4'
+      - name: Offline shadow-model safeguards
+        run: python -m unittest discover -s sports_betting_cloud -p 'test_phase6a_market_anchor_shadow.py' -v
+      - name: Generate prospective market-anchored shadow report (read-only)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python sports_betting_cloud/phase6a_market_anchor_shadow.py
+      - name: Upload shadow report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase6a-market-anchor-shadow-report
+          path: phase6a_shadow_market_anchor_report.json
+          if-no-files-found: warn
+          retention-days: 30

@@ -2,6 +2,16 @@ name: Phase 6B Prospective Shadow Ledger (NO LIVE PICKS)
 
 on:
   workflow_dispatch:
+    inputs:
+      capture_window_hours:
+        description: 'Prospective capture window in hours (1–72)'
+        required: true
+        default: '72'
+        type: choice
+        options:
+          - '36'
+          - '48'
+          - '72'
   # Twice daily in FIXED PST (UTC-8), regardless of daylight saving.
   # 08:00 PST => 16:00 UTC; 20:00 PST => 04:00 UTC.
   # During PDT, these occur at 09:00 and 21:00 local clock time.
@@ -70,11 +80,13 @@ jobs:
       - name: Generate NEW real-time shadow forecasts and grade prior frozen forecasts
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CAPTURE_WINDOW_HOURS: ${{ inputs.capture_window_hours || '72' }}
         run: |
           python sports_betting_cloud/phase6b_shadow_tracker.py \
             --ledger-in phase6b_previous_ledger.json \
             --ledger-out phase6b_shadow_ledger.json \
-            --report-out phase6b_shadow_summary.json
+            --report-out phase6b_shadow_summary.json \
+            --capture-window-hours "${CAPTURE_WINDOW_HOURS}"
           python -m json.tool phase6b_shadow_ledger.json > /dev/null
           python -m json.tool phase6b_shadow_summary.json > /dev/null
 

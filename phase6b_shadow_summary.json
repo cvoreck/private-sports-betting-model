@@ -1,25 +1,36 @@
 {
   "accuracy_comparisons_exclude_abstentions": true,
   "candidate_screening": {
-    "valid_capture_candidates": 64
+    "valid_capture_candidates": 26
   },
   "capture_this_run": {
     "already_frozen": 26,
     "duplicate_matchup_filtered": 0,
-    "new": 38
+    "new": 0
   },
   "capture_window_hours_before_start": 72,
   "database_writes": 0,
   "evaluation_mode": "IMMUTABLE_PROSPECTIVE_SHADOW_GRADING",
   "first_capture_per_sport_event_market_version": true,
-  "generated_at": "2026-11-14T16:32:37.546963+00:00",
+  "generated_at": "2026-11-15T04:49:13.356938+00:00",
   "github_branch_write": true,
-  "grading_database_read_counts": {},
+  "grading_database_read_counts": {
+    "basketball_nba": {
+      "rows": 0,
+      "windows": 1
+    },
+    "icehockey_nhl": {
+      "rows": 0,
+      "windows": 1
+    }
+  },
   "grading_this_run": {
     "counts": {
-      "awaiting_result_lag": 86
+      "awaiting_result_lag": 64
     },
-    "pending_reasons": {}
+    "pending_reasons": {
+      "FINAL_NOT_FOUND": 22
+    }
   },
   "grading_wait_hours_after_start": 24,
   "ledger_branch": "phase6b-shadow-ledger",

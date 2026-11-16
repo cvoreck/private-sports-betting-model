@@ -1,18 +1,18 @@
 {
   "accuracy_comparisons_exclude_abstentions": true,
   "candidate_screening": {
-    "valid_capture_candidates": 52
+    "valid_capture_candidates": 2
   },
   "capture_this_run": {
-    "already_frozen": 24,
+    "already_frozen": 2,
     "duplicate_matchup_filtered": 0,
-    "new": 28
+    "new": 0
   },
   "capture_window_hours_before_start": 72,
   "database_writes": 0,
   "evaluation_mode": "IMMUTABLE_PROSPECTIVE_SHADOW_GRADING",
   "first_capture_per_sport_event_market_version": true,
-  "generated_at": "2026-11-15T16:35:17.432213+00:00",
+  "generated_at": "2026-11-16T05:27:40.620764+00:00",
   "github_branch_write": true,
   "grading_database_read_counts": {
     "basketball_nba": {
@@ -26,10 +26,11 @@
   },
   "grading_this_run": {
     "counts": {
-      "awaiting_result_lag": 92
+      "awaiting_result_lag": 54,
+      "later_quote_observed": 2
     },
     "pending_reasons": {
-      "FINAL_NOT_FOUND": 22
+      "FINAL_NOT_FOUND": 60
     }
   },
   "grading_wait_hours_after_start": 24,
@@ -121,9 +122,9 @@
         "captured": 21,
         "graded": 0,
         "graded_non_abstained": 0,
-        "line_movement_sample": 0,
+        "line_movement_sample": 1,
         "mean_absolute_error": {},
-        "mean_later_observed_line_shift": null,
+        "mean_later_observed_line_shift": 0.0,
         "nonpush_conditional_brier": {},
         "nonpush_sample": 0,
         "pending": 21
@@ -134,9 +135,9 @@
         "captured": 21,
         "graded": 0,
         "graded_non_abstained": 0,
-        "line_movement_sample": 0,
+        "line_movement_sample": 1,
         "mean_absolute_error": {},
-        "mean_later_observed_line_shift": null,
+        "mean_later_observed_line_shift": 0.0,
         "nonpush_conditional_brier": {},
         "nonpush_sample": 0,
         "pending": 21

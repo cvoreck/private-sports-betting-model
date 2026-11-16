@@ -1103,7 +1103,13 @@
       "grade": null,
       "grade_sha256": null,
       "key": "icehockey_nhl|ccdee466b63a2accb1d804d5ca9e4bdc|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "betrivers",
+        "captured_at": "2026-11-14T14:38:37.093988+00:00",
+        "delta_from_frozen_reference": 0.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 1.5
+      }
     },
     {
       "first_recorded_at": "2026-11-13T16:48:35.201141+00:00",
@@ -1151,7 +1157,13 @@
       "grade": null,
       "grade_sha256": null,
       "key": "icehockey_nhl|ccdee466b63a2accb1d804d5ca9e4bdc|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "betrivers",
+        "captured_at": "2026-11-14T14:38:37.093988+00:00",
+        "delta_from_frozen_reference": 0.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 6.5
+      }
     },
     {
       "first_recorded_at": "2026-11-14T16:32:37.546963+00:00",
@@ -5475,5 +5487,5 @@
     }
   ],
   "schema_version": 1,
-  "updated_at": "2026-11-15T16:35:17.432213+00:00"
+  "updated_at": "2026-11-16T05:27:40.620764+00:00"
 }

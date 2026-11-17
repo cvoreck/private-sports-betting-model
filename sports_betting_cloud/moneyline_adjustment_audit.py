@@ -8,6 +8,7 @@ import json
 import math
 import os
 import re
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -104,9 +105,19 @@ def evaluate(rows):
                            "would_pass_on_historically_published_picks": len(selected),
                            "all_observed": summarize(all_rows),
                            "passing_observed_only": summarize(selected)})
+    recorded_moneylines = [r for r in rows if r.get("market") == "h2h"]
+    graded_moneylines = [r for r in recorded_moneylines if r.get("result") in ("Win", "Loss")]
     return {
         "status": "descriptive_only" if usable else "insufficient_annotated_picks",
         "graded_annotated_moneyline_picks": len(usable),
+        "annotated_sample_by_sport": dict(sorted(Counter(
+            str(r.get("sport") or "Unknown") for r in usable).items())),
+        "annotated_sample_dates": {
+            "earliest": str(min((r.get("date") for r in usable), default="")),
+            "latest": str(max((r.get("date") for r in usable), default=""))},
+        "recorded_moneylines": len(recorded_moneylines),
+        "graded_moneylines": len(graded_moneylines),
+        "graded_moneylines_missing_probability_notes": len(graded_moneylines)-len(usable),
         "total_picks_examined": len(rows),
         "variants": by_variant,
         "limitations": [

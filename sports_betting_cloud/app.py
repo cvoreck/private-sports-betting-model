@@ -1385,7 +1385,10 @@ def _se_injury_table(teams, injuries, sport=''):
             m=re.match(r'(Injured Reserve|Day-To-Day|Questionable|Doubtful|Out|Probable|Active|IR|DTD)\b',detail,re.I)
             status=m.group(1) if m else 'Unverified'
             detail=re.sub(r'\s*Source:.*$', '',detail,flags=re.I)
-            detail=re.sub(r'^'+re.escape(status)+r'\s*', '',detail,flags=re.I).strip(' ().')
+            detail=re.sub(r'^'+re.escape(status)+r'\s*', '',detail,flags=re.I).strip()
+            # Unwrap the status-note parentheses without stripping punctuation.
+            if detail.startswith('(') and detail.endswith(')'):
+                detail=detail[1:-1].strip()
             # Preserve every character of the saved injury description.
             # The table cell wraps naturally within its available width.
             entries.append(f'<tr><td>{esc(player)}</td><td>{esc(status)}</td><td>{esc(detail or "—")}</td></tr>')

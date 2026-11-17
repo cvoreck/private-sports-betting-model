@@ -1328,19 +1328,19 @@ _RECORDED_KEY_PLAYERS = {
 
 
 def _se_injury_priority(team, raw, sport=''):
-    player = re.split(r'\\s+[—–]\\s+', raw, maxsplit=1)[0].strip()
+    player = re.split(r'\s+[—–]\s+', raw, maxsplit=1)[0].strip()
     team_key = _team_key(team)
     player_key = _team_key(player)
     importance = _RECORDED_KEY_PLAYERS.get(sport, {}).get(team_key, {}).get(player_key)
-    detail = re.split(r'\\s+[—–]\\s+', raw, maxsplit=1)
+    detail = re.split(r'\s+[—–]\s+', raw, maxsplit=1)
     status = detail[1] if len(detail)>1 else ''
     # Rank confirmed key players first, then more severe designations,
     # preserving feed order for equivalent, unverified player impact.
     severity = (
-        0 if re.search(r'\\b(?:Out|Injured Reserve|IR)\\b', status, re.I)
-        else 1 if re.search(r'\\bDoubtful\\b', status, re.I)
-        else 2 if re.search(r'\\bQuestionable|Day-To-Day|DTD\\b', status, re.I)
-        else 3 if re.search(r'\\bProbable\\b', status, re.I)
+        0 if re.search(r'\b(?:Out|Injured Reserve|IR)\b', status, re.I)
+        else 1 if re.search(r'\bDoubtful\b', status, re.I)
+        else 2 if re.search(r'\bQuestionable|Day-To-Day|DTD\b', status, re.I)
+        else 3 if re.search(r'\bProbable\b', status, re.I)
         else 4
     )
     return (0 if importance is not None else 1,
@@ -1355,8 +1355,8 @@ def _se_key_absences(teams, injuries, sport):
         for raw in injuries.get(team, []):
             if _se_injury_priority(team, raw, sport)[0] != 0:
                 continue
-            parts=re.split(r'\\s+[—–]\\s+', raw, maxsplit=1)
-            if len(parts)!=2 or not re.match(r'^(?:Out|IR|Injured Reserve)\\b',parts[1],re.I):
+            parts=re.split(r'\s+[—–]\s+', raw, maxsplit=1)
+            if len(parts)!=2 or not re.match(r'^(?:Out|IR|Injured Reserve)\b',parts[1],re.I):
                 continue
             items.append((team,parts[0].strip()))
     if not items:

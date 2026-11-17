@@ -14,6 +14,7 @@ from psycopg.rows import dict_row
 import requests
 
 import matchup_research as mr
+from espn_event_match import scoreboard_params
 
 PT = ZoneInfo('America/Los_Angeles')
 SPORT_KEYS = {
@@ -365,7 +366,7 @@ def _espn_event_teams(event):
 def _fetch_research_events(sport, day):
     domain, league = ESPN_LEAGUES[sport]
     url = f'https://site.api.espn.com/apis/site/v2/sports/{domain}/{league}/scoreboard'
-    board = mr.get_json(url, {'dates': day.strftime('%Y%m%d'), 'limit': 200})
+    board = mr.get_json(url, scoreboard_params(league, day.strftime('%Y%m%d')))
     return board.get('events') or []
 
 

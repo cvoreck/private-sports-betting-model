@@ -93,7 +93,8 @@ class ArchiveFinalFallbackTests(unittest.TestCase):
     def test_conflicting_scores_fail_closed(self):
         # Different canonical event ID keeps canonical present but unmatched,
         # forcing snapshot verification for the contested ESPN event ID.
-        canon = sample_final(start=NOW + dt.timedelta(hours=40), home=109, away=101)
+        canon = sample_final(start=NOW + dt.timedelta(hours=18), home=109, away=101)
+        canon['home_team'] = 'Unmatched Canonical Team'
         conn = FakeConnection(canonical=[canon], snapshots=[espn_snapshot()])
         with self.assertRaisesRegex(ValueError, "Canonical/ESPN final score conflict"):
             fetch_relevant_finals(conn, due_ledger(), NOW+dt.timedelta(days=3))

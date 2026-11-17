@@ -259,6 +259,20 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 @media(max-width:900px){.se-v2-expanded .se-v4-main{grid-template-columns:1fr}}
 @media(max-width:660px){.se-v2-expanded .se-injury-columns{grid-template-columns:1fr}}
 
+/* V5: same-height comparison/factors, visible odds, and impact-first injuries. */
+.se-v2-expanded .se-v4-main{align-items:stretch}
+.se-v2-expanded .se-v4-main>.se-insight-card{height:100%;box-sizing:border-box}
+.se-v2-expanded .se-v5-market-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.se-v2-expanded .se-v5-market-item{min-width:0;border:1px solid #29536a;border-radius:9px;background:#091f2e;padding:11px 13px}
+.se-v2-expanded .se-v5-market-item small{display:block;color:#9fb8cb;font-size:.73rem;margin-bottom:5px}
+.se-v2-expanded .se-v5-market-item strong{display:block;font-size:.91rem;color:#e9f4fa;font-weight:750;overflow-wrap:anywhere}
+.se-v2-expanded .se-v5-market-source{font-size:.76rem;color:#aac2d2;padding:0 3px}
+.se-v2-expanded .se-v5-market-source>summary{cursor:pointer;color:#b9d8e8}
+.se-v2-expanded .se-v5-market-source p{margin:5px 0}
+.se-v2-expanded .se-v5-key-absences{font-size:.83rem;color:#e0f2fa;margin:1px 0 12px}
+.se-v2-expanded .se-v5-key-absences strong{color:#e6f3f9}
+@media(max-width:720px){.se-v2-expanded .se-v5-market-strip{grid-template-columns:1fr}}
+
 /* Team-logo images use an abbreviation underneath, visible if the image fails. */
 .team-logo-frame{position:relative;display:flex;align-items:center;justify-content:center;width:74px;height:67px;flex-shrink:0;border-radius:8px;overflow:hidden;background:#102e45}
 .team-logo-abbr{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#dcefff;font-size:1rem;font-weight:800;letter-spacing:.02em}
@@ -931,12 +945,23 @@ def market_strip_html(r, load_live=False):
         note = f'Archived odds snapshot: {esc(stamp)}. Prices are not live.'
     else:
         note = 'No morning odds archive found for this sport and date. No live lookup performed.'
-    return (f'<div class="se-detail-strip se-template-strip">'
-            f'<div class="se-strip-item"><strong>Matchup:</strong> <span>{esc(matchup_display(r))}</span></div>'
-            f'<div class="se-strip-item" title="{esc(spread_full)}"><strong>Spread:</strong> <span>{esc(spread_short)}</span></div>'
-            f'<div class="se-strip-item" title="{esc(total_full)}"><strong>Total:</strong> <span>{esc(total_short)}</span></div>'
-            f'<div class="se-strip-item"><strong>Model:</strong> <span>rolling-homewin-v2 (trained)</span></div>'
-            f'</div><p class="se-archive-note">{note}</p>')
+    # Saved moneyline is the originally published bet. Spread/total are the
+    # morning archived quotes, NOT additional model selections or live lines.
+    odds = number(r.get('odds'), None)
+    selection = clean_text(r.get('selection'))
+    moneyline = (f'{selection} {odds:+.0f}' if odds is not None else 'Unavailable')
+    book = recorded_bookmaker(r.get('source'))
+    details = ('Recorded moneyline bookmaker: ' + book if book else 'Moneyline bookmaker not recorded')
+    details += ' · Model: ' + saved_model_label(r)
+    return (f'<section class="se-v5-market-strip" aria-label="Recorded betting markets">'
+            f'<div class="se-v5-market-item"><small>Moneyline (pick)</small>'
+            f'<strong>{esc(moneyline)}</strong></div>'
+            f'<div class="se-v5-market-item" title="{esc(spread_full)}"><small>Spread (archived)</small>'
+            f'<strong>{esc(spread_short)}</strong></div>'
+            f'<div class="se-v5-market-item" title="{esc(total_full)}"><small>Total O/U (archived)</small>'
+            f'<strong>{esc(total_short)}</strong></div>'
+            f'</section><details class="se-v5-market-source"><summary>Quote timestamps &amp; model source</summary>'
+            f'<p>{note}</p><p>{esc(details)}</p></details>')
 
 
 def matchup_preview(rationale):
@@ -1290,11 +1315,64 @@ def _se_unified_comparison_card(sections, teams, stats, sport):
     return _se_comparison_card('Team Comparison', teams, rows, sample, '▥')
 
 
-def _se_injury_table(teams, injuries):
+# Strict team-qualified prominence overrides: keep this list small,
+# documented and reviewed on roster changes. All others fall back to stated
+# injury severity and preserved source order (not guessed minutes/usage).
+# No player is labeled "star" purely because of an injury designation.
+_RECORDED_KEY_PLAYERS = {
+    'NBA': {
+        'minnesotatimberwolves': {'anthonyedwards': 0},
+        'portlandtrailblazers': {'jamorant': 0, 'deniavdija': 1},
+    },
+}
+
+
+def _se_injury_priority(team, raw, sport=''):
+    player = re.split(r'\s+[—–]\s+', raw, maxsplit=1)[0].strip()
+    team_key = _team_key(team)
+    player_key = _team_key(player)
+    importance = _RECORDED_KEY_PLAYERS.get(sport, {}).get(team_key, {}).get(player_key)
+    detail = re.split(r'\s+[—–]\s+', raw, maxsplit=1)
+    status = detail[1] if len(detail)>1 else ''
+    # Rank confirmed key players first, then more severe designations,
+    # preserving feed order for equivalent, unverified player impact.
+    severity = (
+        0 if re.search(r'\b(?:Out|Injured Reserve|IR)\b', status, re.I)
+        else 1 if re.search(r'\bDoubtful\b', status, re.I)
+        else 2 if re.search(r'\bQuestionable|Day-To-Day|DTD\b', status, re.I)
+        else 3 if re.search(r'\bProbable\b', status, re.I)
+        else 4
+    )
+    return (0 if importance is not None else 1,
+            importance if importance is not None else 999,
+            severity)
+
+
+def _se_key_absences(teams, injuries, sport):
+    """Promote only recorded confirmed Out/IR high-impact names, never invent."""
+    items=[]
+    for team in teams:
+        for raw in injuries.get(team, []):
+            if _se_injury_priority(team, raw, sport)[0] != 0:
+                continue
+            parts=re.split(r'\s+[—–]\s+', raw, maxsplit=1)
+            if len(parts)!=2 or not re.match(r'^(?:Out|IR|Injured Reserve)\b',parts[1],re.I):
+                continue
+            items.append((team,parts[0].strip()))
+    if not items:
+        return ''
+    labels=', '.join(f'{name} ({team.split()[-1]})' for team,name in items)
+    return ('<p class="se-v5-key-absences"><strong>Key absences:</strong> '
+            +esc(labels)+'</p>')
+
+
+def _se_injury_table(teams, injuries, sport=''):
     panels=[]
     for team in list(teams)+[t for t in injuries if t not in teams]:
         items=list(dict.fromkeys(injuries.get(team,[])))
         if not items:continue
+        if team != 'Availability verification':
+            items.sort(key=lambda raw: _se_injury_priority(team, raw, sport))
         if team == 'Availability verification':
             panels.append('<div class="se-injury-group"><div class="se-injury-team">Availability verification</div>'+
                           ''.join(f'<p class="se-muted">{esc(note)}</p>' for note in items[:6])+'</div>')
@@ -1377,7 +1455,9 @@ def full_pick_card(r, load_live=False):
     teams = matchup_teams(r)
     stats = _se_extract_metrics(sections, teams) if len(teams) == 2 else {}
     comparison_html = _se_unified_comparison_card(sections, teams, stats, clean_text(r.get('sport')))
-    injuries_html = _se_injury_table(teams, injuries)
+    sport_name = clean_text(r.get('sport'))
+    injuries_html = _se_injury_table(teams, injuries, sport_name)
+    key_absences_html = _se_key_absences(teams, injuries, sport_name)
     context_rows = []
     # Hide empty or generic factors; indoor weather boilerplate is not insight.
     for symbol, label, key in [('▤', 'Rest', 'rest'), ('✈', 'Travel', 'travel')]:
@@ -1420,8 +1500,8 @@ def full_pick_card(r, load_live=False):
           {comparison_html}
           <section class="se-insight-card se-context-card"><h3>Game Factors</h3>{context_html}</section>
         </div>
-        <section class="se-insight-card se-injury-panel"><h3>Injuries &amp; Availability</h3>{injuries_html}</section>
-        <details class="se-v4-market-details"><summary>Archived sportsbook lines &amp; model source</summary>{market_strip}</details>
+        <section class="se-insight-card se-injury-panel"><h3>Injuries &amp; Availability</h3>{key_absences_html}{injuries_html}</section>
+        {market_strip}
         <p class="se-disclaimer">Historical research snapshot, not live injury or market data. Verify lines, injuries and lineups before any wager.</p>
       </div>
     </details>'''

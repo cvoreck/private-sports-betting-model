@@ -115,7 +115,7 @@ class TestCompactResearchPresentation(unittest.TestCase):
         self.assertNotIn("{recent_card}{season_card}{matchup_card}", source)
         self.assertNotIn("Key Takeaways", source)
         self.assertNotIn("Bottom Line</h3>", source)
-        self.assertIn("se-v4-market-details", source)
+        self.assertIn("market_strip = market_strip_html(", source)
         self.assertIn("Historical research snapshot", source)
 
     def test_comparison_merges_only_saved_statistics(self):
@@ -146,16 +146,100 @@ class TestCompactResearchPresentation(unittest.TestCase):
         import re
         from html import escape
         tree = ast.parse(app)
-        node = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
-                    and n.name == "_se_injury_table")
-        env = {"re":re, "esc":escape}
-        exec(compile(ast.Module(body=[node], type_ignores=[]), "app.py", "exec"), env)
+        relevant = [n for n in tree.body if
+                    (isinstance(n, ast.FunctionDef) and n.name in
+                     {"_se_injury_table", "_se_injury_priority", "_se_key_absences"}) or
+                    (isinstance(n, ast.Assign) and any(
+                     isinstance(t, ast.Name) and t.id == "_RECORDED_KEY_PLAYERS" for t in n.targets))]
+        env = {"re": re, "esc": escape,
+               "_team_key": lambda x: re.sub(r'[^a-z0-9]', '', str(x).casefold())}
+        exec(compile(ast.Module(body=relevant, type_ignores=[]), "app.py", "exec"), env)
         injuries = {"Team A":[f"Player {i} — Out (Shoulder)" for i in range(5)]}
         html = env["_se_injury_table"](["Team A","Team B"], injuries)
         self.assertIn("Show 2 more reported injuries", html)
         self.assertIn("Player 4", html)
         self.assertIn("Player 0", html)
         self.assertIn("se-v4-extra", html)
+
+
+class TestMarketsAndImpactOrdering(unittest.TestCase):
+    def test_impact_overrides_sort_edwards_above_depth_players(self):
+        app = Path(__file__).with_name("app.py").read_text()
+        import re
+        from html import escape
+        tree = ast.parse(app)
+        relevant = [n for n in tree.body if
+                    (isinstance(n, ast.FunctionDef) and n.name in
+                     {"_se_injury_table", "_se_injury_priority", "_se_key_absences"}) or
+                    (isinstance(n, ast.Assign) and any(
+                     isinstance(t, ast.Name) and t.id == "_RECORDED_KEY_PLAYERS" for t in n.targets))]
+        env = {"re": re, "esc": escape,
+               "_team_key": lambda x: re.sub(r'[^a-z0-9]', '', str(x).casefold())}
+        exec(compile(ast.Module(body=relevant, type_ignores=[]), "app.py", "exec"), env)
+        team = "Minnesota Timberwolves"
+        notes = ["Zyon Pullin — Out (Quadriceps)", "Jaylen Clark — Out (Hamstring)",
+                 "Anthony Edwards — Out (Knee)", "Jonathan Kuminga — Out (Shoulder)"]
+        html = env["_se_injury_table"]([team], {team: notes}, "NBA")
+        self.assertLess(html.index("Anthony Edwards"), html.index("Zyon Pullin"))
+        self.assertIn("Show 1 more reported injuries", html)
+        self.assertIn("Anthony Edwards", env["_se_key_absences"]([team], {team: notes}, "NBA"))
+        self.assertEqual(env["_se_key_absences"]([team], {team: notes}, "NFL"), "")
+
+    def test_no_unverified_key_absence_claims(self):
+        app = Path(__file__).with_name("app.py").read_text()
+        import re
+        from html import escape
+        tree = ast.parse(app)
+        relevant = [n for n in tree.body if
+                    (isinstance(n, ast.FunctionDef) and n.name in
+                     {"_se_injury_table", "_se_injury_priority", "_se_key_absences"}) or
+                    (isinstance(n, ast.Assign) and any(
+                     isinstance(t, ast.Name) and t.id == "_RECORDED_KEY_PLAYERS" for t in n.targets))]
+        env = {"re": re, "esc": escape,
+               "_team_key": lambda x: re.sub(r'[^a-z0-9]', '', str(x).casefold())}
+        exec(compile(ast.Module(body=relevant, type_ignores=[]), "app.py", "exec"), env)
+        self.assertEqual(env["_se_key_absences"](
+            ["Minnesota Timberwolves"], {"Minnesota Timberwolves":
+            ["Anthony Edwards — Questionable (Knee)"]}, "NBA"), "")
+
+    def test_market_strip_visible_with_recorded_moneyline_and_archived_lines(self):
+        app = Path(__file__).with_name("app.py").read_text()
+        import re
+        from html import escape
+        tree = ast.parse(app)
+        node = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
+                    and n.name == "market_strip_html")
+        env = {"re":re, "esc":escape, "TEAM_LOGOS":{}, "PT": None,
+               "ODDS_SPORT_KEYS":{"NBA":"basketball_nba"},
+               "BOOK_KEYS":{}, "number":lambda x,fallback=None: x,
+               "clean_text": lambda x: str(x or ''),
+               "matchup_teams":lambda r:["Portland Trail Blazers","Minnesota Timberwolves"],
+               "_team_key":lambda x: re.sub(r'[^a-z0-9]', '', str(x).casefold()),
+               "saved_market_lines":lambda r: {"spread":"Minnesota Timberwolves -2.5 (-104)",
+                                               "total":"Over 227.5 (-110)"},
+               "morning_market_snapshots":lambda day:{},
+               "recorded_bookmaker":lambda source:"draftkings",
+               "saved_model_label":lambda r:"rolling-homewin-v2 (trained)"}
+        exec(compile(ast.Module(body=[node], type_ignores=[]), "app.py", "exec"), env)
+        row={"date":"2026-11-17","sport":"NBA","selection":"Minnesota Timberwolves",
+             "market":"h2h", "matchup":"Portland Trail Blazers @ Minnesota Timberwolves",
+             "odds":-130, "source":"Auto: The Odds API / draftkings"}
+        html=env["market_strip_html"](row)
+        self.assertIn("Moneyline (pick)", html)
+        self.assertIn("Minnesota Timberwolves -130", html)
+        self.assertIn("Spread (archived)", html)
+        self.assertIn("-2.5 (-104)", html)
+        self.assertIn("Total O/U (archived)", html)
+        self.assertIn("227.5 (-110)", html)
+        self.assertIn("Quote timestamps &amp; model source", html)
+        self.assertNotIn("rolling-homewin-v2 (trained)</span></div>", html)
+
+    def test_comparison_and_context_equal_height_grid(self):
+        app=Path(__file__).with_name("app.py").read_text()
+        self.assertIn(".se-v2-expanded .se-v4-main{align-items:stretch}", app)
+        self.assertIn(".se-v2-expanded .se-v4-main>.se-insight-card{height:100%", app)
+        self.assertNotIn('<details class="se-v4-market-details">', app)
+        self.assertIn('{market_strip}', app)
 
 
 if __name__ == "__main__":

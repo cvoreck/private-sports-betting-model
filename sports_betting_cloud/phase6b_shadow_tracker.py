@@ -481,15 +481,19 @@ def grading_windows(ledger, now):
 
 
 def fetch_relevant_finals(conn, ledger, now):
-    """Avoid transferring all historical finals for every scheduled run.
+    """Read canonical finals, then fill missing graded windows from archived ESPN finals.
 
-    Query only ±18h event-time windows. Chunk OR terms for larger ledgers.
+    The canonical table is populated by a manual compaction workflow and may
+    lag the daily ESPN game snapshots. Only request relevant days, validate
+    completed regular-season ESPN scores and preserve unique final event IDs.
+    No external API calls, database writes or result-based model fitting.
     """
     windows_by_sport = grading_windows(ledger, now)
     fetched = collections.defaultdict(list)
     read_counts = {}
     for sport, intervals in sorted(windows_by_sport.items()):
-        read_counts[sport] = {'windows': len(intervals), 'rows': 0}
+        read_counts[sport] = {'windows': len(intervals), 'rows': 0,
+                              'espn_snapshot_candidates': 0, 'snapshot_finals_added': 0}
         for start_idx in range(0, len(intervals), 40):
             batch = intervals[start_idx:start_idx+40]
             predicates = ' OR '.join('(played_at BETWEEN %s AND %s)' for _ in batch)
@@ -503,6 +507,59 @@ def fetch_relevant_finals(conn, ledger, now):
             rows = conn.execute(sql, params).fetchall()
             fetched[sport].extend(rows)
             read_counts[sport]['rows'] += len(rows)
+
+        # Skip snapshot queries if every forecast old enough to grade has
+        # exactly one matching canonical final. Keep locked grades checkable.
+        due = [rec['forecast'] for rec in ledger['forecasts']
+               if rec['forecast']['sport'] == sport
+               and now >= stamp(rec['forecast']['event_start']) + RESULTS_LAG]
+        if all(find_unique_final(fc, fetched[sport])[0] is not None for fc in due):
+            continue
+
+        # ESPN game snapshots are written by the scheduled historical collector,
+        # unlike canonical_completed_games, which is updated by manual migration.
+        # Query exact scoreboard date keys in the forecast grading windows;
+        # only finalized ESPN game records and no later-than-now observations.
+        days = set()
+        for lo, hi in intervals:
+            d = lo.date() - dt.timedelta(days=1)
+            last = hi.date() + dt.timedelta(days=1)
+            while d <= last:
+                days.add(d.strftime('%Y%m%d'))
+                d += dt.timedelta(days=1)
+        if not days:
+            continue
+        sql = ("""SELECT DISTINCT ON (event_id) event_id, payload, collected_at
+                 FROM historical_snapshots
+                 WHERE source='espn' AND category='game' AND sport=%s
+                   AND item_key=ANY(%s)
+                   AND payload #>> '{status,type,completed}'='true'
+                   AND collected_at <= %s
+                 ORDER BY event_id, collected_at DESC, id DESC""")
+        snapshot_rows = conn.execute(sql, (sport, sorted(days), now)).fetchall()
+        read_counts[sport]['espn_snapshot_candidates'] = len(snapshot_rows)
+        from compact_history import parse_final
+        by_id = {str(row['event_id']): row for row in fetched[sport]}
+        for row in snapshot_rows:
+            eid = str(row['event_id'])
+            item = parse_final(row['payload'], sport, eid, row['collected_at'])
+            if item is None or item[9] != 2:
+                continue
+            played = item[2]
+            if played > now - RESULTS_LAG or not any(lo <= played <= hi for lo, hi in intervals):
+                continue
+            final = dict(event_id=eid, played_at=played,
+                         home_team=item[5], away_team=item[6],
+                         home_score=item[7], away_score=item[8])
+            existing = by_id.get(eid)
+            if existing is not None:
+                if (int(existing['home_score']) != int(final['home_score'])
+                        or int(existing['away_score']) != int(final['away_score'])):
+                    raise ValueError('Canonical/ESPN final score conflict for '+sport+':'+eid)
+                continue
+            by_id[eid] = final
+            fetched[sport].append(final)
+            read_counts[sport]['snapshot_finals_added'] += 1
     return dict(fetched), read_counts
 
 

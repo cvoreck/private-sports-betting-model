@@ -251,6 +251,10 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .se-v2-expanded .se-injury-columns{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .se-v2-expanded .se-injury-table{font-size:.75rem}
 .se-v2-expanded .se-injury-table td{overflow-wrap:anywhere}
+.se-v2-expanded .se-injury-table th:nth-child(2),
+.se-v2-expanded .se-injury-table td:nth-child(2){min-width:76px;white-space:nowrap;overflow-wrap:normal}
+.se-v2-expanded .se-v4-extra .se-injury-table td:first-child{width:35%}
+.se-v2-expanded .se-v4-extra .se-injury-table td:nth-child(2){width:23%}
 .se-v2-expanded .se-v4-extra{margin-top:6px;border-top:1px solid #24475b}
 .se-v2-expanded .se-v4-extra>summary{cursor:pointer;color:#a2d4e4;font-size:.78rem;padding:7px 0;list-style:disclosure-closed}
 .se-v2-expanded .se-v4-market-details{border:1px solid #29536a;border-radius:10px;background:#091f2e;padding:0 13px}
@@ -1386,9 +1390,15 @@ def _se_injury_table(teams, injuries, sport=''):
             status=m.group(1) if m else 'Unverified'
             detail=re.sub(r'\s*Source:.*$', '',detail,flags=re.I)
             detail=re.sub(r'^'+re.escape(status)+r'\s*', '',detail,flags=re.I).strip()
-            # Unwrap the status-note parentheses without stripping punctuation.
-            if detail.startswith('(') and detail.endswith(')'):
-                detail=detail[1:-1].strip()
+            # Remove only the outside note wrapper. Some saved notes have a
+            # sentence-ending period *after* the closing parenthesis, e.g.
+            # "(Player is out for the game.)." Keep one final period.
+            wrapper=re.fullmatch(r'\((.*)\)([.!?]*)', detail, flags=re.S)
+            if wrapper:
+                detail=wrapper.group(1).strip()
+                suffix=wrapper.group(2)
+                if suffix and not detail.endswith(('.', '!', '?')):
+                    detail+=suffix
             # Preserve every character of the saved injury description.
             # The table cell wraps naturally within its available width.
             entries.append(f'<tr><td>{esc(player)}</td><td>{esc(status)}</td><td>{esc(detail or "—")}</td></tr>')

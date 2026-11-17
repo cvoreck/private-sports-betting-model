@@ -1,0 +1,29 @@
+name: Unified Beta Pick Selection Tests
+
+on:
+  pull_request:
+    paths:
+      - 'sports_betting_cloud/daily_top5.py'
+      - 'sports_betting_cloud/app.py'
+      - 'sports_betting_cloud/test_unified_beta_selection.py'
+      - '.github/workflows/unified-beta-pick-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile publisher and dashboard
+        run: python -m py_compile sports_betting_cloud/daily_top5.py sports_betting_cloud/app.py
+      - name: Test unified beta selection without database or paid APIs
+        run: python -m unittest discover -s sports_betting_cloud -p test_unified_beta_selection.py -v

@@ -1272,6 +1272,8 @@ def full_pick_card(r, load_live=False):
     matchup = esc(selection_matchup_display(r))
     start = esc(pick_time_only(r.get('start_pt'))) or 'Time unverified'
     sport = esc(r.get('sport'))
+    is_provisional = 'PROVISIONAL BETA PICK' in clean_text(r.get('notes'))
+    tier_label = ' · PROVISIONAL BETA' if is_provisional else ''
     price = f'{odds:+.0f}' if odds is not None else '—'
     units = number(r.get('stake'), 1.0)
     prob_text = f'{prob*100:.1f}%' if prob is not None and 0 < prob < 1 else '—'
@@ -1316,15 +1318,20 @@ def full_pick_card(r, load_live=False):
     # No invented model conclusions: reflect the actual stored probability and edge.
     bottom_line=(f'{selection} is priced at {price} with a {prob_text} estimated win probability '
                  f'and {edge_text} estimated edge. ' if prob_text!='—' and edge_text!='—' else f'{selection}. ')
+    if is_provisional:
+        bottom_line += ('This provisional research pick passed the raw model screen but '
+                        'did not pass the conservative adjusted-value threshold; '
+                        'its adjusted estimated edge can be negative. '
+                        'It counts in the same beta-period W-L record. ')
     bottom_line+='Review the recent form, game context and injury availability below before wagering.'
     return f'''<details class="se-pick{first}">
       <summary><div class="se-pick-head">
         <div class="se-rank">{rank}</div>
         <div class="se-pick-logo">{card_image_html(r)}</div>
-        <div><div class="se-pick-name">{selection}</div><div class="se-pick-match">{matchup}</div><div class="se-pick-meta">{sport} · {start}</div></div>
+        <div><div class="se-pick-name">{selection}</div><div class="se-pick-match">{matchup}</div><div class="se-pick-meta">{sport} · {start}{tier_label}</div></div>
         <div class="se-kpi"><small>Win Prob.</small><strong>{prob_text}</strong></div>
         <div class="se-kpi"><small>Break-Even</small><strong>{be_text}</strong></div>
-        <div class="se-kpi"><small>Model Edge</small><strong class="{edge_class}">{edge_text}</strong></div>
+        <div class="se-kpi"><small>{'Adj. Edge' if is_provisional else 'Model Edge'}</small><strong class="{edge_class}">{edge_text}</strong></div>
         <div class="se-odds"><strong>{price}</strong><span>{units:g} {'unit' if units == 1 else 'units'}</span></div>
         <div class="se-chevron"></div>
       </div></summary>

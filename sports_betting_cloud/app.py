@@ -1262,6 +1262,19 @@ def _se_short_takeaway(note,limit=170):
     if len(note)>limit:note=note[:limit-1].rsplit(' ',1)[0].rstrip(' ,;')+'…'
     return note
 
+def _raw_model_probability_in_saved_notes(notes):
+    """Read an observed model estimate only when it was recorded at publication.
+
+    Never synthesize a probability from an adjusted estimate or betting price.
+    """
+    m = re.search(r'Raw trained-model probability\s+([0-9]*\.?[0-9]+)',
+                  str(notes or ''), re.I)
+    if not m:
+        return None
+    p = float(m.group(1))
+    return p if 0 < p < 1 else None
+
+
 def full_pick_card(r, load_live=False):
     """Keep the existing pick header; redesign only its native HTML dropdown."""
     odds = number(r.get('odds'), None)
@@ -1277,10 +1290,7 @@ def full_pick_card(r, load_live=False):
     # The saved pick is already in the official testing ledger. This marker
     # distinguishes raw-EV-only selections without changing any prior record.
     is_provisional = 'PROVISIONAL BETA PICK' in notes_text
-    raw_match = re.search(r'Raw trained-model probability\s+([0-9]*\.?[0-9]+)', notes_text, re.I)
-    raw_prob = float(raw_match.group(1)) if raw_match else None
-    if raw_prob is not None and not 0 < raw_prob < 1:
-        raw_prob = None
+    raw_prob = _raw_model_probability_in_saved_notes(notes_text)
     raw_edge = 100 * raw_prob - be if raw_prob is not None and be is not None else None
     raw_edge_text = f'{raw_edge:+.1f} pp' if raw_edge is not None else 'unavailable'
     # Both estimates are shown. Never replace a negative adjusted edge with

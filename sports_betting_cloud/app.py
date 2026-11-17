@@ -138,6 +138,7 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .se-pick-logo .pick-image {width:74px;height:67px;background:transparent;padding:0;object-fit:contain}.se-pick-logo .pick-image-pair {display:flex;flex-direction:row}.se-pick-logo .pick-image-pair .pick-image {width:36px;height:54px}
 .se-pick-name {font-size:1.11rem;font-weight:800;line-height:1.3}.se-pick-match {font-size:.97rem;font-weight:650;margin:2px 0}.se-pick-meta {font-size:.8rem;color:#d1e0f0}
 .se-kpi {border-left:1px solid #37607d;padding-left:12px;min-width:0}.se-kpi small {display:block;font-size:.77rem;color:#d4e2f2;white-space:nowrap}.se-kpi strong {display:block;font-size:1.45rem;white-space:nowrap;margin-top:4px}
+.se-kpi .se-secondary-edge {display:block;color:#bed0e2;font-size:.70rem;font-weight:600;margin-top:3px;white-space:nowrap}
 .se-odds {text-align:center}.se-odds strong {display:block;border:1px solid #376d90;border-radius:9px;padding:5px 7px;font-size:1.3rem;background:#102e45}.se-odds span {display:block;border:1px solid #078f56;background:#07412f;border-radius:9px;padding:4px;margin-top:6px;font-size:.87rem;color:#61f2a4;font-weight:800}
 .se-chevron {font-size:1.3rem;text-align:center}.se-chevron:before {content:'⌄'}.se-pick[open] .se-chevron:before {content:'⌃'}
 .se-pick-expanded {padding:0 18px 14px}.se-research {display:grid;grid-template-columns:1fr 1fr;gap:14px}.se-research-panel {border:1px solid #326284;border-radius:11px;padding:10px 16px;min-width:0}.se-research-panel h3 {font-size:1.1rem!important;margin:0 0 7px!important}.se-research-panel ul {margin:0;padding-left:22px;color:#e4edf8;font-size:.84rem;line-height:1.5}.se-research-panel li {margin-bottom:5px}
@@ -1261,6 +1262,19 @@ def _se_short_takeaway(note,limit=170):
     if len(note)>limit:note=note[:limit-1].rsplit(' ',1)[0].rstrip(' ,;')+'…'
     return note
 
+def _raw_model_probability_in_saved_notes(notes):
+    """Read an observed model estimate only when it was recorded at publication.
+
+    Never synthesize a probability from an adjusted estimate or betting price.
+    """
+    m = re.search(r'Raw trained-model probability\s+([0-9]*\.?[0-9]+)',
+                  str(notes or ''), re.I)
+    if not m:
+        return None
+    p = float(m.group(1))
+    return p if 0 < p < 1 else None
+
+
 def full_pick_card(r, load_live=False):
     """Keep the existing pick header; redesign only its native HTML dropdown."""
     odds = number(r.get('odds'), None)
@@ -1272,8 +1286,17 @@ def full_pick_card(r, load_live=False):
     matchup = esc(selection_matchup_display(r))
     start = esc(pick_time_only(r.get('start_pt'))) or 'Time unverified'
     sport = esc(r.get('sport'))
-    is_provisional = 'PROVISIONAL BETA PICK' in clean_text(r.get('notes'))
-    tier_label = ' · PROVISIONAL BETA' if is_provisional else ''
+    notes_text = clean_text(r.get('notes'))
+    # The saved pick is already in the official testing ledger. This marker
+    # distinguishes raw-EV-only selections without changing any prior record.
+    is_provisional = 'PROVISIONAL BETA PICK' in notes_text
+    raw_prob = _raw_model_probability_in_saved_notes(notes_text)
+    raw_edge = 100 * raw_prob - be if raw_prob is not None and be is not None else None
+    raw_edge_text = f'{raw_edge:+.1f} pp' if raw_edge is not None else 'unavailable'
+    # Both estimates are shown. Never replace a negative adjusted edge with
+    # a positive raw estimate or pretend the latter is calibrated.
+    raw_edge_secondary = (f'<span class="se-secondary-edge">Raw model {raw_edge_text}</span>'
+                          if is_provisional else '')
     price = f'{odds:+.0f}' if odds is not None else '—'
     units = number(r.get('stake'), 1.0)
     prob_text = f'{prob*100:.1f}%' if prob is not None and 0 < prob < 1 else '—'
@@ -1316,22 +1339,22 @@ def full_pick_card(r, load_live=False):
     context_html=''.join(context_rows)
     market_strip=market_strip_html(r,load_live=load_live)
     # No invented model conclusions: reflect the actual stored probability and edge.
-    bottom_line=(f'{selection} is priced at {price} with a {prob_text} estimated win probability '
-                 f'and {edge_text} estimated edge. ' if prob_text!='—' and edge_text!='—' else f'{selection}. ')
+    bottom_line=(f'{selection} is priced at {price} with a {prob_text} conservatively adjusted '
+                 f'win-probability estimate and a {edge_text} conservative edge. '
+                 if prob_text!='—' and edge_text!='—' else f'{selection}. ')
     if is_provisional:
-        bottom_line += ('This provisional research pick passed the raw model screen but '
-                        'did not pass the conservative adjusted-value threshold; '
-                        'its adjusted estimated edge can be negative. '
-                        'It counts in the same beta-period W-L record. ')
+        bottom_line += (f'The uncalibrated raw model edge is {raw_edge_text}, but this selection '
+                        'does not pass the conservative value check. Both estimates are '
+                        'uncertain, and the selection counts in the same running W-L record. ')
     bottom_line+='Review the recent form, game context and injury availability below before wagering.'
     return f'''<details class="se-pick{first}">
       <summary><div class="se-pick-head">
         <div class="se-rank">{rank}</div>
         <div class="se-pick-logo">{card_image_html(r)}</div>
-        <div><div class="se-pick-name">{selection}</div><div class="se-pick-match">{matchup}</div><div class="se-pick-meta">{sport} · {start}{tier_label}</div></div>
+        <div><div class="se-pick-name">{selection}</div><div class="se-pick-match">{matchup}</div><div class="se-pick-meta">{sport} · {start}</div></div>
         <div class="se-kpi"><small>Win Prob.</small><strong>{prob_text}</strong></div>
         <div class="se-kpi"><small>Break-Even</small><strong>{be_text}</strong></div>
-        <div class="se-kpi"><small>{'Adj. Edge' if is_provisional else 'Model Edge'}</small><strong class="{edge_class}">{edge_text}</strong></div>
+        <div class="se-kpi"><small>Conserv. Edge</small><strong class="{edge_class}">{edge_text}</strong>{raw_edge_secondary}</div>
         <div class="se-odds"><strong>{price}</strong><span>{units:g} {'unit' if units == 1 else 'units'}</span></div>
         <div class="se-chevron"></div>
       </div></summary>

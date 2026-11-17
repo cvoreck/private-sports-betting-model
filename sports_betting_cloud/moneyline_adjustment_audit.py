@@ -8,13 +8,12 @@ import json
 import math
 import os
 import re
-from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
 PATTERNS = {
-    "raw_model": re.compile(r"Raw trained-model probability\\s+([0-9]*\\.?[0-9]+)", re.I),
-    "fair_market": re.compile(r"same-bookmaker no-vig probability\\s+([0-9]*\\.?[0-9]+)", re.I),
+    "raw_model": re.compile(r"Raw trained-model probability\s+([0-9]*\.?[0-9]+)", re.I),
+    "fair_market": re.compile(r"same-bookmaker no-vig probability\s+([0-9]*\.?[0-9]+)", re.I),
 }
 VARIANTS = (
     ("current_35pct_1pp", 0.35, 0.01),

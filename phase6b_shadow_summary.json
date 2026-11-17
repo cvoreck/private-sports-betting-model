@@ -1,18 +1,19 @@
 {
   "accuracy_comparisons_exclude_abstentions": true,
   "candidate_screening": {
-    "valid_capture_candidates": 2
+    "stale_or_late_snapshot": 2,
+    "valid_capture_candidates": 32
   },
   "capture_this_run": {
     "already_frozen": 0,
     "duplicate_matchup_filtered": 0,
-    "new": 2
+    "new": 32
   },
   "capture_window_hours_before_start": 72,
   "database_writes": 0,
   "evaluation_mode": "IMMUTABLE_PROSPECTIVE_SHADOW_GRADING",
   "first_capture_per_sport_event_market_version": true,
-  "generated_at": "2026-11-17T04:53:09.128207+00:00",
+  "generated_at": "2026-11-17T16:56:05.903863+00:00",
   "github_branch_write": true,
   "grading_database_read_counts": {
     "americanfootball_nfl": {
@@ -30,7 +31,7 @@
   },
   "grading_this_run": {
     "counts": {
-      "awaiting_result_lag": 24,
+      "awaiting_result_lag": 56,
       "later_quote_observed": 2
     },
     "pending_reasons": {
@@ -59,8 +60,8 @@
   "read_only_database": true,
   "real_bets_selected": 0,
   "records_graded": 0,
-  "records_pending": 136,
-  "records_total": 136,
+  "records_pending": 168,
+  "records_total": 168,
   "returns_or_ev_reported": false,
   "sports": {
     "americanfootball_nfl": {
@@ -95,7 +96,7 @@
       "spreads": {
         "abstained": 0,
         "calibration_bins": [],
-        "captured": 31,
+        "captured": 36,
         "graded": 0,
         "graded_non_abstained": 0,
         "line_movement_sample": 0,
@@ -103,12 +104,12 @@
         "mean_later_observed_line_shift": null,
         "nonpush_conditional_brier": {},
         "nonpush_sample": 0,
-        "pending": 31
+        "pending": 36
       },
       "totals": {
         "abstained": 0,
         "calibration_bins": [],
-        "captured": 31,
+        "captured": 36,
         "graded": 0,
         "graded_non_abstained": 0,
         "line_movement_sample": 0,
@@ -116,14 +117,14 @@
         "mean_later_observed_line_shift": null,
         "nonpush_conditional_brier": {},
         "nonpush_sample": 0,
-        "pending": 31
+        "pending": 36
       }
     },
     "icehockey_nhl": {
       "spreads": {
         "abstained": 0,
         "calibration_bins": [],
-        "captured": 23,
+        "captured": 34,
         "graded": 0,
         "graded_non_abstained": 0,
         "line_movement_sample": 1,
@@ -131,12 +132,12 @@
         "mean_later_observed_line_shift": 0.0,
         "nonpush_conditional_brier": {},
         "nonpush_sample": 0,
-        "pending": 23
+        "pending": 34
       },
       "totals": {
         "abstained": 0,
         "calibration_bins": [],
-        "captured": 23,
+        "captured": 34,
         "graded": 0,
         "graded_non_abstained": 0,
         "line_movement_sample": 1,
@@ -144,7 +145,7 @@
         "mean_later_observed_line_shift": 0.0,
         "nonpush_conditional_brier": {},
         "nonpush_sample": 0,
-        "pending": 23
+        "pending": 34
       }
     }
   },

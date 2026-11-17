@@ -162,6 +162,54 @@ class TestCompactResearchPresentation(unittest.TestCase):
         self.assertIn("se-v4-extra", html)
 
 
+    def test_saved_injury_details_do_not_truncate_before_cell_width(self):
+        app = Path(__file__).with_name("app.py").read_text()
+        import re
+        from html import escape
+        tree = ast.parse(app)
+        relevant = [n for n in tree.body if
+                    (isinstance(n, ast.FunctionDef) and n.name in
+                     {"_se_injury_table", "_se_injury_priority", "_se_key_absences"}) or
+                    (isinstance(n, ast.Assign) and any(
+                     isinstance(t, ast.Name) and t.id == "_RECORDED_KEY_PLAYERS" for t in n.targets))]
+        env = {"re": re, "esc": escape,
+               "_team_key": lambda x: re.sub(r'[^a-z0-9]', '', str(x).casefold())}
+        exec(compile(ast.Module(body=relevant, type_ignores=[]), "app.py", "exec"), env)
+        detail = ("Anthony Edwards underwent a successful arthroscopic procedure "
+                  "and is being evaluated by the medical team for a return to play.")
+        additional = ("Jonathan Kuminga underwent evaluation, and his return "
+                      "will depend on clinical reassessment rather than a fixed date.")
+        injuries = {"Minnesota Timberwolves": [
+            "Anthony Edwards — Out (" + detail + ")",
+            "Zyon Pullin — Out (Short note)",
+            "Jaylen Clark — Out (Another short note)",
+            "Jonathan Kuminga — Questionable (" + additional + ")"]}
+        html = env["_se_injury_table"](["Minnesota Timberwolves"], injuries, "NBA")
+        self.assertIn(detail, html)
+        self.assertIn(additional, html)
+        self.assertNotIn(detail[:59] + "…", html)
+        self.assertIn("Show 1 more reported injuries", html)
+        self.assertLess(html.index("Anthony Edwards"), html.index("Zyon Pullin"))
+
+    def test_saved_injury_details_remain_html_escaped(self):
+        app = Path(__file__).with_name("app.py").read_text()
+        import re
+        from html import escape
+        tree = ast.parse(app)
+        relevant = [n for n in tree.body if
+                    (isinstance(n, ast.FunctionDef) and n.name in
+                     {"_se_injury_table", "_se_injury_priority", "_se_key_absences"}) or
+                    (isinstance(n, ast.Assign) and any(
+                     isinstance(t, ast.Name) and t.id == "_RECORDED_KEY_PLAYERS" for t in n.targets))]
+        env = {"re": re, "esc": escape,
+               "_team_key": lambda x: re.sub(r'[^a-z0-9]', '', str(x).casefold())}
+        exec(compile(ast.Module(body=relevant, type_ignores=[]), "app.py", "exec"), env)
+        html = env["_se_injury_table"](
+            ["Team A"], {"Team A": ["Player — Out (Recovery & <testing> continues)"]})
+        self.assertIn("Recovery &amp; &lt;testing&gt; continues", html)
+        self.assertNotIn("<testing>", html)
+
+
 class TestMarketsAndImpactOrdering(unittest.TestCase):
     def test_impact_overrides_sort_edwards_above_depth_players(self):
         app = Path(__file__).with_name("app.py").read_text()

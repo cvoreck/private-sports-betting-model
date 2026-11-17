@@ -1,6 +1,9 @@
 name: Moneyline Adjustment and College Matching Audit (Manual)
 
 on:
+  push:
+    branches:
+      - audit/moneyline-calibration-20261117
   pull_request:
     paths:
       - 'sports_betting_cloud/espn_event_match.py'
@@ -27,15 +30,18 @@ jobs:
       - name: Offline regression tests
         run: python -m unittest discover -s sports_betting_cloud -p test_moneyline_college_coverage.py -v
       - name: Install read-only database driver
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/audit/moneyline-calibration-20261117')
         run: python -m pip install 'psycopg[binary]>=3.1,<4'
       - name: Run read-only historical moneyline comparison
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/audit/moneyline-calibration-20261117')
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python sports_betting_cloud/moneyline_adjustment_audit.py
+      - name: Show aggregated comparison report (no individual picks)
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/audit/moneyline-calibration-20261117')
+        run: cat reports/moneyline_adjustment_audit.json
       - name: Upload comparison report
-        if: github.event_name == 'workflow_dispatch' && always()
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/audit/moneyline-calibration-20261117') && always()
         uses: actions/upload-artifact@v4
         with:
           name: moneyline-adjustment-observational-audit

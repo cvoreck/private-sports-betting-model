@@ -1331,7 +1331,7 @@ def full_pick_card(r, load_live=False):
         <div><div class="se-pick-name">{selection}</div><div class="se-pick-match">{matchup}</div><div class="se-pick-meta">{sport} · {start}{tier_label}</div></div>
         <div class="se-kpi"><small>Win Prob.</small><strong>{prob_text}</strong></div>
         <div class="se-kpi"><small>Break-Even</small><strong>{be_text}</strong></div>
-        <div class="se-kpi"><small>Model Edge</small><strong class="{edge_class}">{edge_text}</strong></div>
+        <div class="se-kpi"><small>{'Adj. Edge' if is_provisional else 'Model Edge'}</small><strong class="{edge_class}">{edge_text}</strong></div>
         <div class="se-odds"><strong>{price}</strong><span>{units:g} {'unit' if units == 1 else 'units'}</span></div>
         <div class="se-chevron"></div>
       </div></summary>

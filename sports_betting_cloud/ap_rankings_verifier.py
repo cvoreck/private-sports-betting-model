@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import requests
-from espn_event_match import build_index, lookup, diagnose
+from espn_event_match import build_index, lookup, diagnose, scoreboard_params
 
 PT = ZoneInfo('America/Los_Angeles')
 LEAGUES = {
@@ -148,7 +148,7 @@ def verify_college_events(conn, now, today, odds_by_sport, fetch_json=None):
                 for offset in (-1, 0, 1):
                     board_date = today + timedelta(days=offset)
                     payload = fetch_json(f'https://site.api.espn.com/apis/site/v2/sports/{domain}/{league}/scoreboard',
-                                         {'dates': board_date.strftime('%Y%m%d'), 'limit': 500})
+                                         scoreboard_params(league, board_date.strftime('%Y%m%d'), limit=500))
                     events = payload.get('events') or []
                     logging.info('AP diagnostic %s: ESPN scoreboard date=%s events=%d',
                                  sport, board_date.isoformat(), len(events))

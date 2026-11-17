@@ -64,3 +64,15 @@ def diagnose(index, home, away, start=None):
     if start is not None and not lookup(index, home, away, start):
         return 'start_time_mismatch_or_ambiguous'
     return 'ambiguous_event'
+
+def scoreboard_params(league, day, limit=200):
+    """Retrieve the full Division I men's college basketball slate.
+
+    ESPN's default men's CBB scoreboard can omit unranked games, including
+    games involving a ranked opponent. This only expands coverage; match
+    orientation, start time, regular season and AP eligibility remain strict.
+    """
+    params = {'dates': day, 'limit': max(500, limit) if league == 'mens-college-basketball' else limit}
+    if league == 'mens-college-basketball':
+        params['groups'] = '50'
+    return params

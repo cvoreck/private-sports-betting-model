@@ -12,7 +12,7 @@ from matchup_research import research
 from weekly_trainer import MARGIN_SCALE, NHL_FEATURES, LEGACY_FEATURES, append_history, nhl_features, features as trained_features, sigmoid as trained_sigmoid, parse_game
 from psycopg.rows import dict_row
 from ap_rankings_verifier import verify_college_events
-from espn_event_match import build_index, lookup, diagnose
+from espn_event_match import build_index, lookup, diagnose, scoreboard_params
 from nhl_elo_shadow import SCHEMA as NHL_SHADOW_SCHEMA, train_shadow, save_shadow
 
 PT=ZoneInfo('America/Los_Angeles')
@@ -274,7 +274,7 @@ def main():
             logging.info('%s cached odds events=%d for Pacific date %s',sport,len(odds),today)
             boards=[]
             for d in (-1,0,1):
-                try:boards.extend(fetch(f'https://site.api.espn.com/apis/site/v2/sports/{esport}/{league}/scoreboard',{'dates':(today+timedelta(days=d)).strftime('%Y%m%d'),'limit':200}).get('events') or [])
+                try:boards.extend(fetch(f'https://site.api.espn.com/apis/site/v2/sports/{esport}/{league}/scoreboard',scoreboard_params(league, (today+timedelta(days=d)).strftime('%Y%m%d'))).get('events') or [])
                 except (requests.RequestException,ValueError) as exc:logging.warning('ESPN schedule unavailable: %s',exc)
             by_match=build_index(boards)
             archived=archived_completed_games(conn,sport_key,today) 

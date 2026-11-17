@@ -1386,8 +1386,8 @@ def _se_injury_table(teams, injuries, sport=''):
             status=m.group(1) if m else 'Unverified'
             detail=re.sub(r'\s*Source:.*$', '',detail,flags=re.I)
             detail=re.sub(r'^'+re.escape(status)+r'\s*', '',detail,flags=re.I).strip(' ().')
-            # Keep the table compact; do not imply that an injury is minor.
-            if len(detail)>62:detail=detail[:59].rstrip()+'…'
+            # Preserve every character of the saved injury description.
+            # The table cell wraps naturally within its available width.
             entries.append(f'<tr><td>{esc(player)}</td><td>{esc(status)}</td><td>{esc(detail or "—")}</td></tr>')
         # Display a readable short list rather than a tall side-by-side wall.
         # Additional archived entries stay available through an explicit disclosure.

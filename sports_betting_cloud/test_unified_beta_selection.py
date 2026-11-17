@@ -115,7 +115,7 @@ class TestCompactResearchPresentation(unittest.TestCase):
         self.assertNotIn("{recent_card}{season_card}{matchup_card}", source)
         self.assertNotIn("Key Takeaways", source)
         self.assertNotIn("Bottom Line</h3>", source)
-        self.assertIn("se-v4-market-details", source)
+        self.assertIn("market_strip = market_strip_html(", source)
         self.assertIn("Historical research snapshot", source)
 
     def test_comparison_merges_only_saved_statistics(self):

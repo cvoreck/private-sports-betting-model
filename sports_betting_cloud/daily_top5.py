@@ -268,15 +268,19 @@ def value_adjustment(candidate):
 
 
 def rank_candidates(candidates, card_date=None):
-    """Select up to five independent, positive conservative-EV moneylines.
+    """Beta card: up to five distinct trained moneylines, strict tier before raw-EV tier.
 
-    Never fill with unvalidated markets, negative adjusted EV, or correlated
-    same-game bets. An eligible shortage produces a partial published card.
+    Tier 1 passes positive market-aware adjusted EV. Tier 2 has positive
+    *raw* modeled EV but non-positive adjusted EV. Tier 2 is research-only
+    and NOT a validated betting edge. Both tiers are published into the
+    existing hypothetical ledger and settle in the same W-L-P record.
+
+    No fabricated odds or forced fifth pick; spreads/totals remain shadow-only.
     """
     best = {}
     diagnostics = dict(raw_candidates=len(candidates), rejected_odds=0,
-                     rejected_raw_ev=0, rejected_adjusted_ev=0,
-                     rejected_market=0, surviving_quotes=0)
+                       rejected_raw_ev=0, rejected_adjustment_unavailable=0,
+                       rejected_market=0, strict_quotes=0, provisional_quotes=0)
     for candidate in candidates:
         odds = candidate['odds']
         if not MIN_NEGATIVE_AMERICAN_ODDS <= odds <= MAX_POSITIVE_AMERICAN_ODDS:
@@ -289,32 +293,52 @@ def rank_candidates(candidates, card_date=None):
             diagnostics['rejected_raw_ev'] += 1
             continue
         adjusted = value_adjustment(candidate)
-        if adjusted is None or adjusted['adjusted_ev'] <= 0:
-            diagnostics['rejected_adjusted_ev'] += 1
+        if adjusted is None:
+            diagnostics['rejected_adjustment_unavailable'] += 1
             continue
         c = dict(candidate, **adjusted)
-        diagnostics['surviving_quotes'] += 1
+        c['selection_tier'] = 1 if c['adjusted_ev'] > 0 else 2
+        diagnostics['strict_quotes' if c['selection_tier'] == 1 else 'provisional_quotes'] += 1
+        # Same outcome across sportsbooks: one quote, best raw estimated value.
         key = (c['event_id'], c['market'], c['selection'], str(c['point']))
-        if key not in best or c['adjusted_ev'] > best[key]['adjusted_ev']:
+        if key not in best or (c['ev'], c['adjusted_ev']) > (best[key]['ev'], best[key]['adjusted_ev']):
             best[key] = c
-    logging.info('Market-aware candidate diagnostics: %s', json.dumps(diagnostics, sort_keys=True))
-    ordered = sorted(best.values(), key=lambda c: (-c['adjusted_ev'], -c['ev'], c['event_id']))
+
+    strict = sorted((c for c in best.values() if c['selection_tier'] == 1),
+                    key=lambda c: (-c['adjusted_ev'], -c['ev'], c['event_id'], c['selection']))
+    provisional = sorted((c for c in best.values() if c['selection_tier'] == 2),
+                         key=lambda c: (-c['ev'], -c['adjusted_ev'], c['event_id'], c['selection']))
     selected, used_events = [], set()
-    for c in ordered:
-        if c['event_id'] in used_events:
-            continue
-        picked = dict(c)
-        picked['selection_tier'] = 1
-        picked['same_game_exposure'] = False
-        selected.append(picked)
-        used_events.add(c['event_id'])
+    for tier, pool in ((1, strict), (2, provisional)):
+        for candidate in pool:
+            if candidate['event_id'] in used_events:
+                continue
+            picked = dict(candidate)
+            picked['selection_tier'] = tier
+            picked['same_game_exposure'] = False
+            selected.append(picked)
+            used_events.add(candidate['event_id'])
+            if len(selected) == 5:
+                break
         if len(selected) == 5:
             break
-    logging.info('Market-aware Top 5: day=%s eligible_outcomes=%s distinct_events=%s selected=%s',
-                 card_date, len(best), len(used_events), len(selected))
+    strict_count = sum(c['selection_tier'] == 1 for c in selected)
+    provisional_count = len(selected) - strict_count
+    logging.info('Unified beta Top 5: day=%s unique_quotes=%s distinct_games=%s '
+                 'strict=%s provisional=%s total=%s',
+                 card_date, len(best), len(used_events), strict_count,
+                 provisional_count, len(selected))
+    logging.info('Unified beta candidate diagnostics: %s',
+                 json.dumps(diagnostics, sort_keys=True))
+    if provisional_count:
+        logging.warning('PROVISIONAL BETA SELECTIONS: %s raw-positive-EV moneylines '
+                        'failed the conservative adjusted-EV threshold. '
+                        'These are unvalidated research picks and share the official '
+                        'testing-period W-L record.', provisional_count)
     if len(selected) < 5:
-        logging.warning('FEWER THAN FIVE ELIGIBLE PICKS: %s independent positive '
-                      'conservative-EV trained moneylines; publisher may emit a partial card.', len(selected))
+        logging.warning('FEWER THAN FIVE AVAILABLE BETA PICKS: %s distinct '
+                        'positive-raw-EV trained moneylines; no fabricated selections.',
+                        len(selected))
     return selected
 
 
@@ -477,11 +501,12 @@ def record_card_run(conn, card_date, status, candidates, published):
 
     This is a small database write with no Odds API requests.
     """
-    detail = ('Market-aware trained moneylines only; same-bookmaker two-way '
-              'no-vig baseline; 35% model / 65% market with 1 pp uncertainty '
-              'haircut. Publish up to five independent positive adjusted-EV '
-              'selections; fewer than five are explicitly marked partial. '
-              'Experimental spreads/totals remain shadow-only; flat 1u stakes.')
+    detail = ('Unified beta Top 5: strictly qualified trained moneylines first; '
+              'positive raw-EV provisional trained moneylines may fill remaining '
+              'slots even when market-aware adjusted EV is nonpositive. '
+              'Both tiers count in the same hypothetical W-L-P record with '
+              'flat 1u stakes and clear research labels; never force five. '
+              'Spreads/totals remain shadow-only and Phase 6B is unchanged.')
     conn.execute('''INSERT INTO daily_card_runs (card_date,status,candidates,published,detail)
       VALUES (%s,%s,%s,%s,%s) ON CONFLICT(card_date) DO UPDATE SET
       status=EXCLUDED.status,candidates=EXCLUDED.candidates,published=EXCLUDED.published,
@@ -514,12 +539,12 @@ def main():
         top = rank_candidates(candidates, today)
         status = ('published' if len(top) == 5 else
                   'partial_card' if top else 'insufficient_verified_candidates')
-        # Publish independently verified selections even when the strict filters
-        # yield fewer than five. Never fill gaps with negative adjusted EV,
-        # unvalidated spreads/totals, or fabricated odds/probabilities.
+        # Unified beta card: strict selections first, then raw-positive provisional
+        # moneylines. Both settle into the same testing W-L-P ledger. Do not
+        # invent odds, use unvalidated spreads/totals, or force five selections.
         if not top:
-            logging.warning('NO QUALIFYING PICKS: zero independent positive '
-                            'conservative-EV trained moneylines; no card published.')
+            logging.warning('NO QUALIFYING PICKS: zero verified trained '
+                            'moneylines with positive raw modeled EV; no card published.')
             with conn.transaction():
                 conn.execute('SELECT pg_advisory_xact_lock(%s)', (20261027,))
                 existing = conn.execute('''SELECT count(*) AS n FROM picks
@@ -531,8 +556,8 @@ def main():
                 record_card_run(conn, today, status, len(candidates), 0)
             return
         if len(top) < 5:
-            logging.warning('PARTIAL CARD: %s of 5 independently qualified '
-                            'moneylines; publishing valid picks without filling gaps.', len(top))
+            logging.warning('PARTIAL BETA CARD: %s of 5 verified trained '
+                            'moneyline selections; not forcing additional bets.', len(top))
         with conn.transaction():
             conn.execute('SELECT pg_advisory_xact_lock(%s)', (20261027,))
             existing = conn.execute('''SELECT count(*) AS n FROM picks
@@ -548,12 +573,22 @@ def main():
                     ctx = c.get('context') or {}
                     notes = research_notes(ctx, c['selection'], c['market'], c['model_version'],
                                            c['adjusted_edge_pp'], c['adjusted_ev'], c['bookmaker'], c['verification_source'], c['quality'])
+                    if c['selection_tier'] == 2:
+                        notes += ('\nWatch out for: PROVISIONAL BETA PICK: positive raw trained-model '
+                                  'estimated EV but nonpositive conservative market-aware adjusted EV. '
+                                  'Research selection only; adjusted expected value is not positive. '
+                                  'Included in the same testing-period W-L-P record as strict picks.')
+                    else:
+                        notes += ('\nWhy: STRICT BETA PICK: positive conservative '
+                                  'market-aware adjusted expected value.')
                     if status == 'partial_card':
                         notes += (f'\nWatch out for: PARTIAL CARD ({len(top)}/5): '
-                                  'the remaining slots did not meet independent, '
-                                  'positive conservative-EV verification criteria.')
-                    # Flat 1u hypothetical research stake. Published probability,
-                    # edge and EV all use the SAME conservative estimate.
+                                  'fewer than five unique positive-raw-EV trained '
+                                  'moneylines were eligible; no slots were fabricated.')
+                    # Flat 1u hypothetical research stake for both beta tiers.
+                    # The displayed probability and edge always use the conservative
+                    # estimate; provisional picks can have NEGATIVE adjusted edge.
+                    # The positive raw-model EV is identified only in notes.
                     units = 1
                     notes += (f'\nWhy: MARKET-AWARE ESTIMATE (provisional, not calibrated): '
                               f'published probability {c["adjusted_prob"]:.4f}; '
@@ -570,8 +605,10 @@ def main():
                       (today.isoformat(),c['sport'],c['matchup'],c['market'],pick_label,c['odds'],units,
                        f"Auto: The Odds API / {c['bookmaker']}",notes,rank,
                        c['start'].astimezone(PT).strftime('%Y-%m-%d %I:%M %p PT'),c['adjusted_prob']))
-                    logging.info('Published rank=%s selection=%s edge_pp=%.3f suggested_units=%su',
-                                 rank, pick_label, c['adjusted_edge_pp'], units)
+                    logging.info('Published rank=%s tier=%s selection=%s adjusted_edge_pp=%.3f '
+                                 'raw_edge_pp=%.3f stake_units=%s',
+                                 rank, c['selection_tier'], pick_label,
+                                 c['adjusted_edge_pp'], c['edge_pp'], units)
             record_card_run(conn, today, status, len(candidates), len(top))
         # Enrich newly published picks on the first daily run; the 6 AM workflow
         # normally runs only once, so waiting for a second invocation is unsafe.

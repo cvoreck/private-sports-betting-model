@@ -210,6 +210,39 @@ class TestCompactResearchPresentation(unittest.TestCase):
         self.assertNotIn("<testing>", html)
 
 
+    def test_injury_wrapper_parentheses_removed_without_losing_punctuation(self):
+        app = Path(__file__).with_name("app.py").read_text()
+        import re
+        from html import escape
+        tree = ast.parse(app)
+        relevant = [n for n in tree.body if
+                    (isinstance(n, ast.FunctionDef) and n.name in
+                     {"_se_injury_table", "_se_injury_priority", "_se_key_absences"}) or
+                    (isinstance(n, ast.Assign) and any(
+                     isinstance(t, ast.Name) and t.id == "_RECORDED_KEY_PLAYERS" for t in n.targets))]
+        env = {"re": re, "esc": escape,
+               "_team_key": lambda x: re.sub(r'[^a-z0-9]', '', str(x).casefold())}
+        exec(compile(ast.Module(body=relevant, type_ignores=[]), "app.py", "exec"), env)
+        injuries = {"Minnesota Timberwolves": [
+            "Anthony Edwards — Out (Edwards underwent a procedure on his knee.).",
+            "Zyon Pullin — Out (Quadriceps soreness).",
+            "Jaylen Clark — Out (A physician (specialist) confirmed the injury.)",
+            "Jonathan Kuminga — Questionable Plain text status detail."]}
+        html = env["_se_injury_table"](["Minnesota Timberwolves"], injuries, "NBA")
+        self.assertIn(">Edwards underwent a procedure on his knee.</td>", html)
+        self.assertIn(">Quadriceps soreness.</td>", html)
+        self.assertIn(">A physician (specialist) confirmed the injury.</td>", html)
+        self.assertIn(">Plain text status detail.</td>", html)
+        self.assertNotIn(">(Edwards underwent", html)
+        self.assertNotIn("knee..</td>", html)
+
+    def test_status_cells_do_not_wrap_in_expanded_rows(self):
+        app = Path(__file__).with_name("app.py").read_text()
+        self.assertIn(".se-v2-expanded .se-injury-table td:nth-child(2)", app)
+        self.assertIn("min-width:76px;white-space:nowrap;overflow-wrap:normal", app)
+        self.assertIn(".se-v2-expanded .se-v4-extra .se-injury-table td:nth-child(2){width:23%}", app)
+
+
 class TestMarketsAndImpactOrdering(unittest.TestCase):
     def test_impact_overrides_sort_edwards_above_depth_players(self):
         app = Path(__file__).with_name("app.py").read_text()

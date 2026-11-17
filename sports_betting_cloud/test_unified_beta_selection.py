@@ -81,8 +81,29 @@ class TestRecordPresentation(unittest.TestCase):
         self.assertIn("'Hypothetical','Pending'", source)
         self.assertIn("same testing-period W-L-P", source)
         app = Path(__file__).with_name("app.py").read_text()
-        self.assertIn("PROVISIONAL BETA", app)
-        self.assertIn("Adj. Edge", app)
+        self.assertIn("'PROVISIONAL BETA PICK' in notes_text", app)
+        self.assertIn("Conserv. Edge", app)
+        self.assertIn("Raw model {raw_edge_text}", app)
+        self.assertNotIn("tier_label", app)
+
+    def test_raw_model_edge_parser_handles_archived_notes(self):
+        app = Path(__file__).with_name("app.py").read_text()
+        tree = ast.parse(app)
+        funcs = [n for n in tree.body if isinstance(n, ast.FunctionDef)
+                 and n.name == "_raw_model_probability_in_saved_notes"]
+        self.assertEqual(len(funcs), 1)
+        import re
+        env = {"re": re}
+        exec(compile(ast.Module(body=funcs, type_ignores=[]),
+                     "app.py", "exec"), env)
+        parse = env["_raw_model_probability_in_saved_notes"]
+        notes = ("Why: MARKET-AWARE ESTIMATE: published probability 0.5610; "
+                 "Raw trained-model probability 0.6228; "
+                 "same-bookmaker no-vig probability 0.5700.")
+        self.assertAlmostEqual(parse(notes), 0.6228)
+        self.assertIsNone(parse("No raw model estimate recorded"))
+        self.assertIsNone(parse("Raw trained-model probability 1.2"))
+        self.assertIsNone(parse("Raw trained-model probability 0"))
 
 
 if __name__ == "__main__":

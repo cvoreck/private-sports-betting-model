@@ -237,6 +237,28 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 @media(max-width:1150px){.se-v2-expanded .se-v2-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.se-v2-expanded .se-v2-top{grid-template-columns:1fr}}
 @media(max-width:850px){.se-v2-expanded .se-v2-metrics,.se-v2-expanded .se-v2-lower{grid-template-columns:1fr}}
 @media(max-width:580px){.se-v2-expanded .se-injury-columns{grid-template-columns:1fr}.se-pick-expanded.se-v2-expanded{padding:12px 10px}.se-v2-expanded .se-insight-card{padding:12px}}
+/* Compact analysis: one comparison table, short context and expandable detail.
+   Keep the original team-card header and published probability unchanged. */
+.se-pick-expanded.se-v2-expanded{gap:12px;padding:14px 16px;background:#061a29}
+.se-v2-expanded .se-v4-main{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(245px,.85fr);gap:12px;align-items:start}
+.se-v2-expanded .se-insight-card{border:1px solid #29536a;border-radius:10px;background:#091f2e;padding:12px 14px;box-shadow:none}
+.se-v2-expanded .se-insight-card h3{font-size:.99rem!important;margin-bottom:9px!important}
+.se-v2-expanded .se-compact-table th{padding:7px 9px;font-size:.78rem}
+.se-v2-expanded .se-compact-table td{padding:7px 9px;font-size:.8rem}
+.se-v2-expanded .se-context-row{grid-template-columns:19px 60px minmax(0,1fr);gap:7px;padding:8px 0;font-size:.78rem}
+.se-v2-expanded .se-context-icon{font-size:.9rem}
+.se-v2-expanded .se-v4-model-note{font-size:.8rem;line-height:1.45;color:#bbcfdd;margin:0;padding:0 2px}
+.se-v2-expanded .se-injury-columns{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.se-v2-expanded .se-injury-table{font-size:.75rem}
+.se-v2-expanded .se-injury-table td{overflow-wrap:anywhere}
+.se-v2-expanded .se-v4-extra{margin-top:6px;border-top:1px solid #24475b}
+.se-v2-expanded .se-v4-extra>summary{cursor:pointer;color:#a2d4e4;font-size:.78rem;padding:7px 0;list-style:disclosure-closed}
+.se-v2-expanded .se-v4-market-details{border:1px solid #29536a;border-radius:10px;background:#091f2e;padding:0 13px}
+.se-v2-expanded .se-v4-market-details>summary{padding:10px 0;cursor:pointer;color:#e1edf4;font-size:.85rem;font-weight:750}
+.se-v2-expanded .se-v4-market-details .se-detail-strip{margin:0 0 10px}
+@media(max-width:900px){.se-v2-expanded .se-v4-main{grid-template-columns:1fr}}
+@media(max-width:660px){.se-v2-expanded .se-injury-columns{grid-template-columns:1fr}}
+
 /* Team-logo images use an abbreviation underneath, visible if the image fails. */
 .team-logo-frame{position:relative;display:flex;align-items:center;justify-content:center;width:74px;height:67px;flex-shrink:0;border-radius:8px;overflow:hidden;background:#102e45}
 .team-logo-abbr{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#dcefff;font-size:1rem;font-weight:800;letter-spacing:.02em}
@@ -1230,6 +1252,44 @@ def _se_matchup_card(sections,teams,stats,sport=''):
     return _insight_card('Matchup Metrics',sections['matchup'],'Comparable matchup metrics not recorded.')
 
 
+def _se_unified_comparison_card(sections, teams, stats, sport):
+    """One compact table for season, recent form, offense and away/home splits.
+
+    Never duplicate a statistic across separately bordered panels. Every value
+    comes from the same recorded research as the prior three tables.
+    """
+    if len(teams) != 2:
+        return _insight_card('Team Comparison', sections['recent'],
+                             'Comparable team statistics not recorded.')
+    season_text = ' '.join(sections['season'])
+    home_text = ' '.join(sections['home'])
+    season = []
+    for team in teams:
+        m = re.search(rf'{re.escape(team)}\s+(\d+-\d+(?:-\d+)?)', season_text, re.I)
+        season.append(m.group(1).replace('-', '–') if m else '—')
+    unit = ('Points' if sport in ('NBA', 'College Basketball', 'NFL', 'College Football')
+            else 'Runs' if sport == 'MLB' else 'Goals')
+    rows = []
+    if any(v != '—' for v in season):
+        rows.append(('Season record', season))
+    for label, key in [('Last 10 record', 'record'),
+                       (unit+' scored / game', 'gf'),
+                       (unit+' allowed / game', 'ga')]:
+        values = [stats.get(t, {}).get(key, '—') for t in teams]
+        if any(v != '—' for v in values):
+            rows.append((label, values))
+    home_away = []
+    for team in teams:
+        m = re.search(rf'{re.escape(team)}\s+(?:at home|on (?:the )?road)\s+(\d+-\d+)',
+                      home_text, re.I)
+        home_away.append(m.group(1).replace('-', '–') if m else '—')
+    if any(v != '—' for v in home_away):
+        rows.append(('Home / away', home_away))
+    sample = '; '.join(f'{t.split()[-1]}: {stats[t]["games"]} recent games'
+                       for t in teams if t in stats)
+    return _se_comparison_card('Team Comparison', teams, rows, sample, '▥')
+
+
 def _se_injury_table(teams, injuries):
     panels=[]
     for team in list(teams)+[t for t in injuries if t not in teams]:
@@ -1251,9 +1311,17 @@ def _se_injury_table(teams, injuries):
             # Keep the table compact; do not imply that an injury is minor.
             if len(detail)>62:detail=detail[:59].rstrip()+'…'
             entries.append(f'<tr><td>{esc(player)}</td><td>{esc(status)}</td><td>{esc(detail or "—")}</td></tr>')
-        team_logo_html=''
-        # Use text-only section labels here; original header logo is untouched.
-        panels.append(f'<div class="se-injury-group"><div class="se-injury-team">{esc(team)}</div><div class="se-table-scroll"><table class="se-compact-table se-injury-table"><thead><tr><th>Player</th><th>Status</th><th>Details</th></tr></thead><tbody>{"".join(entries[:12])}</tbody></table></div></div>')
+        # Display a readable short list rather than a tall side-by-side wall.
+        # Additional archived entries stay available through an explicit disclosure.
+        head = ''.join(entries[:3])
+        extras = ''.join(entries[3:12])
+        extra_html = (f'<details class="se-v4-extra"><summary>Show {min(len(entries)-3,9)} '
+                      f'more reported injuries</summary><table class="se-compact-table se-injury-table">'
+                      f'<tbody>{extras}</tbody></table></details>' if extras else '')
+        panels.append(f'<div class="se-injury-group"><div class="se-injury-team">{esc(team)}</div>'
+                      f'<div class="se-table-scroll"><table class="se-compact-table se-injury-table">'
+                      f'<thead><tr><th>Player</th><th>Status</th><th>Details</th></tr></thead>'
+                      f'<tbody>{head}</tbody></table></div>{extra_html}</div>')
     return '<div class="se-injury-columns">'+''.join(panels)+'</div>' if panels else '<p class="se-muted">No player-level injury data saved. Availability not verified.</p>'
 
 
@@ -1306,47 +1374,35 @@ def full_pick_card(r, load_live=False):
     first = ' se-first' if rank == 1 else ''
 
     sections, context, injuries = _saved_research_sections(r)
-    teams=matchup_teams(r)
-    stats=_se_extract_metrics(sections,teams) if len(teams)==2 else {}
-    takeaways=[]
-    for key in ('recent','home','matchup','schedule','season','other'):
-        for note in sections[key]:
-            brief=_se_short_takeaway(note)
-            if brief not in takeaways:takeaways.append(brief)
-            if len(takeaways)>=3:break
-        if len(takeaways)>=3:break
-    takeaway_html=('<ul>'+''.join(f'<li>{esc(x)}</li>' for x in takeaways)+'</ul>') if takeaways else '<p class="se-muted">No verified matchup takeaways recorded.</p>'
-    form_rows=[]
-    sport_name=clean_text(r.get('sport'))
-    scoring_unit=('Points' if sport_name in ('NBA','College Basketball','NFL','College Football') else 'Runs' if sport_name=='MLB' else 'Goals')
-    if len(teams)==2:
-        for label,key in [('Record','record'),(scoring_unit+' For / Game','gf'),(scoring_unit+' Against / Game','ga')]:
-            if any(stats.get(t,{}).get(key) for t in teams):form_rows.append((label,[stats.get(t,{}).get(key,'—') for t in teams]))
-    form_note='; '.join(f'{t.split()[-1]}: {stats[t]["games"]} games' for t in teams if t in stats)
-    recent_card=_se_comparison_card('Recent Form (Last 10)',teams,form_rows,form_note,'▥') if len(teams)==2 else _insight_card('Recent Form',sections['recent'],'No verified form data.')
-    season_card=_se_season_card(sections,teams)
-    matchup_card=_se_matchup_card(sections,teams,stats,clean_text(r.get('sport')))
-    injuries_html=_se_injury_table(teams,injuries)
-    context_rows=[]
-    weather_fallback=('Indoor sport — outdoor weather is generally not a direct game factor; venue not independently verified.'
-                      if sport_name in ('NBA','NHL','College Basketball') else
-                      'No verified game-time weather saved.')
-    for symbol,label,key,fallback in [('▤','Rest','rest','Not verified'),('✈','Travel','travel','Not verified'),('☁','Weather','weather',weather_fallback)]:
-        value=_se_short_takeaway(' '.join(context[key][:2]),125) if context[key] else fallback
-        context_rows.append(f'<div class="se-context-row"><span class="se-context-icon">{symbol}</span><strong>{label}</strong><span>{esc(value)}</span></div>')
+    teams = matchup_teams(r)
+    stats = _se_extract_metrics(sections, teams) if len(teams) == 2 else {}
+    comparison_html = _se_unified_comparison_card(sections, teams, stats, clean_text(r.get('sport')))
+    injuries_html = _se_injury_table(teams, injuries)
+    context_rows = []
+    # Hide empty or generic factors; indoor weather boilerplate is not insight.
+    for symbol, label, key in [('▤', 'Rest', 'rest'), ('✈', 'Travel', 'travel')]:
+        if context[key]:
+            val = _se_short_takeaway(context[key][0], 180)
+            context_rows.append(f'<div class="se-context-row"><span class="se-context-icon">{symbol}</span>'
+                                f'<strong>{label}</strong><span>{esc(val)}</span></div>')
     if sections['schedule']:
-        context_rows.append(f'<div class="se-context-row"><span class="se-context-icon">▦</span><strong>Schedule</strong><span>{esc(_se_short_takeaway(sections["schedule"][0],125))}</span></div>')
-    context_html=''.join(context_rows)
-    market_strip=market_strip_html(r,load_live=load_live)
-    # No invented model conclusions: reflect the actual stored probability and edge.
-    bottom_line=(f'{selection} is priced at {price} with a {prob_text} conservatively adjusted '
-                 f'win-probability estimate and a {edge_text} conservative edge. '
-                 if prob_text!='—' and edge_text!='—' else f'{selection}. ')
+        val = _se_short_takeaway(sections['schedule'][0], 180)
+        context_rows.append(f'<div class="se-context-row"><span class="se-context-icon">▦</span>'
+                            f'<strong>Schedule</strong><span>{esc(val)}</span></div>')
+    if clean_text(r.get('sport')) not in ('NBA', 'NHL', 'College Basketball') and context['weather']:
+        val = _se_short_takeaway(context['weather'][0], 180)
+        context_rows.append(f'<div class="se-context-row"><span class="se-context-icon">☁</span>'
+                            f'<strong>Weather</strong><span>{esc(val)}</span></div>')
+    context_html = ''.join(context_rows) if context_rows else (
+        '<p class="se-muted">No additional game factors verified in saved research.</p>')
+    market_strip = market_strip_html(r, load_live=load_live)
     if is_provisional:
-        bottom_line += (f'The uncalibrated raw model edge is {raw_edge_text}, but this selection '
-                        'does not pass the conservative value check. Both estimates are '
-                        'uncertain, and the selection counts in the same running W-L record. ')
-    bottom_line+='Review the recent form, game context and injury availability below before wagering.'
+        model_note = ('Testing selection: the raw model indicated potential value, '
+                      'but the conservative estimate did not clear break-even. '
+                      'Not a validated betting edge; counted in the existing W–L record.')
+    else:
+        model_note = ('The conservative estimate cleared break-even, but this '
+                      'is still an uncertain model forecast, not a guarantee.')
     return f'''<details class="se-pick{first}">
       <summary><div class="se-pick-head">
         <div class="se-rank">{rank}</div>
@@ -1359,17 +1415,14 @@ def full_pick_card(r, load_live=False):
         <div class="se-chevron"></div>
       </div></summary>
       <div class="se-pick-expanded se-v2-expanded">
-        <div class="se-v2-top">
-          <section class="se-insight-card se-takeaways"><h3><span class="se-card-icon">◎</span>Key Takeaways</h3>{takeaway_html}</section>
-          <section class="se-insight-card se-bottom-line"><h3><span class="se-card-icon">▥</span>Bottom Line</h3><p>{esc(bottom_line)}</p></section>
+        <p class="se-v4-model-note">{esc(model_note)}</p>
+        <div class="se-v4-main">
+          {comparison_html}
+          <section class="se-insight-card se-context-card"><h3>Game Factors</h3>{context_html}</section>
         </div>
-        <div class="se-v2-metrics">{recent_card}{season_card}{matchup_card}</div>
-        <div class="se-v2-lower">
-          <section class="se-insight-card se-context-card"><h3><span class="se-card-icon">◇</span>Game Context</h3>{context_html}</section>
-          <section class="se-insight-card se-injury-panel"><h3><span class="se-card-icon">✚</span>Injury Report</h3>{injuries_html}</section>
-        </div>
-        <section class="se-insight-card se-v2-markets"><h3><span class="se-card-icon">◉</span>Betting Markets (Archived Odds)</h3>{market_strip}</section>
-        <p class="se-disclaimer">Saved research only; no live injury, weather or lineup verification. Unavailable metrics are not estimated. Confirm odds and player availability before wagering.</p>
+        <section class="se-insight-card se-injury-panel"><h3>Injuries &amp; Availability</h3>{injuries_html}</section>
+        <details class="se-v4-market-details"><summary>Archived sportsbook lines &amp; model source</summary>{market_strip}</details>
+        <p class="se-disclaimer">Historical research snapshot, not live injury or market data. Verify lines, injuries and lineups before any wager.</p>
       </div>
     </details>'''
 

@@ -106,5 +106,57 @@ class TestRecordPresentation(unittest.TestCase):
         self.assertIsNone(parse("Raw trained-model probability 0"))
 
 
+class TestCompactResearchPresentation(unittest.TestCase):
+    def test_only_one_team_comparison_not_three_duplicate_panels(self):
+        app = Path(__file__).with_name("app.py").read_text()
+        source = app[app.index("def full_pick_card("):app.index("# Render the dashboard once", app.index("def full_pick_card("))]
+        self.assertIn("_se_unified_comparison_card(", source)
+        self.assertIn("Team Comparison", app)
+        self.assertNotIn("{recent_card}{season_card}{matchup_card}", source)
+        self.assertNotIn("Key Takeaways", source)
+        self.assertNotIn("Bottom Line</h3>", source)
+        self.assertIn("se-v4-market-details", source)
+        self.assertIn("Historical research snapshot", source)
+
+    def test_comparison_merges_only_saved_statistics(self):
+        app = Path(__file__).with_name("app.py").read_text()
+        import re
+        tree = ast.parse(app)
+        node = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
+                    and n.name == "_se_unified_comparison_card")
+        env = {"re": re, "_se_comparison_card": lambda title, teams, rows, note, symbol:
+               (title, rows, note), "_insight_card": lambda *args: "unavailable"}
+        exec(compile(ast.Module(body=[node], type_ignores=[]), "app.py", "exec"), env)
+        sections = {"season": ["Portland Trail Blazers 9-4; Minnesota Timberwolves 10-4"],
+                    "home": ["Portland Trail Blazers on road 4-2; Minnesota Timberwolves at home 5-2"],
+                    "recent": []}
+        stats = {"Portland Trail Blazers":{"record":"6–4","games":10,"gf":"114.5","ga":"111.6"},
+                 "Minnesota Timberwolves":{"record":"7–3","games":10,"gf":"115.6","ga":"106.6"}}
+        title, rows, note = env["_se_unified_comparison_card"](
+            sections, list(stats), stats, "NBA")
+        self.assertEqual(title, "Team Comparison")
+        self.assertEqual(len(rows), 5)
+        self.assertEqual(sum("For / Game" in label for label, _ in rows), 0)
+        self.assertEqual(rows[0][0], "Season record")
+        self.assertEqual(rows[1][0], "Last 10 record")
+        self.assertIn("10 recent games", note)
+
+    def test_injury_list_is_disclosed_not_discarded(self):
+        app = Path(__file__).with_name("app.py").read_text()
+        import re
+        from html import escape
+        tree = ast.parse(app)
+        node = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
+                    and n.name == "_se_injury_table")
+        env = {"re":re, "esc":escape}
+        exec(compile(ast.Module(body=[node], type_ignores=[]), "app.py", "exec"), env)
+        injuries = {"Team A":[f"Player {i} — Out (Shoulder)" for i in range(5)]}
+        html = env["_se_injury_table"](["Team A","Team B"], injuries)
+        self.assertIn("Show 2 more reported injuries", html)
+        self.assertIn("Player 4", html)
+        self.assertIn("Player 0", html)
+        self.assertIn("se-v4-extra", html)
+
+
 if __name__ == "__main__":
     unittest.main()

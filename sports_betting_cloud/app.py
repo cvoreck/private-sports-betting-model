@@ -1265,7 +1265,7 @@ def _se_unified_comparison_card(sections, teams, stats, sport):
     home_text = ' '.join(sections['home'])
     season = []
     for team in teams:
-        m = re.search(rf'{re.escape(team)}\\s+(\\d+-\\d+(?:-\\d+)?)', season_text, re.I)
+        m = re.search(rf'{re.escape(team)}\s+(\d+-\d+(?:-\d+)?)', season_text, re.I)
         season.append(m.group(1).replace('-', '–') if m else '—')
     unit = ('Points' if sport in ('NBA', 'College Basketball', 'NFL', 'College Football')
             else 'Runs' if sport == 'MLB' else 'Goals')
@@ -1280,7 +1280,7 @@ def _se_unified_comparison_card(sections, teams, stats, sport):
             rows.append((label, values))
     home_away = []
     for team in teams:
-        m = re.search(rf'{re.escape(team)}\\s+(?:at home|on (?:the )?road)\\s+(\\d+-\\d+)',
+        m = re.search(rf'{re.escape(team)}\s+(?:at home|on (?:the )?road)\s+(\d+-\d+)',
                       home_text, re.I)
         home_away.append(m.group(1).replace('-', '–') if m else '—')
     if any(v != '—' for v in home_away):

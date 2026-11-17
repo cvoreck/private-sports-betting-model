@@ -482,6 +482,8 @@ def refresh_existing_card_research(conn, today):
                      or ('MODEL QUALITY:' in line)
                      or ('estimated edge' in line)
                       or ('MARKET-AWARE ESTIMATE' in line)
+                     or ('PROVISIONAL BETA PICK' in line)
+                     or ('STRICT BETA PICK' in line)
                      or ('unvalidated research estimates' in line)
                      or ('not historically validated' in line)]
             notes = '\n'.join([f'Why: {x}' for x in why] +

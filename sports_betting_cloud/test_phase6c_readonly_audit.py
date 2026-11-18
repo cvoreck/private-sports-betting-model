@@ -183,7 +183,7 @@ class Phase6CReadOnlyTests(unittest.TestCase):
         text = markdown_report(analyze(ledger(item(),item(market="totals")),
                                        ledger_commit="deadbeef"))
         self.assertIn("paired bootstrap", text)
-        self.assertIn("unvalidated", text.lower())
+        self.assertIn("uncalibrated", text.lower())
         self.assertIn("No paid Odds API calls", text)
         self.assertIn("deadbeef", text)
         self.assertIn("no-vig", text)

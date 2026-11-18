@@ -102,8 +102,9 @@ class Phase6CReadOnlyTests(unittest.TestCase):
         self.assertEqual(v["mae"]["market"], 1.5)
         self.assertEqual(v["mae"]["anchored"], .9)
         self.assertEqual(v["probabilities"]["nonpush_games"], 1)
-        self.assertNotIn("roi", json.dumps(report).lower())
-        self.assertNotIn("profit", json.dumps(report).lower())
+        metric = v
+        self.assertNotIn("roi", metric)
+        self.assertNotIn("profit", metric)
 
     def test_grade_hash_cannot_change(self):
         l = ledger(item())

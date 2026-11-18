@@ -290,7 +290,7 @@ def markdown_report(report):
     out = [
         "# Phase 6C | Read-only prospective performance validation",
         "",
-        f"**Shadow ledger commit:** \`{report['source_commit']}\`  ",
+        f"**Shadow ledger commit:** `{report['source_commit']}`  ",
         f"**Ledger updated:** {report['source_ledger_updated_at']}  ",
         f"**Frozen:** {report['forecasts_total']} · **Graded:** {report['graded_total']} · "
         f"**Independent graded games:** {report['unique_graded_games_total']} · "

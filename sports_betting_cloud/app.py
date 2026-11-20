@@ -1530,6 +1530,26 @@ def _timed_dashboard_render(fn):
             PERF_LOG.warning('dashboard_python_render_seconds=%.3f', perf_counter() - started)
     return wrapper
 
+def _featured_top5_for_date(df, today):
+    """Keep the most recent dated card visible until today's card is published.
+
+    This is presentation only: no new picks, odds lookups or ledger writes.
+    A single current-day ranked pick is enough to replace the prior card.
+    """
+    dates = df['date'].astype(str)
+    current = df[(dates == today.isoformat()) & df['rank'].notna()]
+    current = current.sort_values('rank', na_position='last').head(5)
+    if not current.empty:
+        return current, today, False
+    previous = df[(dates < today.isoformat()) & df['rank'].notna()]
+    if previous.empty:
+        return current, today, False
+    prior_day = previous['date'].astype(str).max()
+    card = previous[previous['date'].astype(str) == prior_day]
+    card = card.sort_values('rank', na_position='last').head(5)
+    return card, datetime.strptime(prior_day, '%Y-%m-%d').date(), True
+
+
 @_timed_dashboard_render
 def render_live_dashboard():
     today = datetime.now(PT).date()
@@ -1583,15 +1603,21 @@ def render_live_dashboard():
         <div class="se-board-col"><h3>Record by Sport</h3><div class="se-sports">{sport_html}</div></div>
       </section>''', unsafe_allow_html=True)
 
-    today_df=df[df['date'].astype(str)==TODAY.isoformat()].sort_values('rank',na_position='last')
-    ranked=today_df[today_df['rank'].notna()].head(5)
+    ranked, card_day, showing_previous = _featured_top5_for_date(df, TODAY)
     if ranked.empty:
-        picks_html='<div class="section-sub" style="padding:20px 5px">No verified Top 5 has been published today. The automated publisher still needs independently modeled probabilities and verified game eligibility.</div>'
+        picks_html='<div class="section-sub" style="padding:20px 5px">No verified Top 5 has been published yet. The automated publisher still needs independently modeled probabilities and verified game eligibility.</div>'
     else:
         picks_html=''.join(full_pick_card(pick) for _,pick in ranked.iterrows())
         if len(ranked)!=5 or sorted(ranked['rank'].astype(int).tolist())!=[1,2,3,4,5]:
-            picks_html='<div class="section-sub">Today’s card is incomplete; only verified recorded picks are shown.</div>'+picks_html
-    st.markdown(f'<div class="se-section-head"><h2>Today’s Top 5 Picks</h2><p>{TODAY:%A, %B %d, %Y} &nbsp; | &nbsp; All times Pacific</p></div>{picks_html}',unsafe_allow_html=True)
+            picks_html='<div class="section-sub">This card is incomplete; only verified recorded picks are shown.</div>'+picks_html
+        if showing_previous:
+            picks_html=('<div class="section-sub">No new Top 5 has been published today. '
+                        'Displaying the previous published card until a new one arrives. '
+                        'These are archived picks, not today’s recommendations.</div>'+picks_html)
+    section_title = ('Previous Day’s Top 5 Picks' if showing_previous and card_day == yesterday
+                     else 'Most Recent Top 5 Picks' if showing_previous
+                     else 'Today’s Top 5 Picks')
+    st.markdown(f'<div class="se-section-head"><h2>{section_title}</h2><p>{card_day:%A, %B %d, %Y} &nbsp; | &nbsp; All times Pacific</p></div>{picks_html}',unsafe_allow_html=True)
 
     st.divider()
     header('Performance Trends')

@@ -3,7 +3,7 @@ ESPN scoreboard regular-season verification and W/L record model for NFL/NBA/NHL
 NBA/NHL spread and total models require >=4 recent final games per team.
 Research only: not calibrated or backtested; missing data means no prediction.
 """
-import logging, math, os, re, statistics, unicodedata
+import json, logging, math, os, re, statistics, unicodedata
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -271,6 +271,15 @@ def main():
             except (requests.RequestException,ValueError) as exc:
                 logging.warning('%s cached odds unavailable: %s',sport,exc);continue
             counts['cached_odds_events']+=len(odds)
+            # Observability only: count existing loop outcomes, no additional
+            # ESPN fetches, database queries or odds vendor calls.
+            sport_funnel = dict(
+                sport=sport, cached_odds_events=len(odds), upcoming_events=0,
+                unmatched_espn=0, matched_espn=0, non_regular_season=0,
+                regular_events=0, no_promoted_moneyline_model=0,
+                insufficient_model_history=0, trained_moneyline_events=0,
+                college_ap_not_verified=0, passed_verification=0,
+                moneyline_prediction_events=0)
             logging.info('%s cached odds events=%d for Pacific date %s',sport,len(odds),today)
             boards=[]
             for d in (-1,0,1):
@@ -298,17 +307,22 @@ def main():
                     counts['other_pacific_date']+=1
                     continue
                 counts['events']+=1
+                sport_funnel['upcoming_events']+=1
                 pair=lookup(by_match, event.get('home_team'), event.get('away_team'), start)
                 if not pair:
                     counts['unmatched_espn']+=1
+                    sport_funnel['unmatched_espn']+=1
                     logging.info('Unmatched ESPN event sport=%s home=%r away=%r start=%s reason=%s',sport,event.get('home_team'),event.get('away_team'),start.isoformat(),diagnose(by_match,event.get('home_team'),event.get('away_team'),start))
                     continue
                 counts['matched']+=1
+                sport_funnel['matched_espn']+=1
                 e,h,a=pair
                 if (e.get('season') or {}).get('type')!=2:
                     counts['non_regular_season']+=1
+                    sport_funnel['non_regular_season']+=1
                     continue
                 counts['regular']+=1
+                sport_funnel['regular_events']+=1
                 eid=event.get('id');hn=event['home_team'];an=event['away_team']
                 if not eid:
                     counts['missing_event_id']+=1
@@ -319,10 +333,15 @@ def main():
                     p=trained_home_probability(e,trained_history,sport_key,trained_model[1],start)
                 else:
                     p=None
-                if not trained_model: counts['no_trained_model']+=1
-                elif p is None: counts['insufficient_team_history']+=1
+                if not trained_model:
+                    counts['no_trained_model']+=1
+                    sport_funnel['no_promoted_moneyline_model']+=1
+                elif p is None:
+                    counts['insufficient_team_history']+=1
+                    sport_funnel['insufficient_model_history']+=1
                 else:
                     counts['trained_moneyline_events']+=1
+                    sport_funnel['trained_moneyline_events']+=1
                     if not sport.startswith('College'):
                         counts['trained_noncollege_events']+=1
                 home_games=recent.get(norm(hn),[]);away_games=recent.get(norm(an),[])
@@ -335,8 +354,10 @@ def main():
                     verified = conn.execute("SELECT ap_top25_team_in_match, is_preseason FROM verified_events WHERE event_id=%s AND sport=%s AND verified_at >= %s", (eid, sport, now-timedelta(days=7))).fetchone()
                     if not verified or verified['ap_top25_team_in_match'] is not True or verified['is_preseason']:
                         counts['college_events_awaiting_ap_verification']+=1
+                        sport_funnel['college_ap_not_verified']+=1
                         continue
-                else:
+                sport_funnel['passed_verification']+=1
+                if sport not in ('College Football', 'College Basketball'):
                     conn.execute('''INSERT INTO verified_events(event_id,sport,is_preseason,ap_top25_team_in_match,verified_at,verification_source)
                 VALUES(%s,%s,FALSE,NULL,%s,%s) ON CONFLICT(event_id) DO UPDATE SET sport=EXCLUDED.sport,is_preseason=FALSE,verified_at=EXCLUDED.verified_at,verification_source=EXCLUDED.verification_source''',
                 (eid,sport,now,'ESPN scoreboard: regular season'))
@@ -346,6 +367,7 @@ def main():
                 if sport_key == 'icehockey_nhl':
                     save_shadow(conn, shadow_model, event, e, p, now)
                 if p is not None:
+                    sport_funnel['moneyline_prediction_events']+=1
                     # Keep the original trained estimate in model_predictions.
                     # The publisher applies its same-bookmaker market-aware
                     # adjustment to the published pick, avoiding double shrinkage
@@ -389,6 +411,8 @@ def main():
                             seen_experimental_lines.add(line_key)
                             if save_prediction(conn,eid,m,sel,point,prob,now,'archive-market-shrink-v1-experimental'):
                                 counts['spread_predictions' if m=='spreads' else 'total_predictions']+=1
+            logging.info('Prediction engine per-sport event funnel: %s',
+                         json.dumps(sport_funnel, sort_keys=True))
         logging.info('Prediction engine funnel: %s',counts)
         logging.warning('Raw trained moneyline predictions are retained for auditing; publisher applies provisional market-aware adjustment. Experimental spreads/totals are generated for shadow evaluation only, not published. College requires AP Top 25 verification; no props or injury model.')
 if __name__=='__main__':main()

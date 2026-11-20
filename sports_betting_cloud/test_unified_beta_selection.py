@@ -323,5 +323,8 @@ class TestMarketsAndImpactOrdering(unittest.TestCase):
         self.assertIn('{market_strip}', app)
 
 
+# Included in the existing offline CI runner without changing its workflow.
+from test_per_sport_rejection_funnel import PerSportDiagnosticsTests
+
 if __name__ == "__main__":
     unittest.main()

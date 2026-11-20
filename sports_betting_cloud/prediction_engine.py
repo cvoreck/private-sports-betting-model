@@ -356,11 +356,11 @@ def main():
                         counts['college_events_awaiting_ap_verification']+=1
                         sport_funnel['college_ap_not_verified']+=1
                         continue
-                sport_funnel['passed_verification']+=1
-                if sport not in ('College Football', 'College Basketball'):
+                else:
                     conn.execute('''INSERT INTO verified_events(event_id,sport,is_preseason,ap_top25_team_in_match,verified_at,verification_source)
                 VALUES(%s,%s,FALSE,NULL,%s,%s) ON CONFLICT(event_id) DO UPDATE SET sport=EXCLUDED.sport,is_preseason=FALSE,verified_at=EXCLUDED.verified_at,verification_source=EXCLUDED.verification_source''',
                 (eid,sport,now,'ESPN scoreboard: regular season'))
+                sport_funnel['passed_verification']+=1
                 conn.execute('''INSERT INTO prediction_context(event_id,home_team,away_team,home_logo,away_logo,rationale,warnings,updated_at)
                 VALUES(%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(event_id) DO UPDATE SET home_logo=EXCLUDED.home_logo,away_logo=EXCLUDED.away_logo,rationale=EXCLUDED.rationale,warnings=EXCLUDED.warnings,updated_at=EXCLUDED.updated_at''',
                 (eid,hn,an,logo(h),logo(a),'\n'.join(rationale),warnings,now))

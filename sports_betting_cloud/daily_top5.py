@@ -582,7 +582,7 @@ def main():
         # Computed from in-memory selections; no extra SQL and no ranking changes.
         selected_by_sport = {
             sport: {
-                'published': sum(c['sport'] == sport for c in top),
+                'selected_before_publication': sum(c['sport'] == sport for c in top),
                 'strict': sum(c['sport'] == sport and c['selection_tier'] == 1 for c in top),
                 'provisional': sum(c['sport'] == sport and c['selection_tier'] == 2 for c in top),
             }

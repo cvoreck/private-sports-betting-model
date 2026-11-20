@@ -120,6 +120,7 @@ def find_candidates(conn, today, now):
     approved_diagnostics = {}
     closest_trained = {}
     market_diagnostics = {}
+    per_sport_funnel = {}
     counts = dict(events=0, upcoming_today=0, verified=0, predictions=0,
                   positive_ev=0, above_odds_cap=0, stale_or_unapproved=0, trained=0, experimental=0, excluded_unvalidated=0)
     # Active promoted versions are authoritative. Reject stale superseded
@@ -134,6 +135,25 @@ def find_candidates(conn, today, now):
             logging.warning('Odds unavailable for %s: %s', sport, exc)
             continue
         logging.info('%s: read %s cached odds events', sport, len(events))
+        # Diagnostics only. Reuse events, verification rows, and prediction rows
+        # already read by the publisher; NO extra SQL or vendor/API calls.
+        event_funnel = dict(cached_events=len(events), upcoming_events=0,
+                            no_verified_event=0, ap_top25_not_eligible=0,
+                            verified_events=0)
+        quote_keys = ('seen', 'invalid_price', 'outside_price_limits',
+                      'missing_fresh_prediction', 'unapproved_or_old_model',
+                      'invalid_probability', 'no_two_way_no_vig_quote',
+                      'nonpositive_raw_ev', 'positive_raw_ev',
+                      'shadow_only_not_publishable')
+        h2h_funnel = dict.fromkeys(quote_keys, 0)
+        shadow_funnel = dict.fromkeys(quote_keys, 0)
+        per_sport_funnel[sport] = {
+            'promoted_moneyline_model': bool(
+                promoted.get(key) and promoted[key].startswith(TRAINED_PREFIXES)),
+            'events': event_funnel,
+            'moneyline_quotes': h2h_funnel,
+            'spread_total_quotes': shadow_funnel,
+        }
         counts['events'] += len(events)
         for event in events:
             event_id = event.get('id')
@@ -144,14 +164,18 @@ def find_candidates(conn, today, now):
             if start.astimezone(PT).date() != today or start <= now:
                 continue
             counts['upcoming_today'] += 1
+            event_funnel['upcoming_events'] += 1
             verified = conn.execute('''SELECT * FROM verified_events WHERE event_id=%s
               AND sport=%s AND is_preseason=FALSE AND verified_at >= %s''',
               (event_id, sport, now - timedelta(days=7))).fetchone()
             if not verified:
+                event_funnel['no_verified_event'] += 1
                 continue
             if sport in COLLEGE and verified['ap_top25_team_in_match'] is not True:
+                event_funnel['ap_top25_not_eligible'] += 1
                 continue
             counts['verified'] += 1
+            event_funnel['verified_events'] += 1
             matchup = f"{event.get('away_team','Away')} @ {event.get('home_team','Home')}"
             context = conn.execute('SELECT * FROM prediction_context WHERE event_id=%s', (event_id,)).fetchone()
             for bookmaker in event.get('bookmakers', []):
@@ -160,11 +184,16 @@ def find_candidates(conn, today, now):
                     if mkey not in ('h2h', 'spreads', 'totals'):
                         continue
                     for outcome in market.get('outcomes', []):
+                        # All quote counters count bookmaker OUTCOMES, not games.
+                        quote_funnel = h2h_funnel if mkey == 'h2h' else shadow_funnel
+                        quote_funnel['seen'] += 1
                         odds = outcome.get('price')
                         if not isinstance(odds, (int, float)) or (-100 < odds < 100):
+                            quote_funnel['invalid_price'] += 1
                             continue
                         if odds > MAX_POSITIVE_AMERICAN_ODDS or odds < MIN_NEGATIVE_AMERICAN_ODDS:
                             counts['above_odds_cap'] += 1
+                            quote_funnel['outside_price_limits'] += 1
                             continue
                         selection = outcome.get('name')
                         point = outcome.get('point')
@@ -174,6 +203,7 @@ def find_candidates(conn, today, now):
                             AND generated_at >= %s''',
                           (event_id, mkey, selection, str(point) if point is not None else '', now - timedelta(hours=MAX_PREDICTION_AGE_HOURS))).fetchone()
                         if not prediction:
+                            quote_funnel['missing_fresh_prediction'] += 1
                             continue
                         counts['predictions'] += 1
                         version = prediction['model_version']
@@ -185,9 +215,11 @@ def find_candidates(conn, today, now):
                             quality = 'experimental'
                         else:
                             counts['stale_or_unapproved'] += 1
+                            quote_funnel['unapproved_or_old_model'] += 1
                             continue
                         p = prediction['estimated_prob']
                         if not isinstance(p, (int, float)) or not math.isfinite(p) or not 0 < p < 1:
+                            quote_funnel['invalid_probability'] += 1
                             continue
                         ev = expected_value(p, odds)
                         diag = approved_diagnostics.setdefault(quality, {'quotes': 0, 'raw_positive': 0, 'raw_nonpositive': 0, 'events': set()})
@@ -214,13 +246,17 @@ def find_candidates(conn, today, now):
                         # engine, but are not eligible for live Top 5 publication.
                         if mkey != 'h2h':
                             counts['excluded_unvalidated'] += 1
+                            quote_funnel['shadow_only_not_publishable'] += 1
                             continue
                         fair_prob = no_vig_probability(market, outcome)
                         if fair_prob is None:
                             counts['excluded_unvalidated'] += 1
+                            quote_funnel['no_two_way_no_vig_quote'] += 1
                             continue
                         if ev <= 0:
+                            quote_funnel['nonpositive_raw_ev'] += 1
                             continue
+                        quote_funnel['positive_raw_ev'] += 1
                         counts['positive_ev'] += 1
                         counts[quality] += 1
                         candidates.append({
@@ -233,6 +269,8 @@ def find_candidates(conn, today, now):
                             'verification_source': verified['verification_source'],
                             'context': dict(context) if context else {}
                         })
+    logging.info('Per-sport publisher rejection funnel (events=games; quotes=bookmaker outcomes): %s',
+                 json.dumps(per_sport_funnel, sort_keys=True))
     logging.info('Candidate funnel: %s', json.dumps(counts, sort_keys=True))
     logging.info('Approved model quote diagnostics: %s', json.dumps({q: dict(v, events=len(v['events'])) for q, v in approved_diagnostics.items()}, sort_keys=True))
     logging.info('Per-sport/market model diagnostics (raw EV, before provisional adjustment): %s',
@@ -540,6 +578,18 @@ def main():
                 return
         candidates = find_candidates(conn, today, now)
         top = rank_candidates(candidates, today)
+        # Diagnostic summary reflects the chosen card, not merely eligible quotes.
+        # Computed from in-memory selections; no extra SQL and no ranking changes.
+        selected_by_sport = {
+            sport: {
+                'published': sum(c['sport'] == sport for c in top),
+                'strict': sum(c['sport'] == sport and c['selection_tier'] == 1 for c in top),
+                'provisional': sum(c['sport'] == sport and c['selection_tier'] == 2 for c in top),
+            }
+            for sport in SPORT_KEYS.values()
+        }
+        logging.info('Per-sport Top 5 selections (in-memory, before publication): %s',
+                     json.dumps(selected_by_sport, sort_keys=True))
         status = ('published' if len(top) == 5 else
                   'partial_card' if top else 'insufficient_verified_candidates')
         # Unified beta card: strict selections first, then raw-positive provisional

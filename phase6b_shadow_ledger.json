@@ -15852,6 +15852,1926 @@
       "latest_observed_pregame_quote": null
     },
     {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 1.4539,
+        "anchored_shift": -0.0461,
+        "away_team": "edmonton oilers",
+        "baseline_forecast": 0.5454,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-21T18:00:00+00:00",
+        "home_team": "carolina hurricanes",
+        "market": "spreads",
+        "market_reference": 1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "43b2e285559dbe2bb5ddc1665bccddf2",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -145,
+            "market_no_vig_conditional": 0.565603,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.572788,
+            "shadow_unconditional_win": 0.572788
+          },
+          "home": {
+            "american_odds": 120,
+            "market_no_vig_conditional": 0.434397,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.427212,
+            "shadow_unconditional_win": 0.427212
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 0.5786,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "7fb82c0e4cfb3ce061dc8039efa04da4e4cc8ab01399357a3a4b68ada3bf4982",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|43b2e285559dbe2bb5ddc1665bccddf2|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.0141,
+        "anchored_shift": 0.0141,
+        "away_team": "edmonton oilers",
+        "baseline_forecast": 6.4462,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-21T18:00:00+00:00",
+        "home_team": "carolina hurricanes",
+        "market": "totals",
+        "market_reference": 6.0,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "43b2e285559dbe2bb5ddc1665bccddf2",
+        "push_probability_status": "NOT_ESTIMATED",
+        "selections": {
+          "over": {
+            "american_odds": -120,
+            "market_no_vig_conditional": 0.521739,
+            "point": 6.0,
+            "shadow_conditional_nonpush": 0.524202,
+            "shadow_unconditional_win": null
+          },
+          "under": {
+            "american_odds": 100,
+            "market_no_vig_conditional": 0.478261,
+            "point": 6.0,
+            "shadow_conditional_nonpush": 0.475798,
+            "shadow_unconditional_win": null
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.2816,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "86261eaee3b13e2edd405472dc9fe6061c0ed70f22c9ec92951c8a787bc46b10",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|43b2e285559dbe2bb5ddc1665bccddf2|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 11.365,
+        "anchored_shift": -0.135,
+        "away_team": "milwaukee bucks",
+        "baseline_forecast": 6.7874,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-21T18:10:00+00:00",
+        "home_team": "philadelphia 76ers",
+        "market": "spreads",
+        "market_reference": 11.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "6cd4587453e4da55317b2c1e3576e75b",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -116,
+            "market_no_vig_conditional": 0.513007,
+            "point": 11.5,
+            "shadow_conditional_nonpush": 0.516629,
+            "shadow_unconditional_win": 0.516629
+          },
+          "home": {
+            "american_odds": -104,
+            "market_no_vig_conditional": 0.486993,
+            "point": -11.5,
+            "shadow_conditional_nonpush": 0.483371,
+            "shadow_unconditional_win": 0.483371
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "basketball_nba",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 10.1499,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "a322019fd02fd551add7ffea41d290c56c8e7720a887e3793877bdd0157ac1cf",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "basketball_nba|6cd4587453e4da55317b2c1e3576e75b|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 229.1663,
+        "anchored_shift": -0.3337,
+        "away_team": "milwaukee bucks",
+        "baseline_forecast": 222.9547,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-21T18:10:00+00:00",
+        "home_team": "philadelphia 76ers",
+        "market": "totals",
+        "market_reference": 229.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "6cd4587453e4da55317b2c1e3576e75b",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -107,
+            "market_no_vig_conditional": 0.493504,
+            "point": 229.5,
+            "shadow_conditional_nonpush": 0.486537,
+            "shadow_unconditional_win": 0.486537
+          },
+          "under": {
+            "american_odds": -113,
+            "market_no_vig_conditional": 0.506496,
+            "point": 229.5,
+            "shadow_conditional_nonpush": 0.513463,
+            "shadow_unconditional_win": 0.513463
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "basketball_nba",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 222.8253,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "233a893d9927c7d98b643e154e79a3ec15de5ef9ba15004eeb0256b40ebe9814",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "basketball_nba|6cd4587453e4da55317b2c1e3576e75b|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 1.4779,
+        "anchored_shift": -0.0221,
+        "away_team": "chicago blackhawks",
+        "baseline_forecast": 1.0672,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-21T20:30:00+00:00",
+        "home_team": "calgary flames",
+        "market": "spreads",
+        "market_reference": 1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "b9678f4fdeb3125258b4679e9785fffb",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -190,
+            "market_no_vig_conditional": 0.625565,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.629006,
+            "shadow_unconditional_win": 0.629006
+          },
+          "home": {
+            "american_odds": 155,
+            "market_no_vig_conditional": 0.374435,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.370994,
+            "shadow_unconditional_win": 0.370994
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 1.0587,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "61371b32878f8b4b074ef80b65970680582e18acb3de147ddb008d1c8e166b7d",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|b9678f4fdeb3125258b4679e9785fffb|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 5.5344,
+        "anchored_shift": 0.0344,
+        "away_team": "chicago blackhawks",
+        "baseline_forecast": 5.9805,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-21T20:30:00+00:00",
+        "home_team": "calgary flames",
+        "market": "totals",
+        "market_reference": 5.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "b9678f4fdeb3125258b4679e9785fffb",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -120,
+            "market_no_vig_conditional": 0.521739,
+            "point": 5.5,
+            "shadow_conditional_nonpush": 0.527763,
+            "shadow_unconditional_win": 0.527763
+          },
+          "under": {
+            "american_odds": 100,
+            "market_no_vig_conditional": 0.478261,
+            "point": 5.5,
+            "shadow_conditional_nonpush": 0.472237,
+            "shadow_unconditional_win": 0.472237
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.1889,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "3ec2d6641d321dc9f031c1dc69271ab43d77a7828c50ff290117582ab0e6d47a",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|b9678f4fdeb3125258b4679e9785fffb|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 1.4439,
+        "anchored_shift": -0.0561,
+        "away_team": "buffalo sabres",
+        "baseline_forecast": 0.2989,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-21T23:00:00+00:00",
+        "home_team": "florida panthers",
+        "market": "spreads",
+        "market_reference": 1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "627813427faf8d3b73ff1fe4be6bc7d6",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -190,
+            "market_no_vig_conditional": 0.624644,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.633398,
+            "shadow_unconditional_win": 0.633398
+          },
+          "home": {
+            "american_odds": 154,
+            "market_no_vig_conditional": 0.375356,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.366602,
+            "shadow_unconditional_win": 0.366602
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 0.3774,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "74f497ba71a23af2643b35293d0b0eeff582c32fe051b8edba1321c2d5cdf47d",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|627813427faf8d3b73ff1fe4be6bc7d6|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.0147,
+        "anchored_shift": 0.0147,
+        "away_team": "buffalo sabres",
+        "baseline_forecast": 6.4342,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-21T23:00:00+00:00",
+        "home_team": "florida panthers",
+        "market": "totals",
+        "market_reference": 6.0,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "627813427faf8d3b73ff1fe4be6bc7d6",
+        "push_probability_status": "NOT_ESTIMATED",
+        "selections": {
+          "over": {
+            "american_odds": -118,
+            "market_no_vig_conditional": 0.517364,
+            "point": 6.0,
+            "shadow_conditional_nonpush": 0.519942,
+            "shadow_unconditional_win": null
+          },
+          "under": {
+            "american_odds": -102,
+            "market_no_vig_conditional": 0.482636,
+            "point": 6.0,
+            "shadow_conditional_nonpush": 0.480058,
+            "shadow_unconditional_win": null
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.2948,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "a3792c6fab7ed53667bca5d0eeabc150b7bb0fbcb96717875ac2bbe4246cdc1a",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|627813427faf8d3b73ff1fe4be6bc7d6|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 1.4625,
+        "anchored_shift": -0.0375,
+        "away_team": "pittsburgh penguins",
+        "baseline_forecast": 0.5677,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-21T23:00:00+00:00",
+        "home_team": "nashville predators",
+        "market": "spreads",
+        "market_reference": 1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "d393852cc4dc6ab621ca0cd1f6ccaccc",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -210,
+            "market_no_vig_conditional": 0.646522,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.652377,
+            "shadow_unconditional_win": 0.652377
+          },
+          "home": {
+            "american_odds": 170,
+            "market_no_vig_conditional": 0.353478,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.347623,
+            "shadow_unconditional_win": 0.347623
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 0.7491,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "e0da0431108487a44efd98ff9e9187e0d73b67107aead6e2ae559ab33b0a45e8",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|d393852cc4dc6ab621ca0cd1f6ccaccc|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.4916,
+        "anchored_shift": -0.0084,
+        "away_team": "pittsburgh penguins",
+        "baseline_forecast": 6.3202,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-21T23:00:00+00:00",
+        "home_team": "nashville predators",
+        "market": "totals",
+        "market_reference": 6.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "d393852cc4dc6ab621ca0cd1f6ccaccc",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -105,
+            "market_no_vig_conditional": 0.489166,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.487693,
+            "shadow_unconditional_win": 0.487693
+          },
+          "under": {
+            "american_odds": -115,
+            "market_no_vig_conditional": 0.510834,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.512307,
+            "shadow_unconditional_win": 0.512307
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.3316,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "3e5e026257a06da0c82a983c78455366c6011f3033aadde5c92c6f3c0ad992e1",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|d393852cc4dc6ab621ca0cd1f6ccaccc|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 1.4139,
+        "anchored_shift": -0.0861,
+        "away_team": "columbus blue jackets",
+        "baseline_forecast": -0.4057,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "toronto maple leafs",
+        "market": "spreads",
+        "market_reference": 1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "6b3ca9f550a96d09fdd079e3c7e1158a",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -250,
+            "market_no_vig_conditional": 0.681818,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.69524,
+            "shadow_unconditional_win": 0.69524
+          },
+          "home": {
+            "american_odds": 200,
+            "market_no_vig_conditional": 0.318182,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.30476,
+            "shadow_unconditional_win": 0.30476
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": -0.2215,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "6f8e330706059c2fbe1bc656e189cd6e95362df95ad3528b6ce4412748526f77",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|6b3ca9f550a96d09fdd079e3c7e1158a|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.482,
+        "anchored_shift": -0.018,
+        "away_team": "columbus blue jackets",
+        "baseline_forecast": 6.2339,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "toronto maple leafs",
+        "market": "totals",
+        "market_reference": 6.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "6b3ca9f550a96d09fdd079e3c7e1158a",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": 100,
+            "market_no_vig_conditional": 0.478261,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.475113,
+            "shadow_unconditional_win": 0.475113
+          },
+          "under": {
+            "american_odds": -120,
+            "market_no_vig_conditional": 0.521739,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.524887,
+            "shadow_unconditional_win": 0.524887
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.14,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "7f4710828d96f94e0d84b5caa6eff4c7b6e7e2652c12ffe8486c822d730037cd",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|6b3ca9f550a96d09fdd079e3c7e1158a|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": -1.4055,
+        "anchored_shift": 0.0945,
+        "away_team": "new york islanders",
+        "baseline_forecast": 0.293,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "detroit red wings",
+        "market": "spreads",
+        "market_reference": -1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "6d5c13d697e753014382cb88c02b8d0a",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": 185,
+            "market_no_vig_conditional": 0.336352,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.32162,
+            "shadow_unconditional_win": 0.32162
+          },
+          "home": {
+            "american_odds": -225,
+            "market_no_vig_conditional": 0.663648,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.67838,
+            "shadow_unconditional_win": 0.67838
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 0.3896,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "975ccb0040f72bc825e82158df6b102106dbe14543ed42d7d9f39d49f8815435",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|6d5c13d697e753014382cb88c02b8d0a|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.0119,
+        "anchored_shift": 0.0119,
+        "away_team": "new york islanders",
+        "baseline_forecast": 6.3364,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "detroit red wings",
+        "market": "totals",
+        "market_reference": 6.0,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "6d5c13d697e753014382cb88c02b8d0a",
+        "push_probability_status": "NOT_ESTIMATED",
+        "selections": {
+          "over": {
+            "american_odds": -110,
+            "market_no_vig_conditional": 0.5,
+            "point": 6.0,
+            "shadow_conditional_nonpush": 0.502081,
+            "shadow_unconditional_win": null
+          },
+          "under": {
+            "american_odds": -110,
+            "market_no_vig_conditional": 0.5,
+            "point": 6.0,
+            "shadow_conditional_nonpush": 0.497919,
+            "shadow_unconditional_win": null
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.238,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "fa1ef645159c53e20be1164659d6beca79a1ff6001964723b8523731fdcc257e",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|6d5c13d697e753014382cb88c02b8d0a|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": -1.4241,
+        "anchored_shift": 0.0759,
+        "away_team": "new jersey devils",
+        "baseline_forecast": -0.3171,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "st louis blues",
+        "market": "spreads",
+        "market_reference": -1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "7c6930f22180d748b3c0270afe1d67b4",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": 170,
+            "market_no_vig_conditional": 0.353478,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.341644,
+            "shadow_unconditional_win": 0.341644
+          },
+          "home": {
+            "american_odds": -210,
+            "market_no_vig_conditional": 0.646522,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.658356,
+            "shadow_unconditional_win": 0.658356
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 0.0177,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "96e507953e0ed6804b980fbcfab8a0b2e1c5e88ceaf6abe606d3d74890f4badb",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|7c6930f22180d748b3c0270afe1d67b4|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.0135,
+        "anchored_shift": 0.0135,
+        "away_team": "new jersey devils",
+        "baseline_forecast": 6.2498,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "st louis blues",
+        "market": "totals",
+        "market_reference": 6.0,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "7c6930f22180d748b3c0270afe1d67b4",
+        "push_probability_status": "NOT_ESTIMATED",
+        "selections": {
+          "over": {
+            "american_odds": -115,
+            "market_no_vig_conditional": 0.510834,
+            "point": 6.0,
+            "shadow_conditional_nonpush": 0.5132,
+            "shadow_unconditional_win": null
+          },
+          "under": {
+            "american_odds": -105,
+            "market_no_vig_conditional": 0.489166,
+            "point": 6.0,
+            "shadow_conditional_nonpush": 0.4868,
+            "shadow_unconditional_win": null
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.2706,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "aaa970a03d3f55bd0e2f42099e112cd68a6974bbd1b3b212a370277a9923f271",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|7c6930f22180d748b3c0270afe1d67b4|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 1.4429,
+        "anchored_shift": -0.0571,
+        "away_team": "philadelphia flyers",
+        "baseline_forecast": 0.2412,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "montreal canadiens",
+        "market": "spreads",
+        "market_reference": 1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "b1d9949c5ac7b55124c035186871f97f",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -185,
+            "market_no_vig_conditional": 0.618729,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.627629,
+            "shadow_unconditional_win": 0.627629
+          },
+          "home": {
+            "american_odds": 150,
+            "market_no_vig_conditional": 0.381271,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.372371,
+            "shadow_unconditional_win": 0.372371
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 0.3587,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "488036854ccf4c31dab66fb43046abfe3ec4c31e3029049f5a6ea1818ed807b7",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|b1d9949c5ac7b55124c035186871f97f|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.0046,
+        "anchored_shift": 0.0046,
+        "away_team": "philadelphia flyers",
+        "baseline_forecast": 6.0045,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "montreal canadiens",
+        "market": "totals",
+        "market_reference": 6.0,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "b1d9949c5ac7b55124c035186871f97f",
+        "push_probability_status": "NOT_ESTIMATED",
+        "selections": {
+          "over": {
+            "american_odds": -102,
+            "market_no_vig_conditional": 0.482636,
+            "point": 6.0,
+            "shadow_conditional_nonpush": 0.483437,
+            "shadow_unconditional_win": null
+          },
+          "under": {
+            "american_odds": -118,
+            "market_no_vig_conditional": 0.517364,
+            "point": 6.0,
+            "shadow_conditional_nonpush": 0.516563,
+            "shadow_unconditional_win": null
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.0916,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "024a9f91883a2d69ab3f8dbac5da127dd1551c5c5d2b8ad8c1f73ee46b38928e",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|b1d9949c5ac7b55124c035186871f97f|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": -1.4514,
+        "anchored_shift": 0.0486,
+        "away_team": "vegas golden knights",
+        "baseline_forecast": -0.962,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "winnipeg jets",
+        "market": "spreads",
+        "market_reference": -1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "c891a951ef4b408976f84839c3d886e2",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": 170,
+            "market_no_vig_conditional": 0.353478,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.345904,
+            "shadow_unconditional_win": 0.345904
+          },
+          "home": {
+            "american_odds": -210,
+            "market_no_vig_conditional": 0.646522,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.654096,
+            "shadow_unconditional_win": 0.654096
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": -0.5287,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "5c3d95b5662ca56bb0979b5b0fa725cac41bb945fd8f7e8a124833cdc1b3f280",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|c891a951ef4b408976f84839c3d886e2|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.4891,
+        "anchored_shift": -0.0109,
+        "away_team": "vegas golden knights",
+        "baseline_forecast": 6.3419,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "winnipeg jets",
+        "market": "totals",
+        "market_reference": 6.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "c891a951ef4b408976f84839c3d886e2",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -102,
+            "market_no_vig_conditional": 0.482636,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.480728,
+            "shadow_unconditional_win": 0.480728
+          },
+          "under": {
+            "american_odds": -118,
+            "market_no_vig_conditional": 0.517364,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.519272,
+            "shadow_unconditional_win": 0.519272
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.2818,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "457c82bf34238888f4de7550563e175597d61c319b351bb1b5732af84f84bffa",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|c891a951ef4b408976f84839c3d886e2|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 1.4509,
+        "anchored_shift": -0.0491,
+        "away_team": "los angeles kings",
+        "baseline_forecast": 0.32,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "ottawa senators",
+        "market": "spreads",
+        "market_reference": 1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "e491b0b72df0e6f41b1bf7f9c349a136",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -160,
+            "market_no_vig_conditional": 0.591195,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.598846,
+            "shadow_unconditional_win": 0.598846
+          },
+          "home": {
+            "american_odds": 135,
+            "market_no_vig_conditional": 0.408805,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.401154,
+            "shadow_unconditional_win": 0.401154
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 0.5189,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "2e451f2549b9d7eb25552ec7e3513873e8efe9d0168d6cf74dbfb3ee8b586db2",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|e491b0b72df0e6f41b1bf7f9c349a136|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 5.5409,
+        "anchored_shift": 0.0409,
+        "away_team": "los angeles kings",
+        "baseline_forecast": 6.349,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "ottawa senators",
+        "market": "totals",
+        "market_reference": 5.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "e491b0b72df0e6f41b1bf7f9c349a136",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -118,
+            "market_no_vig_conditional": 0.517364,
+            "point": 5.5,
+            "shadow_conditional_nonpush": 0.524516,
+            "shadow_unconditional_win": 0.524516
+          },
+          "under": {
+            "american_odds": -102,
+            "market_no_vig_conditional": 0.482636,
+            "point": 5.5,
+            "shadow_conditional_nonpush": 0.475484,
+            "shadow_unconditional_win": 0.475484
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.3179,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "2cccfe34f1a12f19c1318e5c70839ab91b04fcee111491c11ec96a889e9b2ec5",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|e491b0b72df0e6f41b1bf7f9c349a136|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 1.4506,
+        "anchored_shift": -0.0494,
+        "away_team": "washington capitals",
+        "baseline_forecast": 0.3605,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "boston bruins",
+        "market": "spreads",
+        "market_reference": 1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "eeea62e46492df32a80a6b28f87d5f9e",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -220,
+            "market_no_vig_conditional": 0.65812,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.665824,
+            "shadow_unconditional_win": 0.665824
+          },
+          "home": {
+            "american_odds": 180,
+            "market_no_vig_conditional": 0.34188,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.334176,
+            "shadow_unconditional_win": 0.334176
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 0.5119,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "a62e78ad81f8df42a480a83e393154720d874c66e441d16df99313a52037a50a",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|eeea62e46492df32a80a6b28f87d5f9e|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.4931,
+        "anchored_shift": -0.0069,
+        "away_team": "washington capitals",
+        "baseline_forecast": 6.4479,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:00:00+00:00",
+        "home_team": "boston bruins",
+        "market": "totals",
+        "market_reference": 6.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "eeea62e46492df32a80a6b28f87d5f9e",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -115,
+            "market_no_vig_conditional": 0.510834,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.509629,
+            "shadow_unconditional_win": 0.509629
+          },
+          "under": {
+            "american_odds": -105,
+            "market_no_vig_conditional": 0.489166,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.490371,
+            "shadow_unconditional_win": 0.490371
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.3622,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "b70afff7403ea82fbef74fe0efc6806f71406fe4888155ea74ceb0101eb859f6",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|eeea62e46492df32a80a6b28f87d5f9e|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 5.2783,
+        "anchored_shift": -0.2217,
+        "away_team": "portland trail blazers",
+        "baseline_forecast": 1.596,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:40:00+00:00",
+        "home_team": "new york knicks",
+        "market": "spreads",
+        "market_reference": 5.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "232f705eea406644ff14ad17bcf9aea6",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -119,
+            "market_no_vig_conditional": 0.518328,
+            "point": 5.5,
+            "shadow_conditional_nonpush": 0.524277,
+            "shadow_unconditional_win": 0.524277
+          },
+          "home": {
+            "american_odds": -102,
+            "market_no_vig_conditional": 0.481672,
+            "point": -5.5,
+            "shadow_conditional_nonpush": 0.475723,
+            "shadow_unconditional_win": 0.475723
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "basketball_nba",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 3.2826,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "7f6fd7e0e1f925dcad8825ca4b5c5742b1b01fa4f430b72bc4e07b2d045dfaa7",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "basketball_nba|232f705eea406644ff14ad17bcf9aea6|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 216.8149,
+        "anchored_shift": 0.3149,
+        "away_team": "portland trail blazers",
+        "baseline_forecast": 223.2551,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T00:40:00+00:00",
+        "home_team": "new york knicks",
+        "market": "totals",
+        "market_reference": 216.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "232f705eea406644ff14ad17bcf9aea6",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -112,
+            "market_no_vig_conditional": 0.50433,
+            "point": 216.5,
+            "shadow_conditional_nonpush": 0.510904,
+            "shadow_unconditional_win": 0.510904
+          },
+          "under": {
+            "american_odds": -108,
+            "market_no_vig_conditional": 0.49567,
+            "point": 216.5,
+            "shadow_conditional_nonpush": 0.489096,
+            "shadow_unconditional_win": 0.489096
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "basketball_nba",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 222.7985,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "bb8508c47ff0f4473e46033216b7485dfb358f00661574d2a9ff2d44b815444e",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "basketball_nba|232f705eea406644ff14ad17bcf9aea6|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 18.3693,
+        "anchored_shift": -0.1307,
+        "away_team": "new orleans pelicans",
+        "baseline_forecast": 11.2015,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T01:10:00+00:00",
+        "home_team": "san antonio spurs",
+        "market": "spreads",
+        "market_reference": 18.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "1139ffb82856378723c5465df4e13d96",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -114,
+            "market_no_vig_conditional": 0.508664,
+            "point": 18.5,
+            "shadow_conditional_nonpush": 0.512169,
+            "shadow_unconditional_win": 0.512169
+          },
+          "home": {
+            "american_odds": -106,
+            "market_no_vig_conditional": 0.491336,
+            "point": -18.5,
+            "shadow_conditional_nonpush": 0.487831,
+            "shadow_unconditional_win": 0.487831
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "basketball_nba",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 17.1934,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "8e5d2bf1b60d23154e2caa8fe290d0899bddefd71d0e74117e95a8d8d095a451",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "basketball_nba|1139ffb82856378723c5465df4e13d96|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 228.8396,
+        "anchored_shift": 0.3396,
+        "away_team": "new orleans pelicans",
+        "baseline_forecast": 237.2224,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T01:10:00+00:00",
+        "home_team": "san antonio spurs",
+        "market": "totals",
+        "market_reference": 228.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "1139ffb82856378723c5465df4e13d96",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -110,
+            "market_no_vig_conditional": 0.5,
+            "point": 228.5,
+            "shadow_conditional_nonpush": 0.507089,
+            "shadow_unconditional_win": 0.507089
+          },
+          "under": {
+            "american_odds": -110,
+            "market_no_vig_conditional": 0.5,
+            "point": 228.5,
+            "shadow_conditional_nonpush": 0.492911,
+            "shadow_unconditional_win": 0.492911
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "basketball_nba",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 235.2918,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "f7e7007842fc99af6ec5fced3d67d1d8a25f42463fa935ed625349e00c44ff20",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "basketball_nba|1139ffb82856378723c5465df4e13d96|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 5.8247,
+        "anchored_shift": 0.3247,
+        "away_team": "los angeles clippers",
+        "baseline_forecast": 5.22,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T01:10:00+00:00",
+        "home_team": "dallas mavericks",
+        "market": "spreads",
+        "market_reference": 5.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "293cafe6913a9bd59328c98049266ad0",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -110,
+            "market_no_vig_conditional": 0.5,
+            "point": 5.5,
+            "shadow_conditional_nonpush": 0.491291,
+            "shadow_unconditional_win": 0.491291
+          },
+          "home": {
+            "american_odds": -110,
+            "market_no_vig_conditional": 0.5,
+            "point": -5.5,
+            "shadow_conditional_nonpush": 0.508709,
+            "shadow_unconditional_win": 0.508709
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "basketball_nba",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 8.7468,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "3f184c8124500fd2de088d1c8adcc7ea507f2eaa2164aa944a42a549c2987d30",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "basketball_nba|293cafe6913a9bd59328c98049266ad0|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 231.4285,
+        "anchored_shift": -0.0715,
+        "away_team": "los angeles clippers",
+        "baseline_forecast": 230.5731,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T01:10:00+00:00",
+        "home_team": "dallas mavericks",
+        "market": "totals",
+        "market_reference": 231.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "293cafe6913a9bd59328c98049266ad0",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -105,
+            "market_no_vig_conditional": 0.489166,
+            "point": 231.5,
+            "shadow_conditional_nonpush": 0.487672,
+            "shadow_unconditional_win": 0.487672
+          },
+          "under": {
+            "american_odds": -115,
+            "market_no_vig_conditional": 0.510834,
+            "point": 231.5,
+            "shadow_conditional_nonpush": 0.512328,
+            "shadow_unconditional_win": 0.512328
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "basketball_nba",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 230.0694,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "6a659fcd23289f33e57de7baacf8223674baf19c38a0a0a94976f03f1832d359",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "basketball_nba|293cafe6913a9bd59328c98049266ad0|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.7762,
+        "anchored_shift": 0.2762,
+        "away_team": "memphis grizzlies",
+        "baseline_forecast": 5.0012,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T01:10:00+00:00",
+        "home_team": "minnesota timberwolves",
+        "market": "spreads",
+        "market_reference": 6.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "37e3f99d7ee68587400e99e417db0e6a",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -112,
+            "market_no_vig_conditional": 0.50433,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.49692,
+            "shadow_unconditional_win": 0.49692
+          },
+          "home": {
+            "american_odds": -108,
+            "market_no_vig_conditional": 0.49567,
+            "point": -6.5,
+            "shadow_conditional_nonpush": 0.50308,
+            "shadow_unconditional_win": 0.50308
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "basketball_nba",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 9.2622,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "61d92d1513cfe2211c9158bcfdcaa292e8b12deda3e3c3478423506916cc9a96",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "basketball_nba|37e3f99d7ee68587400e99e417db0e6a|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 228.6198,
+        "anchored_shift": 0.1198,
+        "away_team": "memphis grizzlies",
+        "baseline_forecast": 231.2507,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T01:10:00+00:00",
+        "home_team": "minnesota timberwolves",
+        "market": "totals",
+        "market_reference": 228.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "37e3f99d7ee68587400e99e417db0e6a",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -107,
+            "market_no_vig_conditional": 0.493504,
+            "point": 228.5,
+            "shadow_conditional_nonpush": 0.496004,
+            "shadow_unconditional_win": 0.496004
+          },
+          "under": {
+            "american_odds": -113,
+            "market_no_vig_conditional": 0.506496,
+            "point": 228.5,
+            "shadow_conditional_nonpush": 0.503996,
+            "shadow_unconditional_win": 0.503996
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "basketball_nba",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 230.8951,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "8e4f32bb06a3dc998e558f0330286f19aa1708e58fbcf37cec37217cd302c084",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "basketball_nba|37e3f99d7ee68587400e99e417db0e6a|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 1.4131,
+        "anchored_shift": -0.0869,
+        "away_team": "anaheim ducks",
+        "baseline_forecast": -0.572,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T02:00:00+00:00",
+        "home_team": "utah mammoth",
+        "market": "spreads",
+        "market_reference": 1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "2c807988a077495f0a1349ddd3ab6936",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -160,
+            "market_no_vig_conditional": 0.591195,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.60474,
+            "shadow_unconditional_win": 0.60474
+          },
+          "home": {
+            "american_odds": 135,
+            "market_no_vig_conditional": 0.408805,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.39526,
+            "shadow_unconditional_win": 0.39526
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": -0.2373,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "be85126a6f9c157dad725773d430182b7dd8b578d2fefd7ba7f9106d07ae17fd",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|2c807988a077495f0a1349ddd3ab6936|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.9899,
+        "anchored_shift": -0.0101,
+        "away_team": "anaheim ducks",
+        "baseline_forecast": 7.6722,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T02:00:00+00:00",
+        "home_team": "utah mammoth",
+        "market": "totals",
+        "market_reference": 7.0,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "2c807988a077495f0a1349ddd3ab6936",
+        "push_probability_status": "NOT_ESTIMATED",
+        "selections": {
+          "over": {
+            "american_odds": 110,
+            "market_no_vig_conditional": 0.45323,
+            "point": 7.0,
+            "shadow_conditional_nonpush": 0.451461,
+            "shadow_unconditional_win": null
+          },
+          "under": {
+            "american_odds": -135,
+            "market_no_vig_conditional": 0.54677,
+            "point": 7.0,
+            "shadow_conditional_nonpush": 0.548539,
+            "shadow_unconditional_win": null
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.7976,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "2cf358f7ecedbb10da26a275dbf5358995371f504cbcaa16686f37b42293faa3",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|2c807988a077495f0a1349ddd3ab6936|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 1.4412,
+        "anchored_shift": -0.0588,
+        "away_team": "seattle kraken",
+        "baseline_forecast": 0.0832,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T03:00:00+00:00",
+        "home_team": "san jose sharks",
+        "market": "spreads",
+        "market_reference": 1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "133b6fa32f89f05a14d7146ee5070a83",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -235,
+            "market_no_vig_conditional": 0.670438,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.679605,
+            "shadow_unconditional_win": 0.679605
+          },
+          "home": {
+            "american_odds": 190,
+            "market_no_vig_conditional": 0.329562,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.320395,
+            "shadow_unconditional_win": 0.320395
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 0.3243,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "b8b0500e3f656291a7980623c51bd5cf61fd570747ee348561c30431b367eb80",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|133b6fa32f89f05a14d7146ee5070a83|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.4881,
+        "anchored_shift": -0.0119,
+        "away_team": "seattle kraken",
+        "baseline_forecast": 6.1047,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T03:00:00+00:00",
+        "home_team": "san jose sharks",
+        "market": "totals",
+        "market_reference": 6.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "133b6fa32f89f05a14d7146ee5070a83",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -105,
+            "market_no_vig_conditional": 0.489166,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.487081,
+            "shadow_unconditional_win": 0.487081
+          },
+          "under": {
+            "american_odds": -115,
+            "market_no_vig_conditional": 0.510834,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.512919,
+            "shadow_unconditional_win": 0.512919
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.2616,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "d42ba4d1171a6e6a76ada7ec845d29c17664902357a5785bdfdd228f6f209c79",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|133b6fa32f89f05a14d7146ee5070a83|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": -1.4695,
+        "anchored_shift": 0.0305,
+        "away_team": "minnesota wild",
+        "baseline_forecast": -1.3914,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T03:00:00+00:00",
+        "home_team": "vancouver canucks",
+        "market": "spreads",
+        "market_reference": -1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "3e00ca5a69a2b305ed1f78590d590c7e",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -130,
+            "market_no_vig_conditional": 0.536757,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.532004,
+            "shadow_unconditional_win": 0.532004
+          },
+          "home": {
+            "american_odds": 105,
+            "market_no_vig_conditional": 0.463243,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.467996,
+            "shadow_unconditional_win": 0.467996
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": -0.8904,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "b29d56d5b576e0f22b04204b9483784208907da3e9c27acf467e21d6812e436a",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|3e00ca5a69a2b305ed1f78590d590c7e|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.4849,
+        "anchored_shift": -0.0151,
+        "away_team": "minnesota wild",
+        "baseline_forecast": 6.1941,
+        "bookmaker": "betmgm",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T03:00:00+00:00",
+        "home_team": "vancouver canucks",
+        "market": "totals",
+        "market_reference": 6.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "3e00ca5a69a2b305ed1f78590d590c7e",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -105,
+            "market_no_vig_conditional": 0.489166,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.486533,
+            "shadow_unconditional_win": 0.486533
+          },
+          "under": {
+            "american_odds": -115,
+            "market_no_vig_conditional": 0.510834,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.513467,
+            "shadow_unconditional_win": 0.513467
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "icehockey_nhl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 6.199,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "bb3c43c808f247a69ef51ef034a55dee80f320b87d56dce876812726d851dafc",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "icehockey_nhl|3e00ca5a69a2b305ed1f78590d590c7e|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": -13.4672,
+        "anchored_shift": 0.0328,
+        "away_team": "boston celtics",
+        "baseline_forecast": -11.7928,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T03:10:00+00:00",
+        "home_team": "sacramento kings",
+        "market": "spreads",
+        "market_reference": -13.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "b754a1bf84af81d45d4a3a16398daa44",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -107,
+            "market_no_vig_conditional": 0.493504,
+            "point": -13.5,
+            "shadow_conditional_nonpush": 0.492624,
+            "shadow_unconditional_win": 0.492624
+          },
+          "home": {
+            "american_odds": -113,
+            "market_no_vig_conditional": 0.506496,
+            "point": 13.5,
+            "shadow_conditional_nonpush": 0.507376,
+            "shadow_unconditional_win": 0.507376
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "basketball_nba",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": -13.172,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "dfb0486f49431ffc63fe22a3cca9fce71e1f6af85f9286430f6baff3d29ec383",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "basketball_nba|b754a1bf84af81d45d4a3a16398daa44|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 217.8328,
+        "anchored_shift": 0.3328,
+        "away_team": "boston celtics",
+        "baseline_forecast": 222.1728,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-22T03:10:00+00:00",
+        "home_team": "sacramento kings",
+        "market": "totals",
+        "market_reference": 217.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "b754a1bf84af81d45d4a3a16398daa44",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -108,
+            "market_no_vig_conditional": 0.49567,
+            "point": 217.5,
+            "shadow_conditional_nonpush": 0.502617,
+            "shadow_unconditional_win": 0.502617
+          },
+          "under": {
+            "american_odds": -112,
+            "market_no_vig_conditional": 0.50433,
+            "point": 217.5,
+            "shadow_conditional_nonpush": 0.497383,
+            "shadow_unconditional_win": 0.497383
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "basketball_nba",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 224.1551,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "fe991b0358315ac29ccbe76e6acab501f337ffcec0163b0c5990c1d19b899f78",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "basketball_nba|b754a1bf84af81d45d4a3a16398daa44|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
       "first_recorded_at": "2026-11-20T04:54:19.433946+00:00",
       "forecast": {
         "abstain_reason": null,
@@ -16906,8 +18826,104 @@
       "grade_sha256": null,
       "key": "americanfootball_nfl|60e1d27b083a335b722c2c852ea85612|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": -5.9007,
+        "anchored_shift": 0.0993,
+        "away_team": "cincinnati bengals",
+        "baseline_forecast": -5.0668,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-24T01:15:00+00:00",
+        "home_team": "washington commanders",
+        "market": "spreads",
+        "market_reference": -6.0,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "3a60ed1d20004aa4d4772b2c1a2272e7",
+        "push_probability_status": "NOT_ESTIMATED",
+        "selections": {
+          "away": {
+            "american_odds": -115,
+            "market_no_vig_conditional": 0.510834,
+            "point": -6.0,
+            "shadow_conditional_nonpush": 0.507843,
+            "shadow_unconditional_win": null
+          },
+          "home": {
+            "american_odds": -105,
+            "market_no_vig_conditional": 0.489166,
+            "point": 6.0,
+            "shadow_conditional_nonpush": 0.492157,
+            "shadow_unconditional_win": null
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": -5.0073,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "aecbeac2f46a98e2a9fee40388b11c941d37bf7f3dbaf069275ab3a44d7cbcc9",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|3a60ed1d20004aa4d4772b2c1a2272e7|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-21T16:39:58.017129+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 53.1453,
+        "anchored_shift": -0.3547,
+        "away_team": "cincinnati bengals",
+        "baseline_forecast": 50.0188,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-24T01:15:00+00:00",
+        "home_team": "washington commanders",
+        "market": "totals",
+        "market_reference": 53.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "3a60ed1d20004aa4d4772b2c1a2272e7",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -116,
+            "market_no_vig_conditional": 0.514193,
+            "point": 53.5,
+            "shadow_conditional_nonpush": 0.50357,
+            "shadow_unconditional_win": 0.50357
+          },
+          "under": {
+            "american_odds": -103,
+            "market_no_vig_conditional": 0.485807,
+            "point": 53.5,
+            "shadow_conditional_nonpush": 0.49643,
+            "shadow_unconditional_win": 0.49643
+          }
+        },
+        "source_quote_captured_at": "2026-11-21T14:48:05.734390+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-21T16:39:58.017129+00:00",
+        "source_report_generated_at": "2026-11-21T16:39:58.637514+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 46.4054,
+        "training_latest_eligible_start": "2026-11-20T14:48:05.734390+00:00"
+      },
+      "forecast_sha256": "2861ceda0dc6cdd63d59422aeb3e3f719e6a9ed74e6cb23936d43849e58a8371",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|3a60ed1d20004aa4d4772b2c1a2272e7|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
     }
   ],
   "schema_version": 1,
-  "updated_at": "2026-11-21T04:50:58.985063+00:00"
+  "updated_at": "2026-11-21T16:39:58.017129+00:00"
 }

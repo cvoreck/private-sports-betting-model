@@ -1,45 +1,46 @@
 {
   "accuracy_comparisons_exclude_abstentions": true,
   "candidate_screening": {
-    "stale_or_late_snapshot": 22,
-    "valid_capture_candidates": 18
+    "stale_or_late_snapshot": 24,
+    "valid_capture_candidates": 0
   },
   "capture_this_run": {
     "already_frozen": 0,
     "duplicate_matchup_filtered": 0,
-    "new": 18
+    "new": 0
   },
   "capture_window_hours_before_start": 72,
   "database_writes": 0,
   "evaluation_mode": "IMMUTABLE_PROSPECTIVE_SHADOW_GRADING",
   "first_capture_per_sport_event_market_version": true,
-  "generated_at": "2026-11-20T16:53:40.984899+00:00",
+  "generated_at": "2026-11-21T04:50:58.985063+00:00",
   "github_branch_write": true,
   "grading_database_read_counts": {
     "americanfootball_nfl": {
-      "espn_snapshot_candidates": 13,
+      "espn_snapshot_candidates": 14,
       "rows": 0,
-      "snapshot_finals_added": 13,
-      "windows": 1
+      "snapshot_finals_added": 14,
+      "windows": 2
     },
     "basketball_nba": {
       "espn_snapshot_candidates": 56,
       "rows": 0,
-      "snapshot_finals_added": 48,
+      "snapshot_finals_added": 52,
       "windows": 1
     },
     "icehockey_nhl": {
       "espn_snapshot_candidates": 60,
       "rows": 0,
-      "snapshot_finals_added": 37,
+      "snapshot_finals_added": 49,
       "windows": 1
     }
   },
   "grading_this_run": {
     "counts": {
       "already_graded": 196,
-      "awaiting_result_lag": 74,
-      "later_quote_observed": 4
+      "awaiting_result_lag": 40,
+      "later_quote_observed": 6,
+      "newly_graded": 34
     },
     "pending_reasons": {}
   },
@@ -64,8 +65,8 @@
   "publisher_changed": false,
   "read_only_database": true,
   "real_bets_selected": 0,
-  "records_graded": 196,
-  "records_pending": 74,
+  "records_graded": 230,
+  "records_pending": 40,
   "records_total": 270,
   "returns_or_ev_reported": false,
   "sports": {
@@ -75,9 +76,9 @@
         "calibration_bins": [
           {
             "bin": 4,
-            "mean_shadow_probability": 0.4909,
-            "n": 7,
-            "observed_rate": 0.1429
+            "mean_shadow_probability": 0.4913,
+            "n": 8,
+            "observed_rate": 0.25
           },
           {
             "bin": 5,
@@ -87,31 +88,31 @@
           }
         ],
         "captured": 25,
-        "graded": 13,
-        "graded_non_abstained": 13,
-        "line_movement_sample": 1,
+        "graded": 14,
+        "graded_non_abstained": 14,
+        "line_movement_sample": 2,
         "mean_absolute_error": {
-          "anchored": 10.969,
-          "baseline": 10.9428,
-          "market": 10.9615,
-          "trained": 11.2824
+          "anchored": 11.0828,
+          "baseline": 11.2975,
+          "market": 11.0714,
+          "trained": 11.4146
         },
-        "mean_later_observed_line_shift": 0.0,
+        "mean_later_observed_line_shift": 1.0,
         "nonpush_conditional_brier": {
-          "market_no_vig": 0.24891,
-          "shadow_heuristic": 0.24924
+          "market_no_vig": 0.249299,
+          "shadow_heuristic": 0.249743
         },
-        "nonpush_sample": 13,
-        "pending": 12
+        "nonpush_sample": 14,
+        "pending": 11
       },
       "totals": {
         "abstained": 0,
         "calibration_bins": [
           {
             "bin": 4,
-            "mean_shadow_probability": 0.4933,
-            "n": 4,
-            "observed_rate": 0.75
+            "mean_shadow_probability": 0.4939,
+            "n": 5,
+            "observed_rate": 0.6
           },
           {
             "bin": 5,
@@ -121,22 +122,22 @@
           }
         ],
         "captured": 25,
-        "graded": 13,
-        "graded_non_abstained": 13,
-        "line_movement_sample": 1,
+        "graded": 14,
+        "graded_non_abstained": 14,
+        "line_movement_sample": 2,
         "mean_absolute_error": {
-          "anchored": 8.3495,
-          "baseline": 7.5938,
-          "market": 8.4231,
-          "trained": 7.8819
+          "anchored": 8.8772,
+          "baseline": 8.4316,
+          "market": 8.9286,
+          "trained": 8.7658
         },
-        "mean_later_observed_line_shift": 1.0,
+        "mean_later_observed_line_shift": 0.0,
         "nonpush_conditional_brier": {
-          "market_no_vig": 0.253161,
-          "shadow_heuristic": 0.250966
+          "market_no_vig": 0.25217,
+          "shadow_heuristic": 0.250633
         },
-        "nonpush_sample": 13,
-        "pending": 12
+        "nonpush_sample": 14,
+        "pending": 11
       }
     },
     "basketball_nba": {
@@ -145,34 +146,34 @@
         "calibration_bins": [
           {
             "bin": 4,
-            "mean_shadow_probability": 0.4888,
-            "n": 26,
-            "observed_rate": 0.4615
+            "mean_shadow_probability": 0.4883,
+            "n": 28,
+            "observed_rate": 0.4643
           },
           {
             "bin": 5,
-            "mean_shadow_probability": 0.5141,
-            "n": 22,
-            "observed_rate": 0.4091
+            "mean_shadow_probability": 0.5142,
+            "n": 24,
+            "observed_rate": 0.4167
           }
         ],
         "captured": 61,
-        "graded": 48,
-        "graded_non_abstained": 48,
+        "graded": 52,
+        "graded_non_abstained": 52,
         "line_movement_sample": 0,
         "mean_absolute_error": {
-          "anchored": 12.2431,
-          "baseline": 12.2771,
-          "market": 12.1875,
-          "trained": 12.8556
+          "anchored": 11.8431,
+          "baseline": 12.0793,
+          "market": 11.7692,
+          "trained": 12.611
         },
         "mean_later_observed_line_shift": null,
         "nonpush_conditional_brier": {
-          "market_no_vig": 0.250454,
-          "shadow_heuristic": 0.252051
+          "market_no_vig": 0.250779,
+          "shadow_heuristic": 0.2527
         },
-        "nonpush_sample": 48,
-        "pending": 13
+        "nonpush_sample": 52,
+        "pending": 9
       },
       "totals": {
         "abstained": 0,
@@ -185,28 +186,28 @@
           },
           {
             "bin": 5,
-            "mean_shadow_probability": 0.5094,
-            "n": 27,
-            "observed_rate": 0.5185
+            "mean_shadow_probability": 0.5093,
+            "n": 31,
+            "observed_rate": 0.5161
           }
         ],
         "captured": 61,
-        "graded": 48,
-        "graded_non_abstained": 48,
+        "graded": 52,
+        "graded_non_abstained": 52,
         "line_movement_sample": 0,
         "mean_absolute_error": {
-          "anchored": 13.7539,
-          "baseline": 14.5765,
-          "market": 13.75,
-          "trained": 14.6189
+          "anchored": 13.4514,
+          "baseline": 14.2879,
+          "market": 13.4423,
+          "trained": 14.3548
         },
         "mean_later_observed_line_shift": null,
         "nonpush_conditional_brier": {
-          "market_no_vig": 0.249617,
-          "shadow_heuristic": 0.249736
+          "market_no_vig": 0.249359,
+          "shadow_heuristic": 0.249587
         },
-        "nonpush_sample": 48,
-        "pending": 13
+        "nonpush_sample": 52,
+        "pending": 9
       }
     },
     "icehockey_nhl": {
@@ -215,33 +216,33 @@
         "calibration_bins": [
           {
             "bin": 2,
-            "mean_shadow_probability": 0.2835,
-            "n": 2,
-            "observed_rate": 1.0
+            "mean_shadow_probability": 0.2843,
+            "n": 5,
+            "observed_rate": 0.4
           },
           {
             "bin": 3,
-            "mean_shadow_probability": 0.3413,
-            "n": 16,
-            "observed_rate": 0.3125
+            "mean_shadow_probability": 0.3429,
+            "n": 22,
+            "observed_rate": 0.3636
           },
           {
             "bin": 4,
-            "mean_shadow_probability": 0.4385,
+            "mean_shadow_probability": 0.4504,
+            "n": 5,
+            "observed_rate": 0.2
+          },
+          {
+            "bin": 5,
+            "mean_shadow_probability": 0.5383,
             "n": 4,
             "observed_rate": 0.25
           },
           {
-            "bin": 5,
-            "mean_shadow_probability": 0.5305,
-            "n": 3,
-            "observed_rate": 0.3333
-          },
-          {
             "bin": 6,
-            "mean_shadow_probability": 0.6539,
-            "n": 9,
-            "observed_rate": 0.6667
+            "mean_shadow_probability": 0.653,
+            "n": 10,
+            "observed_rate": 0.6
           },
           {
             "bin": 7,
@@ -251,56 +252,56 @@
           }
         ],
         "captured": 49,
-        "graded": 37,
-        "graded_non_abstained": 37,
+        "graded": 49,
+        "graded_non_abstained": 49,
         "line_movement_sample": 1,
         "mean_absolute_error": {
-          "anchored": 2.4416,
-          "baseline": 2.4009,
-          "market": 2.4459,
-          "trained": 2.4868
+          "anchored": 2.3922,
+          "baseline": 2.3168,
+          "market": 2.398,
+          "trained": 2.4078
         },
         "mean_later_observed_line_shift": 0.0,
         "nonpush_conditional_brier": {
-          "market_no_vig": 0.26087,
-          "shadow_heuristic": 0.26306
+          "market_no_vig": 0.254698,
+          "shadow_heuristic": 0.256652
         },
-        "nonpush_sample": 37,
-        "pending": 12
+        "nonpush_sample": 49,
+        "pending": 0
       },
       "totals": {
         "abstained": 0,
         "calibration_bins": [
           {
             "bin": 4,
-            "mean_shadow_probability": 0.4752,
-            "n": 18,
-            "observed_rate": 0.4444
+            "mean_shadow_probability": 0.4721,
+            "n": 23,
+            "observed_rate": 0.4783
           },
           {
             "bin": 5,
-            "mean_shadow_probability": 0.5331,
-            "n": 19,
-            "observed_rate": 0.5263
+            "mean_shadow_probability": 0.5321,
+            "n": 26,
+            "observed_rate": 0.5385
           }
         ],
         "captured": 49,
-        "graded": 37,
-        "graded_non_abstained": 37,
+        "graded": 49,
+        "graded_non_abstained": 49,
         "line_movement_sample": 1,
         "mean_absolute_error": {
-          "anchored": 2.1052,
-          "baseline": 2.0493,
-          "market": 2.1081,
-          "trained": 2.0547
+          "anchored": 2.036,
+          "baseline": 1.9371,
+          "market": 2.0408,
+          "trained": 1.9546
         },
         "mean_later_observed_line_shift": 0.0,
         "nonpush_conditional_brier": {
-          "market_no_vig": 0.247517,
-          "shadow_heuristic": 0.247205
+          "market_no_vig": 0.247751,
+          "shadow_heuristic": 0.247094
         },
-        "nonpush_sample": 37,
-        "pending": 12
+        "nonpush_sample": 49,
+        "pending": 0
       }
     }
   },

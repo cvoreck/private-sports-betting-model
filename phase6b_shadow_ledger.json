@@ -12808,8 +12808,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "eafbb64cfe6b93f483cd653b37b441599fd70fa79fe05faef8ddf58e17a442a1",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 2.4597,
+          "baseline": 1.7116,
+          "market": 2.5,
+          "trained": 1.6942
+        },
+        "actual_value": -1.0,
+        "away_score": 2,
+        "canonical_played_at": "2026-11-20T00:00:00+00:00",
+        "final_event_id": "401892747",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 1,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "7ccbe2ecc740f2a0a9250a41734e9f2782b5146d2c438b045dd4f82710e33b31",
       "key": "icehockey_nhl|3449054d3b59c2c7fc8cf914dbd45ea6|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -12856,8 +12873,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "4cfb5f8a44cb1ade914845319d2f0bb8bbd4b181876c21b62e1fdded3c278e6b",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 3.4855,
+          "baseline": 3.3411,
+          "market": 3.5,
+          "trained": 3.2095
+        },
+        "actual_value": 3.0,
+        "away_score": 2,
+        "canonical_played_at": "2026-11-20T00:00:00+00:00",
+        "final_event_id": "401892747",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 1,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "621825215ed333e567b443e153444648c079f07291719aa6fac61186e5037729",
       "key": "icehockey_nhl|3449054d3b59c2c7fc8cf914dbd45ea6|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -12904,8 +12938,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "b7f6e0bea5d02432430a896133c1adcda193d81c96e28b97509e534045567012",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 0.4405,
+          "baseline": 0.7791,
+          "market": 0.5,
+          "trained": 0.6895
+        },
+        "actual_value": 1.0,
+        "away_score": 3,
+        "canonical_played_at": "2026-11-20T00:00:00+00:00",
+        "final_event_id": "401892749",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 4,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "59a012fd5886be6bdd239e74bec4724f0561965d2edd977524e6f8234fa23233",
       "key": "icehockey_nhl|6675090a33dca8b7f340ea6375fb84e9|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -12952,8 +13003,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "316f05bf3453176b160da97432507c8b1868e47c6f05f339bc62ae9d75a21087",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 0.507,
+          "baseline": 0.2692,
+          "market": 0.5,
+          "trained": 0.6404
+        },
+        "actual_value": 7.0,
+        "away_score": 3,
+        "canonical_played_at": "2026-11-20T00:00:00+00:00",
+        "final_event_id": "401892749",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 4,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "bcb950efcbd74ceb87051d41db89bf11e14707a25e12cdc8247fbc811ded0154",
       "key": "icehockey_nhl|6675090a33dca8b7f340ea6375fb84e9|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13000,8 +13068,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "babf645b02d212bba4027941fd62db99a5657e233a5dbd54128661694d31e6ed",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 4.4495,
+          "baseline": 3.3944,
+          "market": 4.5,
+          "trained": 3.4898
+        },
+        "actual_value": -3.0,
+        "away_score": 6,
+        "canonical_played_at": "2026-11-20T00:00:00+00:00",
+        "final_event_id": "401892746",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 3,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "bd30d31c264f141e1dd315fddd870fe77c6f1365f24ae77a27bfba4544c6567a",
       "key": "icehockey_nhl|6e1de7988dd0c9689abb85f6b8399336|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13048,8 +13133,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "144e3272aa6a96ed622b1b15464ecabecb9242f47e16eb5125df8168b1316efa",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 2.5059,
+          "baseline": 2.2614,
+          "market": 2.5,
+          "trained": 2.618
+        },
+        "actual_value": 9.0,
+        "away_score": 6,
+        "canonical_played_at": "2026-11-20T00:00:00+00:00",
+        "final_event_id": "401892746",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 3,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "c0222863cdd89af22599688af6b9333e6523d7965ab54927973d241799ab82b8",
       "key": "icehockey_nhl|6e1de7988dd0c9689abb85f6b8399336|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13096,8 +13198,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "2880e762a70cdbaf1ba0b83abc7886822a057b454a3587ad4b23c38038adf2ba",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 2.407,
+          "baseline": 0.271,
+          "market": 2.5,
+          "trained": 0.641
+        },
+        "actual_value": -1.0,
+        "away_score": 4,
+        "canonical_played_at": "2026-11-20T00:00:00+00:00",
+        "final_event_id": "401892742",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 3,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "80301025920020ce5b0d808e63439b2c05d951859e81a9574639c75acc2e530a",
       "key": "icehockey_nhl|7bca03cc186cb70bd12d060ededa8842|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13144,8 +13263,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "aac641d56848a18a91a587fc7b5f13ba0fd225060b66d7b0dd5b375950ecf62e",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 0.5082,
+          "baseline": 0.3836,
+          "market": 0.5,
+          "trained": 0.6637
+        },
+        "actual_value": 7.0,
+        "away_score": 4,
+        "canonical_played_at": "2026-11-20T00:00:00+00:00",
+        "final_event_id": "401892742",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 3,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "7867072e21d2e43aff8cc8f0ecd05b04a5583f2c870ca83484c205c4dedf6dff",
       "key": "icehockey_nhl|7bca03cc186cb70bd12d060ededa8842|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13192,8 +13328,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "a5b2295cc260c8e6868a5c5a1022d541f6e375f2a4f5381f0f2f71d31a49e23a",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 2.4445,
+          "baseline": 1.2418,
+          "market": 2.5,
+          "trained": 1.3908
+        },
+        "actual_value": -1.0,
+        "away_score": 6,
+        "canonical_played_at": "2026-11-20T00:00:00+00:00",
+        "final_event_id": "401892743",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 5,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "e4bdd9ef8ef24a56a1a6de7f3d19fe1c508323813bbbc4c61e12f4557dcb668c",
       "key": "icehockey_nhl|84d6f3a55d9aac25cd001f3d94aab44b|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13240,8 +13393,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "dfaddf9b7b49ac2c910ccca7670e76e17a268bce5846977bd89d00a90ddc11cc",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 5.4607,
+          "baseline": 4.6436,
+          "market": 5.5,
+          "trained": 4.7141
+        },
+        "actual_value": 11.0,
+        "away_score": 6,
+        "canonical_played_at": "2026-11-20T00:00:00+00:00",
+        "final_event_id": "401892743",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 5,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "3d060004454c6f6d328ed755143b96a304ac9fdb9644f9cb8fa346f14b8894b1",
       "key": "icehockey_nhl|84d6f3a55d9aac25cd001f3d94aab44b|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13288,8 +13458,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "a18d5c2968cb1c62db856f82263519f75adbd19f51aa10df92ac8bef08db57ab",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 4.4261,
+          "baseline": 2.8124,
+          "market": 4.5,
+          "trained": 3.0227
+        },
+        "actual_value": -3.0,
+        "away_score": 5,
+        "canonical_played_at": "2026-11-20T00:00:00+00:00",
+        "final_event_id": "401892745",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 2,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "49c529a700b606840212887c359172f112bbd09ce7fa412283c054f32531edfa",
       "key": "icehockey_nhl|8cd65f19317595a31a8e98aee88027a5|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13336,8 +13523,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "7e2aa771d7a5510cfdc1042dfee308d075bc251d6c8575890e2eefc01ccd2a34",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 0.5085,
+          "baseline": 0.4426,
+          "market": 0.5,
+          "trained": 0.6702
+        },
+        "actual_value": 7.0,
+        "away_score": 5,
+        "canonical_played_at": "2026-11-20T00:00:00+00:00",
+        "final_event_id": "401892745",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 2,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "679714f4e877375e39e921bbd86744bfd86988474c0017eb17bfa5eafc3dca2c",
       "key": "icehockey_nhl|8cd65f19317595a31a8e98aee88027a5|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13384,8 +13588,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "406d55e2c115468b3a83c153c00efb512ff38ec7e4eb7e04f832e8d38eec40c9",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 0.575,
+          "baseline": 2.2049,
+          "market": 0.5,
+          "trained": 1.9991
+        },
+        "actual_value": 2.0,
+        "away_score": 1,
+        "canonical_played_at": "2026-11-20T00:30:00+00:00",
+        "final_event_id": "401892744",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 3,
+        "side_results": {
+          "away": "L",
+          "home": "W"
+        }
+      },
+      "grade_sha256": "d1324121da86b12ba72a83579ee68950cf2810b6456350248630feccbc22733c",
       "key": "icehockey_nhl|147b0b6f883cce916d06b7aaa9b9594c|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13432,8 +13653,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "15233bce71b252d9d50025e83c4c3e408699929d9071297ead7c3c0e05c3c109",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 2.4931,
+          "baseline": 2.6835,
+          "market": 2.5,
+          "trained": 2.3628
+        },
+        "actual_value": 4.0,
+        "away_score": 1,
+        "canonical_played_at": "2026-11-20T00:30:00+00:00",
+        "final_event_id": "401892744",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 3,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "dd6dbd1ad8955916fa5c615e83117f7fe0ac67a1b88d0b4c086b7c06a91fc44e",
       "key": "icehockey_nhl|147b0b6f883cce916d06b7aaa9b9594c|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13480,8 +13718,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "295be72dea87710f8383269dd2433dba2ab3f5620625f907add397e9b0ddcd30",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 0.5621,
+          "baseline": 0.3874,
+          "market": 0.5,
+          "trained": 1.1212
+        },
+        "actual_value": -10.0,
+        "away_score": 124,
+        "canonical_played_at": "2026-11-20T01:00:00+00:00",
+        "final_event_id": "401910020",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 114,
+        "side_results": {
+          "away": "L",
+          "home": "W"
+        }
+      },
+      "grade_sha256": "259d740aa916d2ce9bd53a5a319422c4cd39617584ea99be9bd691cd2d6d6422",
       "key": "basketball_nba|006df00e5e48650d849d1bb4cd81565d|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13528,8 +13783,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "c1f966ed8a0e3bcc5ae3a127e185360503120948a9e1e67268335bf7fb3d3e2f",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 9.4768,
+          "baseline": 9.6805,
+          "market": 9.5,
+          "trained": 9.035
+        },
+        "actual_value": 238.0,
+        "away_score": 124,
+        "canonical_played_at": "2026-11-20T01:00:00+00:00",
+        "final_event_id": "401910020",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 114,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "accc0fc4eb048ddc7f32df24b4807c5f47bd0e10e46aad07ed06e8672b387522",
       "key": "basketball_nba|006df00e5e48650d849d1bb4cd81565d|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13576,8 +13848,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "46f3fdf7f428bb2304e8a25256fe6c29bc47c882d25cf473e05b99c4033400f8",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 3.17,
+          "baseline": 3.0525,
+          "market": 3.5,
+          "trained": 0.1999
+        },
+        "actual_value": 12.0,
+        "away_score": 112,
+        "canonical_played_at": "2026-11-20T01:00:00+00:00",
+        "final_event_id": "401910022",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 124,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "0f78bc0b14db5b2c09a7a90464adc698a1a99447f9c0b3dc39d57340d9f127ae",
       "key": "basketball_nba|20fa5e2d73cec494c113790161a89aec|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13624,8 +13913,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "179c81dfac58eef64474d107f659afc76d85d67206a0a41996104f8f02989416",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 11.1989,
+          "baseline": 4.9229,
+          "market": 11.5,
+          "trained": 5.4788
+        },
+        "actual_value": 236.0,
+        "away_score": 112,
+        "canonical_played_at": "2026-11-20T01:00:00+00:00",
+        "final_event_id": "401910022",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 124,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "852b7ead52852cba58f664f683c28e368879c78ab5ca8060c89953d79fd8bb5f",
       "key": "basketball_nba|20fa5e2d73cec494c113790161a89aec|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13672,8 +13978,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "f9fe2511ecc0de4eab0a70f9a6dc575854cb0a1f8a4f5a1d8ef4c5d6931c826e",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 22.592,
+          "baseline": 32.7181,
+          "market": 21.5,
+          "trained": 32.4205
+        },
+        "actual_value": 28.0,
+        "away_score": 98,
+        "canonical_played_at": "2026-11-20T01:00:00+00:00",
+        "final_event_id": "401910019",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 126,
+        "side_results": {
+          "away": "L",
+          "home": "W"
+        }
+      },
+      "grade_sha256": "da7b4c452a71a65d33e3d1ac035c4a21f4e06db664a788f84f12f1e7bf6bfdd2",
       "key": "basketball_nba|3c082b72aa002131c276ff5e24bada1b|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13720,8 +14043,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "fa367e263c2301c85ab9bb49fa3488657a737b79a198877759fbc6ede3b8f545",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 2.7926,
+          "baseline": 7.6498,
+          "market": 2.5,
+          "trained": 8.3526
+        },
+        "actual_value": 224.0,
+        "away_score": 98,
+        "canonical_played_at": "2026-11-20T01:00:00+00:00",
+        "final_event_id": "401910019",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 126,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "df7321f6ee0a6eaee847e791a4fd42b058eed66f187c3f5640075d346bc7057d",
       "key": "basketball_nba|3c082b72aa002131c276ff5e24bada1b|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13768,8 +14108,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "b87ab8e6e5bcd179c77a062ce91c750bdd2f03d518faf1038f7863aaeadd658a",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 1.8457,
+          "baseline": 2.6633,
+          "market": 1.5,
+          "trained": 4.9575
+        },
+        "actual_value": -3.0,
+        "away_score": 102,
+        "canonical_played_at": "2026-11-20T01:00:00+00:00",
+        "final_event_id": "401910021",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 99,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "cb7983b41ecb352005c041a5a66db50515d284ffecfc57aab93d2ae5f9e64d4c",
       "key": "basketball_nba|5ee4efd00c1daaebd8249ff44fd6ac9d|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13816,8 +14173,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "47e689aaa737234630e0464ab1fcf3a6239ba97a01f738d11ea17df2cea836cf",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 15.8188,
+          "baseline": 21.0451,
+          "market": 15.5,
+          "trained": 21.8753
+        },
+        "actual_value": 201.0,
+        "away_score": 102,
+        "canonical_played_at": "2026-11-20T01:00:00+00:00",
+        "final_event_id": "401910021",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 99,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "9d8a62571e24cc5f12aee3e3829f8a660f57c46eeb6f4492e2fe3df82e74af27",
       "key": "basketball_nba|5ee4efd00c1daaebd8249ff44fd6ac9d|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13864,8 +14238,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "14c9011ec9229317e23a55a518c7ebdf379be0243b57a1ed7d3ec544f601beb4",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 1.5657,
+          "baseline": 2.3592,
+          "market": 1.5,
+          "trained": 2.8143
+        },
+        "actual_value": -3.0,
+        "away_score": 4,
+        "canonical_played_at": "2026-11-20T01:00:00+00:00",
+        "final_event_id": "401892750",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 1,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "e5ffb2b65aeda6f55dbf7751cc175bf50dda3d24946c05c0ed3030d2f0dbbf21",
       "key": "icehockey_nhl|3e6894e350f62db024db622aedba4507|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13912,8 +14303,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "af0fda6540ba427944099c9b38f04aad890e44bf2842b431e799c610e7c719ff",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 1.4759,
+          "baseline": 0.445,
+          "market": 1.5,
+          "trained": 1.0186
+        },
+        "actual_value": 5.0,
+        "away_score": 4,
+        "canonical_played_at": "2026-11-20T01:00:00+00:00",
+        "final_event_id": "401892750",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 1,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "a181f63a8835a07ce2612c68c3f10c4a8ab7b17a120a4505961d6bde778e0769",
       "key": "icehockey_nhl|3e6894e350f62db024db622aedba4507|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -13960,8 +14368,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "626a476a068baf584dadc6bc6c3eadd95a256c0c4e0dafee2bd0efa6fec9242d",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 0.5513,
+          "baseline": 1.1485,
+          "market": 0.5,
+          "trained": 1.5269
+        },
+        "actual_value": -2.0,
+        "away_score": 4,
+        "canonical_played_at": "2026-11-20T01:00:00+00:00",
+        "final_event_id": "401892748",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 2,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "e8734284fd4bb1c1f9d6b7b02b954fc9f08d1715b5af72bc5cff59ca9c571432",
       "key": "icehockey_nhl|7f30902099116c9c5824e85201be7d60|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -14008,8 +14433,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "b8a81b3e9b6f0cc21edffbf7ae370eea1d70d63319138e0f67c2c2cfa6f16285",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 0.4666,
+          "baseline": 0.0517,
+          "market": 0.5,
+          "trained": 0.1682
+        },
+        "actual_value": 6.0,
+        "away_score": 4,
+        "canonical_played_at": "2026-11-20T01:00:00+00:00",
+        "final_event_id": "401892748",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 2,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "72fac21873654614a11f08cc3ca30112913a42da2b62a1911f18d822a290ae7f",
       "key": "icehockey_nhl|7f30902099116c9c5824e85201be7d60|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -14056,10 +14498,33 @@
         "training_latest_eligible_start": "2026-11-15T15:48:14.018508+00:00"
       },
       "forecast_sha256": "0886de8de48f15a5245901f588c6fa4c3f1172a5af62fcfca0f7630522542f8d",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 12.5633,
+          "baseline": 15.9083,
+          "market": 12.5,
+          "trained": 13.1326
+        },
+        "actual_value": 23.0,
+        "away_score": 3,
+        "canonical_played_at": "2026-11-20T01:15:00+00:00",
+        "final_event_id": "401873066",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 26,
+        "side_results": {
+          "away": "L",
+          "home": "W"
+        }
+      },
+      "grade_sha256": "6fa66e697f88acaceb2285a548eb05dc58e3eae4a1bf0055e38667f14ccb7723",
       "key": "americanfootball_nfl|66f9e83cf025d58acee12bce18661fb3|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "draftkings",
+        "captured_at": "2026-11-19T14:16:44.133890+00:00",
+        "delta_from_frozen_reference": 2.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 12.5
+      }
     },
     {
       "first_recorded_at": "2026-11-17T04:53:09.128207+00:00",
@@ -14104,10 +14569,33 @@
         "training_latest_eligible_start": "2026-11-15T15:48:14.018508+00:00"
       },
       "forecast_sha256": "1b68749b6eeab36e51c1e3cf49b6f6e9365d54e9bb94ba8c2418f7fcd8a5431c",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 15.7378,
+          "baseline": 19.3229,
+          "market": 15.5,
+          "trained": 20.2563
+        },
+        "actual_value": 29.0,
+        "away_score": 3,
+        "canonical_played_at": "2026-11-20T01:15:00+00:00",
+        "final_event_id": "401873066",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 26,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "dd918d8471727a2764245ed7c78aaa0ab1cfb8c640c272161473933cf7f456af",
       "key": "americanfootball_nfl|66f9e83cf025d58acee12bce18661fb3|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "draftkings",
+        "captured_at": "2026-11-19T14:16:44.133890+00:00",
+        "delta_from_frozen_reference": -1.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 43.5
+      }
     },
     {
       "first_recorded_at": "2026-11-19T16:58:30.052776+00:00",
@@ -14152,8 +14640,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "4d75a584bd3666d9de02be7c4986bb9473549c5ac5316424b03d73519298d2b0",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 2.5519,
+          "baseline": 3.6243,
+          "market": 2.5,
+          "trained": 3.5381
+        },
+        "actual_value": 4.0,
+        "away_score": 0,
+        "canonical_played_at": "2026-11-20T02:00:00+00:00",
+        "final_event_id": "401892751",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 4,
+        "side_results": {
+          "away": "L",
+          "home": "W"
+        }
+      },
+      "grade_sha256": "c4937d1cf9a70012e9221f9bf2b43c829ae301cc416b9398537cf6987cd11b4b",
       "key": "icehockey_nhl|8689e63a36a8d62c4eba2fc402bb4f0c|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -14200,8 +14705,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "fc18d208c85f51ab180999a12c66aa82501a625b499d69d30ded499f047bf18c",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 2.5037,
+          "baseline": 3.117,
+          "market": 2.5,
+          "trained": 2.5733
+        },
+        "actual_value": 4.0,
+        "away_score": 0,
+        "canonical_played_at": "2026-11-20T02:00:00+00:00",
+        "final_event_id": "401892751",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 4,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "9c7cc7ced147042cbafaae968b0cb48876217d3fd37a868a6df4e001f9fdeb36",
       "key": "icehockey_nhl|8689e63a36a8d62c4eba2fc402bb4f0c|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -14248,8 +14770,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "86878b87b08634135e55ee48d63dfb22f5a1447a30d9c7e4b90942d79ca456f6",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 2.5535,
+          "baseline": 3.7905,
+          "market": 2.5,
+          "trained": 3.5693
+        },
+        "actual_value": 4.0,
+        "away_score": 1,
+        "canonical_played_at": "2026-11-20T02:40:00+00:00",
+        "final_event_id": "401892752",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 5,
+        "side_results": {
+          "away": "L",
+          "home": "W"
+        }
+      },
+      "grade_sha256": "0fccea0264474e9469bd849d061c77723d60d8717226cde3f22027c46a87123b",
       "key": "icehockey_nhl|64955eccc864e1b34e23754d71319db4|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -14296,8 +14835,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "62dff8fb39857bdbac99e29a1ef7bbc6e7e8cd5eb12a0d9552fe7bb61d57a906",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 0.4935,
+          "baseline": 0.4998,
+          "market": 0.5,
+          "trained": 0.3703
+        },
+        "actual_value": 6.0,
+        "away_score": 1,
+        "canonical_played_at": "2026-11-20T02:40:00+00:00",
+        "final_event_id": "401892752",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 5,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "8829c5291fd03a5bb8a32bd8b28dec4ebe9d1272b5a97433565be36149d267de",
       "key": "icehockey_nhl|64955eccc864e1b34e23754d71319db4|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -14344,8 +14900,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "7f2e06eb3fbd7afd601926c379d8e05b7b95d0798986765a5c3cc430c080984a",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 2.4547,
+          "baseline": 1.35,
+          "market": 2.5,
+          "trained": 1.5938
+        },
+        "actual_value": -1.0,
+        "away_score": 4,
+        "canonical_played_at": "2026-11-20T03:00:00+00:00",
+        "final_event_id": "401892753",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 3,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "f6544195b14b45f773bb7ecf70e49d3f78411ed84b6c79fb9ed9b5b6745448e9",
       "key": "icehockey_nhl|6c4d4bc698a434e4b1d5492b9bff28cb|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -14392,8 +14965,25 @@
         "training_latest_eligible_start": "2026-11-18T14:16:44.133890+00:00"
       },
       "forecast_sha256": "27ba1b07ab68ed4c1d7de9c1f42248dd779e4a6508c53b80dfe73e319ee178a9",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 1.4621,
+          "baseline": 0.9556,
+          "market": 1.5,
+          "trained": 0.7422
+        },
+        "actual_value": 7.0,
+        "away_score": 4,
+        "canonical_played_at": "2026-11-20T03:00:00+00:00",
+        "final_event_id": "401892753",
+        "graded_at": "2026-11-21T04:50:58.985063+00:00",
+        "home_score": 3,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "22ee6ca04c2233f869177b6b39e2a4ba90677f7be02d3eb3b9b99bda8beefd01",
       "key": "icehockey_nhl|6c4d4bc698a434e4b1d5492b9bff28cb|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -16319,5 +16909,5 @@
     }
   ],
   "schema_version": 1,
-  "updated_at": "2026-11-20T16:53:40.984899+00:00"
+  "updated_at": "2026-11-21T04:50:58.985063+00:00"
 }

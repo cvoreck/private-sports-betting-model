@@ -290,12 +290,21 @@ class TestMarketsAndImpactOrdering(unittest.TestCase):
         tree = ast.parse(app)
         node = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
                     and n.name == "market_strip_html")
-        env = {"re":re, "esc":escape, "TEAM_LOGOS":{}, "PT": None,
+        import math
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        env = {"re":re, "math":math, "datetime":datetime, "esc":escape,
+               "PT":ZoneInfo("America/Los_Angeles"),
                "ODDS_SPORT_KEYS":{"NBA":"basketball_nba"},
                "BOOK_KEYS":{}, "number":lambda x,fallback=None: x,
                "clean_text": lambda x: str(x or ''),
                "matchup_teams":lambda r:["Portland Trail Blazers","Minnesota Timberwolves"],
                "_team_key":lambda x: re.sub(r'[^a-z0-9]', '', str(x).casefold()),
+               "_market_from_book":lambda book, key:next((m for m in book.get("markets",[]) if m["key"]==key),None),
+               "_format_outcome":lambda outcome,include_team=False: (
+                   (outcome["name"]+" " if include_team else "")+
+                   (f'{outcome["point"]:+g}' if include_team else f'{outcome["point"]:g}')+
+                   f' ({outcome["price"]:+d})'),
                "saved_market_lines":lambda r: {"spread":"Minnesota Timberwolves -2.5 (-104)",
                                                "total":"Over 227.5 (-110)"},
                "morning_market_snapshots":lambda day:{},
@@ -309,11 +318,98 @@ class TestMarketsAndImpactOrdering(unittest.TestCase):
         self.assertIn("Moneyline (pick)", html)
         self.assertIn("Minnesota Timberwolves -130", html)
         self.assertIn("Spread (archived)", html)
+        self.assertIn("Minnesota Timberwolves</span><strong>-130", html)
+        self.assertIn("Other side</span><strong>Unavailable", html)
         self.assertIn("-2.5 (-104)", html)
         self.assertIn("Total O/U (archived)", html)
-        self.assertIn("227.5 (-110)", html)
+        self.assertIn("Over 227.5</span><strong>(-110)", html)
         self.assertIn("Quote timestamps &amp; model source", html)
         self.assertNotIn("rolling-homewin-v2 (trained)</span></div>", html)
+
+
+    def test_archived_odds_show_both_sides_without_overwriting_frozen_pick(self):
+        """Picked +180 is immutable; opponent, spreads and totals are archived."""
+        app = Path(__file__).with_name("app.py").read_text()
+        import re
+        import math
+        from datetime import datetime, timezone
+        from html import escape
+        from zoneinfo import ZoneInfo
+        parsed = ast.parse(app)
+        funcs = [node for node in parsed.body if isinstance(node, ast.FunctionDef)
+                 and node.name in {"market_strip_html", "_format_outcome", "_market_from_book"}]
+        market_events = [{
+            "away_team":"Washington Wizards", "home_team":"Orlando Magic",
+            "commence_time":"2026-11-23T00:10:00+00:00",
+            "bookmakers":[{
+                "key":"draftkings", "title":"DraftKings",
+                "markets":[
+                    {"key":"h2h","outcomes":[{"name":"Washington Wizards","price":185},
+                                            {"name":"Orlando Magic","price":-215}]},
+                    {"key":"spreads","outcomes":[{"name":"Washington Wizards","point":4.5,"price":-105},
+                                                {"name":"Orlando Magic","point":-4.5,"price":-115}]},
+                    {"key":"totals","outcomes":[{"name":"Over","point":219.5,"price":-108},
+                                               {"name":"Under","point":219.5,"price":-112}]},
+                ]
+            }]
+        }]
+        archived={"sport":"basketball_nba",
+                  "collected_at":datetime(2026,11,22,15,0,tzinfo=timezone.utc),
+                  "payload":{"events":market_events}}
+        archive_calls=[]
+        def archive_reader(day):
+            archive_calls.append(day)
+            return {"basketball_nba":archived}
+        def no_vendor_call(*args,**kwargs):
+            raise AssertionError("UI is forbidden from calling the live odds provider")
+        env={
+            "re":re, "math":math, "datetime":datetime, "PT":ZoneInfo("America/Los_Angeles"),
+            "esc":escape, "number":lambda n,default=None:n,
+            "clean_text":lambda n:str(n or ""),
+            "_team_key":lambda team:re.sub(r"[^a-z0-9]","",str(team).casefold()),
+            "matchup_teams":lambda r:["Washington Wizards","Orlando Magic"],
+            "ODDS_SPORT_KEYS":{"NBA":"basketball_nba"},
+            "BOOK_KEYS":{"draftkings":"draftkings"},
+            "recorded_bookmaker":lambda source:"draftkings",
+            "saved_model_label":lambda r:"rolling-homewin-v2 (trained)",
+            "saved_market_lines":lambda r:{},
+            "morning_market_snapshots":archive_reader,
+            "market_events":no_vendor_call,
+        }
+        exec(compile(ast.Module(body=funcs, type_ignores=[]), "app.py", "exec"), env)
+        r={"date":"2026-11-22","sport":"NBA",
+           "matchup":"Washington Wizards @ Orlando Magic",
+           "selection":"Washington Wizards","odds":180,
+           "source":"Auto: The Odds API / draftkings"}
+        html=env["market_strip_html"](r)
+        self.assertEqual(archive_calls,["2026-11-22"])
+        self.assertIn("Washington Wizards</span><strong>+180",html)
+        self.assertIn("Orlando Magic</span><strong>-215",html)
+        self.assertNotIn("+185",html)
+        self.assertIn("Washington Wizards</span><strong>+4.5 (-105)",html)
+        self.assertIn("Orlando Magic</span><strong>-4.5 (-115)",html)
+        self.assertIn("Over 219.5</span><strong>(-108)",html)
+        self.assertIn("Under 219.5</span><strong>(-112)",html)
+        self.assertIn("Opposing moneyline archived from: DraftKings",html)
+        self.assertIn("Prices are not live",html)
+        # Missing archive must never infer the opposing moneyline.
+        env["morning_market_snapshots"]=lambda day:{}
+        missing=env["market_strip_html"](r)
+        self.assertIn("Washington Wizards</span><strong>+180",missing)
+        self.assertIn("Orlando Magic</span><strong>Unavailable",missing)
+
+    def test_expanded_layout_keeps_original_header_and_closes_table_borders(self):
+        app = Path(__file__).with_name("app.py").read_text()
+        start=app.index("def full_pick_card(")
+        card=app[start:app.index("# Render the dashboard once",start)]
+        header=card[card.index("<summary><div class="):card.index("</summary>")]
+        self.assertIn('<div class="se-odds"><strong>{price}</strong>',header)
+        self.assertIn('<span>{units:g}',header)
+        self.assertLess(card.index("{market_strip}"),card.index('class="se-v4-model-note"'))
+        self.assertLess(card.index('class="se-v4-model-note"'),card.index('class="se-v4-main"'))
+        self.assertNotIn("{market_strip}",card[card.index('se-injury-panel')+10:])
+        self.assertIn(".se-table-scroll .se-compact-table{border:1px solid",app)
+        self.assertIn("border-collapse:separate",app)
 
     def test_comparison_and_context_equal_height_grid(self):
         app=Path(__file__).with_name("app.py").read_text()

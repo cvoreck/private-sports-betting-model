@@ -277,6 +277,24 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .se-v2-expanded .se-v5-key-absences strong{color:#e6f3f9}
 @media(max-width:720px){.se-v2-expanded .se-v5-market-strip{grid-template-columns:1fr}}
 
+
+/* Expanded odds-table layout: original pick header remains entirely unchanged. */
+.se-v2-expanded .se-v5-market-item{padding:0;overflow:hidden;border-color:#427188}
+.se-v2-expanded .se-v5-market-item>small{margin:0;padding:9px 12px;background:#12384c;border-bottom:1px solid #427188;font-weight:750;color:#e0edf5}
+.se-v2-expanded .se-v6-market-sides{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));min-height:80px}
+.se-v2-expanded .se-v6-market-side{min-width:0;padding:12px;display:flex;flex-direction:column;justify-content:center;gap:5px}
+.se-v2-expanded .se-v6-market-side+.se-v6-market-side{border-left:1px solid #427188}
+.se-v2-expanded .se-v6-market-side span{font-size:.78rem;color:#d0e3ef;overflow-wrap:anywhere}
+.se-v2-expanded .se-v6-market-side strong{font-size:1rem;font-weight:800;line-height:1.35;overflow-wrap:anywhere}
+.se-v2-expanded .se-v4-model-note{margin-top:0}
+.se-v2-expanded .se-table-scroll .se-compact-table{border:1px solid #60849b;border-collapse:separate;border-spacing:0;border-radius:5px;overflow:hidden}
+.se-v2-expanded .se-compact-table th,.se-v2-expanded .se-compact-table td{border-right:1px solid #3b657b}
+.se-v2-expanded .se-compact-table tr>*:last-child{border-right:0}
+.se-v2-expanded .se-compact-table tbody tr:last-child td{border-bottom:0}
+.se-v2-expanded .se-context-row:last-child{border-bottom:1px solid #24536a}
+@media(max-width:1080px){.se-v2-expanded .se-v5-market-strip{grid-template-columns:1fr}}
+@media(max-width:660px){.se-v2-expanded .se-v6-market-side{padding:10px}}
+
 /* Team-logo images use an abbreviation underneath, visible if the image fails. */
 .team-logo-frame{position:relative;display:flex;align-items:center;justify-content:center;width:74px;height:67px;flex-shrink:0;border-radius:8px;overflow:hidden;background:#102e45}
 .team-logo-abbr{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#dcefff;font-size:1rem;font-weight:800;letter-spacing:.02em}
@@ -850,30 +868,61 @@ def saved_model_label(r):
 
 
 def market_strip_html(r, load_live=False):
-    """Display morning archived spreads/totals with zero additional Odds API calls."""
+    """Show both recorded/archived sides using the existing morning snapshot.
+
+    The selected moneyline is the frozen published pick. Only the opposing
+    side comes from the saved bookmaker snapshot, never an estimated price.
+    Archived spreads/totals are display-only, not new picks or live odds.
+    """
     day = clean_text(r.get('date'))[:10]
     sport_key = ODDS_SPORT_KEYS.get(clean_text(r.get('sport')))
     archive = morning_market_snapshots(day).get(sport_key) if sport_key else None
-    found = {'spread': '', 'total': '', 'spread_book': '', 'total_book': ''}
+    teams = matchup_teams(r)
+    selection = clean_text(r.get('selection'))
+    picked_team = next((team for team in teams if _team_key(team) in _team_key(selection)),
+                       selection)
+    other_team = next((team for team in teams if team != picked_team), 'Other side')
+    found = {'spread': '', 'total': '', 'spread_book': '', 'total_book': '',
+             'moneyline_other': None, 'moneyline_book': ''}
     captured = None
     if archive:
         captured = archive.get('collected_at')
         events = (archive.get('payload') or {}).get('events') or []
-        teams = matchup_teams(r)
         if len(teams) == 2:
             away, home = map(_team_key, teams)
             for event in events:
-                if _team_key(event.get('away_team')) != away or _team_key(event.get('home_team')) != home:
+                if (_team_key(event.get('away_team')) != away or
+                        _team_key(event.get('home_team')) != home):
                     continue
                 try:
-                    event_day = datetime.fromisoformat(event['commence_time'].replace('Z', '+00:00')).astimezone(PT).date().isoformat()
+                    event_day = datetime.fromisoformat(
+                        event['commence_time'].replace('Z', '+00:00')
+                    ).astimezone(PT).date().isoformat()
                 except (ValueError, TypeError, KeyError):
                     continue
                 if event_day != day:
                     continue
-                books = event.get('bookmakers') or []
                 preferred = BOOK_KEYS.get(recorded_bookmaker(r.get('source')).casefold())
-                books = sorted(books, key=lambda book: book.get('key') != preferred)
+                books = sorted(event.get('bookmakers') or [],
+                               key=lambda book: book.get('key') != preferred)
+                for book in books:
+                    moneyline_market = _market_from_book(book, 'h2h')
+                    if not moneyline_market:
+                        continue
+                    prices = {}
+                    for outcome in moneyline_market.get('outcomes') or []:
+                        price = outcome.get('price')
+                        if (isinstance(price, (int, float)) and
+                                not isinstance(price, bool) and math.isfinite(price) and
+                                (price <= -100 or price >= 100)):
+                            prices[_team_key(outcome.get('name'))] = int(price)
+                    # Show an opposing quote only when BOTH match the same game
+                    # and book. Never derive one moneyline from the other.
+                    if (_team_key(picked_team) in prices and
+                            _team_key(other_team) in prices):
+                        found['moneyline_other'] = prices[_team_key(other_team)]
+                        found['moneyline_book'] = book.get('title') or book.get('key') or ''
+                        break
                 for market_key, field in (('spreads', 'spread'), ('totals', 'total')):
                     for book in books:
                         market = _market_from_book(book, market_key)
@@ -883,89 +932,90 @@ def market_strip_html(r, load_live=False):
                         if market_key == 'spreads':
                             parts = []
                             for team in (event.get('home_team'), event.get('away_team')):
-                                outcome = next((o for o in outcomes if _team_key(o.get('name')) == _team_key(team)), None)
+                                outcome = next(
+                                    (o for o in outcomes if _team_key(o.get('name')) == _team_key(team)), None)
                                 if outcome:
                                     value = _format_outcome(outcome, include_team=True)
                                     if value:
                                         parts.append(value)
-                            value = ' · '.join(parts)
                         else:
                             parts = []
                             for side in ('Over', 'Under'):
-                                outcome = next((o for o in outcomes if str(o.get('name', '')).casefold() == side.casefold()), None)
+                                outcome = next(
+                                    (o for o in outcomes if str(o.get('name', '')).casefold() == side.casefold()), None)
                                 if outcome:
                                     value = _format_outcome(outcome)
                                     if value:
                                         parts.append(f'{side} {value}')
-                            value = ' · '.join(parts)
-                        if value:
-                            found[field] = value
+                        if parts:
+                            found[field] = ' · '.join(parts)
                             found[field + '_book'] = book.get('title') or book.get('key') or ''
                             break
                 break
+
     saved = saved_market_lines(r)
     spread_full = found['spread'] or saved.get('spread', '')
     total_full = found['total'] or saved.get('total', '')
 
-    # Template shows one compact quote per market, not both sides of the book.
-    # Keep the complete archived quote available as a hover tooltip.
-    def compact_spread(value):
-        if not value:
-            return 'Unavailable'
-        sides = [x.strip() for x in re.split(r'\s*[·|]\s*', value) if x.strip()]
-        teams = matchup_teams(r)
-        selected = clean_text(r.get('selection'))
-        chosen = next((t for t in teams if _team_key(t) in _team_key(selected)), '')
-        chosen_side = next((x for x in sides if chosen and _team_key(chosen) in _team_key(x)), None)
-        side = chosen_side or sides[0]
-        match = re.search(r'(.+?)\s+([+-]\d+(?:\.\d+)?)\s*\(([+-]\d+)\)', side)
-        if not match:
-            return side
-        team, point, price = match.groups()
-        # Use familiar professional-team abbreviations where available.
-        sport = clean_text(r.get('sport'))
-        abbr = TEAM_LOGOS.get(sport, {}).get(team.strip(), '')
-        if abbr:
-            abbr = {'lal':'LAL','gs':'GSW','ny':'NYK','sa':'SAS','no':'NOP','utah':'UTA','wsh':'WAS','cha':'CHA','phx':'PHX','bkn':'BKN'}.get(abbr, abbr.upper())
-        else:
-            abbr = team.strip()
-        return f'{abbr} {point} ({price})'
+    def split_market_sides(value, market):
+        parts = [x.strip() for x in re.split(r'\s*[·|]\s*', value or '') if x.strip()]
+        sides = []
+        for part in parts[:2]:
+            if market == 'spread':
+                match = re.fullmatch(r'(.+?)\s+([+-]\d+(?:\.\d+)?)\s*\(([+-]\d+)\)', part)
+                sides.append((match.group(1), f'{match.group(2)} ({match.group(3)})')
+                             if match else (part, 'Quote unavailable'))
+            else:
+                match = re.fullmatch(r'(Over|Under)\s+([\d.]+)\s*\(([+-]\d+)\)', part, re.I)
+                sides.append((f'{match.group(1).title()} {match.group(2)}',
+                              f'({match.group(3)})')
+                             if match else (part, 'Quote unavailable'))
+        if market == 'spread' and picked_team:
+            sides.sort(key=lambda side: 0 if _team_key(side[0]) == _team_key(picked_team) else 1)
+        while len(sides) < 2:
+            sides.append(('Other side', 'Unavailable'))
+        return sides
 
-    def compact_total(value):
-        if not value:
-            return 'Unavailable'
-        match = re.search(r'\bOver\s+([\d.]+)\s*\(([+-]\d+)\)', value, re.I)
-        if match:
-            return f'{match.group(1)} ({match.group(2)})'
-        return value.split('·')[0].strip()
+    def market_box(label, sides):
+        content = ''.join(
+            f'<div class="se-v6-market-side"><span>{esc(name)}</span>'
+            f'<strong>{esc(quote)}</strong></div>' for name, quote in sides
+        )
+        return (f'<div class="se-v5-market-item"><small>{esc(label)}</small>'
+                f'<div class="se-v6-market-sides">{content}</div></div>')
 
-    spread_short = compact_spread(spread_full)
-    total_short = compact_total(total_full)
+    odds = number(r.get('odds'), None)
+    recorded = f'{odds:+.0f}' if odds is not None else 'Unavailable'
+    other = (f'{found["moneyline_other"]:+d}'
+             if found['moneyline_other'] is not None else 'Unavailable')
+    moneyline_sides = [(picked_team or 'Selected side', recorded), (other_team, other)]
     if captured:
         try:
             stamp = captured.astimezone(PT).strftime('%b %d, %I:%M %p PT')
         except (AttributeError, ValueError):
             stamp = 'time unavailable'
-        note = f'Archived odds snapshot: {esc(stamp)}. Prices are not live.'
+        note = f'Archived sportsbook snapshot: {esc(stamp)}. Prices are not live.'
     else:
         note = 'No morning odds archive found for this sport and date. No live lookup performed.'
-    # Saved moneyline is the originally published bet. Spread/total are the
-    # morning archived quotes, NOT additional model selections or live lines.
-    odds = number(r.get('odds'), None)
-    selection = clean_text(r.get('selection'))
-    moneyline = (f'{selection} {odds:+.0f}' if odds is not None else 'Unavailable')
     book = recorded_bookmaker(r.get('source'))
-    details = ('Recorded moneyline bookmaker: ' + book if book else 'Moneyline bookmaker not recorded')
+    details = ('Recorded moneyline bookmaker: ' + book if book
+               else 'Moneyline bookmaker not recorded')
+    if found['moneyline_other'] is not None:
+        details += (' · Opposing moneyline archived from: ' +
+                    (found['moneyline_book'] or 'saved sportsbook'))
+    else:
+        details += ' · Opposing moneyline not recorded in a same-book archived two-way quote'
+    details += ' · Selected moneyline is the saved published price'
     details += ' · Model: ' + saved_model_label(r)
-    return (f'<section class="se-v5-market-strip" aria-label="Recorded betting markets">'
-            f'<div class="se-v5-market-item"><small>Moneyline (pick)</small>'
-            f'<strong>{esc(moneyline)}</strong></div>'
-            f'<div class="se-v5-market-item" title="{esc(spread_full)}"><small>Spread (archived)</small>'
-            f'<strong>{esc(spread_short)}</strong></div>'
-            f'<div class="se-v5-market-item" title="{esc(total_full)}"><small>Total O/U (archived)</small>'
-            f'<strong>{esc(total_short)}</strong></div>'
-            f'</section><details class="se-v5-market-source"><summary>Quote timestamps &amp; model source</summary>'
-            f'<p>{note}</p><p>{esc(details)}</p></details>')
+    return (
+        '<section class="se-v5-market-strip" aria-label="Recorded betting markets">'
+        + market_box('Moneyline (pick)', moneyline_sides)
+        + market_box('Spread (archived)', split_market_sides(spread_full, 'spread'))
+        + market_box('Total O/U (archived)', split_market_sides(total_full, 'total'))
+        + '</section><details class="se-v5-market-source">'
+          '<summary>Quote timestamps &amp; model source</summary>'
+        + f'<p>{note}</p><p>{esc(details)}</p></details>'
+    )
 
 
 def matchup_preview(rationale):
@@ -1508,13 +1558,13 @@ def full_pick_card(r, load_live=False):
         <div class="se-chevron"></div>
       </div></summary>
       <div class="se-pick-expanded se-v2-expanded">
+        {market_strip}
         <p class="se-v4-model-note">{esc(model_note)}</p>
         <div class="se-v4-main">
           {comparison_html}
           <section class="se-insight-card se-context-card"><h3>Game Factors</h3>{context_html}</section>
         </div>
         <section class="se-insight-card se-injury-panel"><h3>Injuries &amp; Availability</h3>{key_absences_html}{injuries_html}</section>
-        {market_strip}
         <p class="se-disclaimer">Historical research snapshot, not live injury or market data. Verify lines, injuries and lineups before any wager.</p>
       </div>
     </details>'''

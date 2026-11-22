@@ -316,7 +316,7 @@ class TestMarketsAndImpactOrdering(unittest.TestCase):
              "odds":-130, "source":"Auto: The Odds API / draftkings"}
         html=env["market_strip_html"](row)
         self.assertIn("Moneyline (pick)", html)
-        self.assertIn("Minnesota Timberwolves -130", html)
+        self.assertIn("Minnesota Timberwolves</span><strong>-130", html)
         self.assertIn("Spread (archived)", html)
         self.assertIn("Minnesota Timberwolves</span><strong>-130", html)
         self.assertIn("Portland Trail Blazers</span><strong>Unavailable", html)

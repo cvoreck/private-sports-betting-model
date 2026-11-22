@@ -328,16 +328,26 @@ class TestMarketsAndImpactOrdering(unittest.TestCase):
 
 
     def test_archived_odds_show_both_sides_without_overwriting_frozen_pick(self):
-        """Picked +180 is immutable; opponent, spreads and totals are archived."""
+        """Picked +180 is immutable; opponent, spreads and totals are archived.
+
+        Extract the app's ACTUAL module math import instead of injecting math
+        into the fake globals. This prevents a runtime NameError regression.
+        """
         app = Path(__file__).with_name("app.py").read_text()
         import re
-        import math
         from datetime import datetime, timezone
         from html import escape
         from zoneinfo import ZoneInfo
         parsed = ast.parse(app)
         funcs = [node for node in parsed.body if isinstance(node, ast.FunctionDef)
                  and node.name in {"market_strip_html", "_format_outcome", "_market_from_book"}]
+        module_math_imports = [
+            node for node in parsed.body if isinstance(node, ast.Import)
+            and any(alias.name == "math" and alias.asname is None
+                    for alias in node.names)
+        ]
+        self.assertEqual(len(module_math_imports), 1,
+                         "app.py must import math for archived-moneyline quote checks")
         market_events = [{
             "away_team":"Washington Wizards", "home_team":"Orlando Magic",
             "commence_time":"2026-11-23T00:10:00+00:00",
@@ -363,7 +373,7 @@ class TestMarketsAndImpactOrdering(unittest.TestCase):
         def no_vendor_call(*args,**kwargs):
             raise AssertionError("UI is forbidden from calling the live odds provider")
         env={
-            "re":re, "math":math, "datetime":datetime, "PT":ZoneInfo("America/Los_Angeles"),
+            "re":re, "datetime":datetime, "PT":ZoneInfo("America/Los_Angeles"),
             "esc":escape, "number":lambda n,default=None:n,
             "clean_text":lambda n:str(n or ""),
             "_team_key":lambda team:re.sub(r"[^a-z0-9]","",str(team).casefold()),
@@ -376,7 +386,8 @@ class TestMarketsAndImpactOrdering(unittest.TestCase):
             "morning_market_snapshots":archive_reader,
             "market_events":no_vendor_call,
         }
-        exec(compile(ast.Module(body=funcs, type_ignores=[]), "app.py", "exec"), env)
+        exec(compile(ast.Module(body=module_math_imports + funcs, type_ignores=[]),
+                     "app.py", "exec"), env)
         r={"date":"2026-11-22","sport":"NBA",
            "matchup":"Washington Wizards @ Orlando Magic",
            "selection":"Washington Wizards","odds":180,

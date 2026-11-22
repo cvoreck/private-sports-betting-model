@@ -1,18 +1,18 @@
 {
   "accuracy_comparisons_exclude_abstentions": true,
   "candidate_screening": {
-    "valid_capture_candidates": 64
+    "valid_capture_candidates": 24
   },
   "capture_this_run": {
-    "already_frozen": 22,
+    "already_frozen": 24,
     "duplicate_matchup_filtered": 0,
-    "new": 42
+    "new": 0
   },
   "capture_window_hours_before_start": 72,
   "database_writes": 0,
   "evaluation_mode": "IMMUTABLE_PROSPECTIVE_SHADOW_GRADING",
   "first_capture_per_sport_event_market_version": true,
-  "generated_at": "2026-11-21T16:39:58.017129+00:00",
+  "generated_at": "2026-11-22T04:54:01.390603+00:00",
   "github_branch_write": true,
   "grading_database_read_counts": {
     "americanfootball_nfl": {
@@ -24,7 +24,7 @@
     "basketball_nba": {
       "espn_snapshot_candidates": 65,
       "rows": 0,
-      "snapshot_finals_added": 52,
+      "snapshot_finals_added": 61,
       "windows": 1
     },
     "icehockey_nhl": {
@@ -37,8 +37,9 @@
   "grading_this_run": {
     "counts": {
       "already_graded": 230,
-      "awaiting_result_lag": 82,
-      "later_quote_observed": 6
+      "awaiting_result_lag": 64,
+      "later_quote_observed": 6,
+      "newly_graded": 18
     },
     "pending_reasons": {}
   },
@@ -63,8 +64,8 @@
   "publisher_changed": false,
   "read_only_database": true,
   "real_bets_selected": 0,
-  "records_graded": 230,
-  "records_pending": 82,
+  "records_graded": 248,
+  "records_pending": 64,
   "records_total": 312,
   "returns_or_ev_reported": false,
   "sports": {
@@ -144,68 +145,68 @@
         "calibration_bins": [
           {
             "bin": 4,
-            "mean_shadow_probability": 0.4883,
-            "n": 28,
-            "observed_rate": 0.4643
+            "mean_shadow_probability": 0.4889,
+            "n": 32,
+            "observed_rate": 0.4688
           },
           {
             "bin": 5,
-            "mean_shadow_probability": 0.5142,
-            "n": 24,
-            "observed_rate": 0.4167
+            "mean_shadow_probability": 0.5125,
+            "n": 29,
+            "observed_rate": 0.4138
           }
         ],
         "captured": 67,
-        "graded": 52,
-        "graded_non_abstained": 52,
+        "graded": 61,
+        "graded_non_abstained": 61,
         "line_movement_sample": 0,
         "mean_absolute_error": {
-          "anchored": 11.8431,
-          "baseline": 12.0793,
-          "market": 11.7692,
-          "trained": 12.611
+          "anchored": 11.1051,
+          "baseline": 11.1321,
+          "market": 11.041,
+          "trained": 11.7773
         },
         "mean_later_observed_line_shift": null,
         "nonpush_conditional_brier": {
-          "market_no_vig": 0.250779,
-          "shadow_heuristic": 0.2527
+          "market_no_vig": 0.250437,
+          "shadow_heuristic": 0.252109
         },
-        "nonpush_sample": 52,
-        "pending": 15
+        "nonpush_sample": 61,
+        "pending": 6
       },
       "totals": {
         "abstained": 0,
         "calibration_bins": [
           {
             "bin": 4,
-            "mean_shadow_probability": 0.4917,
-            "n": 21,
-            "observed_rate": 0.619
+            "mean_shadow_probability": 0.4927,
+            "n": 26,
+            "observed_rate": 0.5769
           },
           {
             "bin": 5,
             "mean_shadow_probability": 0.5093,
-            "n": 31,
-            "observed_rate": 0.5161
+            "n": 35,
+            "observed_rate": 0.5143
           }
         ],
         "captured": 67,
-        "graded": 52,
-        "graded_non_abstained": 52,
+        "graded": 61,
+        "graded_non_abstained": 61,
         "line_movement_sample": 0,
         "mean_absolute_error": {
-          "anchored": 13.4514,
-          "baseline": 14.2879,
-          "market": 13.4423,
-          "trained": 14.3548
+          "anchored": 14.1542,
+          "baseline": 14.9917,
+          "market": 14.1393,
+          "trained": 15.0937
         },
         "mean_later_observed_line_shift": null,
         "nonpush_conditional_brier": {
-          "market_no_vig": 0.249359,
-          "shadow_heuristic": 0.249587
+          "market_no_vig": 0.249427,
+          "shadow_heuristic": 0.249769
         },
-        "nonpush_sample": 52,
-        "pending": 15
+        "nonpush_sample": 61,
+        "pending": 6
       }
     },
     "icehockey_nhl": {

@@ -1,18 +1,18 @@
 {
   "accuracy_comparisons_exclude_abstentions": true,
   "candidate_screening": {
-    "valid_capture_candidates": 24
+    "valid_capture_candidates": 48
   },
   "capture_this_run": {
     "already_frozen": 24,
     "duplicate_matchup_filtered": 0,
-    "new": 0
+    "new": 24
   },
   "capture_window_hours_before_start": 72,
   "database_writes": 0,
   "evaluation_mode": "IMMUTABLE_PROSPECTIVE_SHADOW_GRADING",
   "first_capture_per_sport_event_market_version": true,
-  "generated_at": "2026-11-22T04:54:01.390603+00:00",
+  "generated_at": "2026-11-22T16:40:06.785785+00:00",
   "github_branch_write": true,
   "grading_database_read_counts": {
     "americanfootball_nfl": {
@@ -22,13 +22,13 @@
       "windows": 2
     },
     "basketball_nba": {
-      "espn_snapshot_candidates": 65,
+      "espn_snapshot_candidates": 71,
       "rows": 0,
       "snapshot_finals_added": 61,
       "windows": 1
     },
     "icehockey_nhl": {
-      "espn_snapshot_candidates": 60,
+      "espn_snapshot_candidates": 74,
       "rows": 0,
       "snapshot_finals_added": 49,
       "windows": 1
@@ -36,10 +36,9 @@
   },
   "grading_this_run": {
     "counts": {
-      "already_graded": 230,
-      "awaiting_result_lag": 64,
-      "later_quote_observed": 6,
-      "newly_graded": 18
+      "already_graded": 248,
+      "awaiting_result_lag": 88,
+      "later_quote_observed": 6
     },
     "pending_reasons": {}
   },
@@ -65,8 +64,8 @@
   "read_only_database": true,
   "real_bets_selected": 0,
   "records_graded": 248,
-  "records_pending": 64,
-  "records_total": 312,
+  "records_pending": 88,
+  "records_total": 336,
   "returns_or_ev_reported": false,
   "sports": {
     "americanfootball_nfl": {
@@ -156,7 +155,7 @@
             "observed_rate": 0.4138
           }
         ],
-        "captured": 67,
+        "captured": 74,
         "graded": 61,
         "graded_non_abstained": 61,
         "line_movement_sample": 0,
@@ -172,7 +171,7 @@
           "shadow_heuristic": 0.252109
         },
         "nonpush_sample": 61,
-        "pending": 6
+        "pending": 13
       },
       "totals": {
         "abstained": 0,
@@ -190,7 +189,7 @@
             "observed_rate": 0.5143
           }
         ],
-        "captured": 67,
+        "captured": 74,
         "graded": 61,
         "graded_non_abstained": 61,
         "line_movement_sample": 0,
@@ -206,7 +205,7 @@
           "shadow_heuristic": 0.249769
         },
         "nonpush_sample": 61,
-        "pending": 6
+        "pending": 13
       }
     },
     "icehockey_nhl": {
@@ -250,7 +249,7 @@
             "observed_rate": 0.0
           }
         ],
-        "captured": 63,
+        "captured": 68,
         "graded": 49,
         "graded_non_abstained": 49,
         "line_movement_sample": 1,
@@ -266,7 +265,7 @@
           "shadow_heuristic": 0.256652
         },
         "nonpush_sample": 49,
-        "pending": 14
+        "pending": 19
       },
       "totals": {
         "abstained": 0,
@@ -284,7 +283,7 @@
             "observed_rate": 0.5385
           }
         ],
-        "captured": 63,
+        "captured": 68,
         "graded": 49,
         "graded_non_abstained": 49,
         "line_movement_sample": 1,
@@ -300,7 +299,7 @@
           "shadow_heuristic": 0.247094
         },
         "nonpush_sample": 49,
-        "pending": 14
+        "pending": 19
       }
     }
   },

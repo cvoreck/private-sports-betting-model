@@ -319,7 +319,7 @@ class TestMarketsAndImpactOrdering(unittest.TestCase):
         self.assertIn("Minnesota Timberwolves -130", html)
         self.assertIn("Spread (archived)", html)
         self.assertIn("Minnesota Timberwolves</span><strong>-130", html)
-        self.assertIn("Other side</span><strong>Unavailable", html)
+        self.assertIn("Portland Trail Blazers</span><strong>Unavailable", html)
         self.assertIn("-2.5 (-104)", html)
         self.assertIn("Total O/U (archived)", html)
         self.assertIn("Over 227.5</span><strong>(-110)", html)

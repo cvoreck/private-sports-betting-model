@@ -1,0 +1,96 @@
+name: One-time PropLine college injury diagnostic
+on:
+  push:
+    branches:
+      - diagnostics/propline-college-injuries-20261125
+    paths:
+      - '.github/workflows/propline-college-injury-probe.yml'
+permissions: {}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check college injury coverage (two requests maximum)
+        env:
+          PROPLINE_API_KEY: ${{ secrets.PROPLINE_API_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os, json, urllib.request, urllib.error, datetime, collections, re
+          key = os.environ.get("PROPLINE_API_KEY", "")
+          if not key:
+              raise SystemExit("PROPLINE_API_KEY missing")
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+          opener = urllib.request.build_opener(NoRedirect())
+          MAX_BYTES = 2 * 1024 * 1024
+          targets = {
+              "Penn State": {"penn state", "penn state nittany lions"},
+              "Memphis": {"memphis", "memphis tigers"},
+              "Providence": {"providence", "providence friars"},
+              "BYU": {"byu", "byu cougars", "brigham young", "brigham young cougars"},
+          }
+          def normalize(s):
+              return " ".join(re.findall(r"[a-z0-9]+", str(s or "").lower()))
+          def safe_source(s):
+              return s if s in ("espn", "conference_report") else "unspecified_or_other"
+          def age_hours(value):
+              if not isinstance(value, str):
+                  return None
+              try:
+                  dt = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+                  if dt.tzinfo is None:
+                      return None
+                  return (datetime.datetime.now(datetime.timezone.utc) - dt).total_seconds()/3600
+              except (ValueError, OverflowError):
+                  return None
+          attempts = 0
+          for sport in ("basketball_ncaab", "football_ncaaf"):
+              attempts += 1
+              out = {"sport": sport}
+              try:
+                  req = urllib.request.Request("https://api.prop-line.com/v1/sports/" + sport + "/injuries",
+                      headers={"X-API-Key": key, "Accept": "application/json", "User-Agent": "SportsEdge-coverage-diagnostic/1.0"})
+                  with opener.open(req, timeout=12) as r:
+                      out["http"] = r.status
+                      for h in ("X-Daily-Limit", "X-Daily-Used", "X-Daily-Remaining"):
+                          v = r.headers.get(h, "")
+                          if v.isdigit():
+                              out[h] = int(v)
+                      raw = r.read(MAX_BYTES + 1)
+                  if len(raw) > MAX_BYTES:
+                      raise ValueError("response cap")
+                  data = json.loads(raw)
+                  if not isinstance(data, dict) or not isinstance(data.get("players"), list):
+                      raise ValueError("unexpected response")
+                  rows = [x for x in data["players"] if isinstance(x, dict)]
+                  valid = [x for x in rows if all(isinstance(x.get(k), str) and x[k].strip() for k in ("player_name", "team", "status"))]
+                  out["returned_rows"] = len(rows)
+                  out["valid_rows"] = len(valid)
+                  out["distinct_teams"] = len({normalize(x["team"]) for x in valid})
+                  out["sources"] = dict(collections.Counter(safe_source(x.get("source")) for x in valid))
+                  out["athlete_id_present"] = sum(bool(x.get("espn_athlete_id")) for x in valid)
+                  ages = [age_hours(x.get("source_updated_at")) for x in valid]
+                  out["timestamp_parseable"] = sum(a is not None for a in ages)
+                  out["updated_within_24h"] = sum(a is not None and 0 <= a <= 24 for a in ages)
+                  if sport == "basketball_ncaab":
+                      out["target_teams"] = {}
+                      for name, aliases in targets.items():
+                          matched = [x for x in valid if normalize(x["team"]) in aliases]
+                          out["target_teams"][name] = {
+                              "reports": len(matched),
+                              "sources": dict(collections.Counter(safe_source(x.get("source")) for x in matched)),
+                              "updated_within_24h": sum((a := age_hours(x.get("source_updated_at"))) is not None and 0 <= a <= 24 for x in matched),
+                          }
+              except urllib.error.HTTPError as e:
+                  out["http"] = e.code
+                  out["error"] = "HTTP_ERROR"
+              except (OSError, ValueError, TypeError) as e:
+                  out["error"] = type(e).__name__
+              print(json.dumps(out, sort_keys=True), flush=True)
+              if out.get("http") in (401,403,429):
+                  break
+          print(json.dumps({"diagnostic_complete": True, "propline_requests": attempts,
+              "request_cap": 2, "database_queries": 0, "odds_api_calls": 0}), flush=True)
+          PY

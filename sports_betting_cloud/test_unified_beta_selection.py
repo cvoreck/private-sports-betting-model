@@ -430,6 +430,29 @@ class TestMarketsAndImpactOrdering(unittest.TestCase):
         self.assertIn('{market_strip}', app)
 
 
+class TestRecapProfitColor(unittest.TestCase):
+    def test_recap_color_uses_net_units_and_neutral_display_zero(self):
+        app = Path(__file__).with_name("app.py").read_text()
+        parsed = ast.parse(app)
+        nodes = [node for node in parsed.body if isinstance(node, ast.FunctionDef)
+                 and node.name == "recap_profit_class"]
+        self.assertEqual(len(nodes), 1)
+        env = {"math": math}
+        exec(compile(ast.Module(body=nodes, type_ignores=[]), "app.py", "exec"), env)
+        for net, expected in ((1.89, "positive"), (-1.25, "negative"),
+                              (0, "neutral"), (None, "neutral"),
+                              (.65, "positive"), (-.40, "negative"),
+                              (.004, "neutral"), (-.004, "neutral"),
+                              (float("nan"), "neutral")):
+            with self.subTest(net=net):
+                self.assertEqual(env["recap_profit_class"](net), "se-recap-" + expected)
+        self.assertIn('recap_cls = recap_profit_class(yn if not y.empty else None)', app)
+        self.assertIn('class="se-recap-pill {recap_cls}"', app)
+        self.assertIn('.se-recap-pill.se-recap-positive {color:#00e9a4}', app)
+        self.assertIn('.se-recap-pill.se-recap-negative {color:#ff576b}', app)
+        self.assertIn('border:1px solid currentColor', app)
+
+
 # Included in the existing offline CI runner without changing its workflow.
 from test_per_sport_rejection_funnel import PerSportDiagnosticsTests
 

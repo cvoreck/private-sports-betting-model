@@ -510,9 +510,9 @@ def refresh_existing_card_research(conn, today):
                 start = datetime.fromisoformat(event['date'].replace('Z', '+00:00'))
                 event_injuries = mr.supplement_event_injuries(
                     event, sport, league_injuries, home, away, summary_cache)
-                if sport == 'College Football':
-                    event_injuries = injury_extra.supplement_college_football(
-                        event, event_injuries, home, away, start)
+                if sport in ('College Football', 'College Basketball'):
+                    event_injuries = injury_extra.supplement_college(
+                        sport, event, event_injuries, home, away, start)
                 why, risks = mr.research(event, sport, home, away, recent, start,
                                          injury_reports=event_injuries)
             except (ValueError, KeyError, TypeError, requests.RequestException) as exc:

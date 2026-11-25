@@ -1,0 +1,55 @@
+name: Phase 6C Read-Only Performance Validation
+
+on:
+  pull_request:
+    paths:
+      - 'sports_betting_cloud/phase6c_readonly_audit.py'
+      - 'sports_betting_cloud/test_phase6c_readonly_audit.py'
+      - 'sports_betting_cloud/PHASE6C_READONLY_AUDIT.md'
+      - '.github/workflows/phase6c-readonly-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout evaluation code ONLY
+        uses: actions/checkout@v4
+      - name: Set up standard-library Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile and test without database or vendor
+        run: |
+          python -m py_compile sports_betting_cloud/phase6c_readonly_audit.py
+          python -m unittest discover -s sports_betting_cloud -p test_phase6c_readonly_audit.py -v
+      - name: Read-only fetch of current frozen shadow ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin +refs/heads/phase6b-shadow-ledger:refs/remotes/origin/phase6b-shadow-ledger
+          git show refs/remotes/origin/phase6b-shadow-ledger:phase6b_shadow_ledger.json > "$RUNNER_TEMP/phase6b_input.json"
+          echo "LEDGER_COMMIT=$(git rev-parse refs/remotes/origin/phase6b-shadow-ledger)" >> "$GITHUB_ENV"
+      - name: Produce read-only performance report
+        shell: bash
+        run: |
+          set -euo pipefail
+          python sports_betting_cloud/phase6c_readonly_audit.py \
+            --ledger "$RUNNER_TEMP/phase6b_input.json" \
+            --ledger-commit "$LEDGER_COMMIT" \
+            --report-json reports/phase6c_audit.json \
+            --report-md reports/phase6c_audit.md
+          cat reports/phase6c_audit.md
+      - name: Upload AGGREGATE report only (no raw ledger artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase6c-readonly-performance-report
+          path: |
+            reports/phase6c_audit.json
+            reports/phase6c_audit.md
+          if-no-files-found: error
+          retention-days: 21

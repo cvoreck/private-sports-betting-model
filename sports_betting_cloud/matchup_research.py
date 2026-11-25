@@ -258,6 +258,11 @@ def fetch_espn_injuries(sport):
     except (requests.RequestException, ValueError, TypeError) as exc:
         logging.warning('Injury feed request failed: sport=%s error=%s', sport, exc)
         return None
+    return parse_espn_injuries(data, sport)
+
+
+def parse_espn_injuries(data, sport, source='ESPN injury feed'):
+    """Parse only explicit injury containers from league or matchup feeds."""
     if not isinstance(data, dict):
         logging.warning('Injury feed unexpected response: sport=%s type=%s', sport, type(data).__name__)
         return None
@@ -310,7 +315,7 @@ def fetch_espn_injuries(sport):
                 identity = (team_id, team_name, player, status, note)
                 if identity not in seen:
                     seen.add(identity)
-                    item = {'player': player, 'status': status, 'source': 'ESPN injury feed',
+                    item = {'player': player, 'status': status, 'source': source,
                             'checked_at': checked, 'note': note[:180]}
                     keys = ([f'id:{team_id}'] if team_id else []) + ([f'name:{norm(team_name)}'] if team_name else [])
                     for key in keys:
@@ -353,6 +358,43 @@ def injury_reports_for_event(espn_event, league_reports, home, away):
             entries = league_reports.get(f'name:{norm(name)}', [])
         matched[name] = entries
     return matched
+
+def supplement_event_injuries(event, sport, league_reports, home, away, summary_cache):
+    """Fill missing professional teams only; never overwrite league evidence."""
+    from injury_fallbacks import PRO_SPORTS, SUMMARY_CAP
+    matched = injury_reports_for_event(event, league_reports, home, away) or {}
+    if sport not in PRO_SPORTS or all(matched.get(t) for t in (home, away)):
+        return matched
+    event_id = str(event.get('id') or '')
+    if not event_id.isdigit():
+        return matched
+    key = (sport, event_id)
+    if key not in summary_cache:
+        if len(summary_cache) >= SUMMARY_CAP:
+            return matched
+        summary_cache[key] = None  # Failed attempts count toward the cap.
+        domain, league = ESPN_INJURY_LEAGUES[sport]
+        try:
+            data = get_json(f'https://site.api.espn.com/apis/site/v2/sports/{domain}/{league}/summary',
+                            {'event': event_id})
+            header = data.get('header') or {} if isinstance(data, dict) else {}
+            comps = (header.get('competitions') or [{}])[0].get('competitors') or []
+            expected = {str(c.get('team', {}).get('id') or '') for c in
+                        (event.get('competitions') or [{}])[0].get('competitors', [])}
+            actual = {str(c.get('team', {}).get('id') or '') for c in comps}
+            if str(header.get('id') or '') == event_id and len(expected) == 2 and '' not in expected and actual == expected:
+                summary_cache[key] = parse_espn_injuries(data, sport, 'ESPN matchup summary')
+        except (requests.RequestException, ValueError, TypeError, KeyError, AttributeError, IndexError):
+            logging.warning('ESPN injury summary unavailable: sport=%s event=%s', sport, event_id)
+    reports = summary_cache[key] or {}
+    # For the fallback, require the exact ESPN team ID, not a name alias.
+    for c in (event.get('competitions') or [{}])[0].get('competitors', []):
+        team = c.get('team') or {}
+        name, tid = team.get('displayName'), str(team.get('id') or '')
+        if name in (home, away) and not matched.get(name) and tid:
+            matched[name] = reports.get(f'id:{tid}', [])
+    return matched
+
 
 def verified_injury_notes(injury_reports, home, away):
     """Format optional verified injury entries, without asserting unverified statuses.

@@ -455,6 +455,7 @@ class TestRecapProfitColor(unittest.TestCase):
 
 # Included in the existing offline CI runner without changing its workflow.
 from test_per_sport_rejection_funnel import PerSportDiagnosticsTests
+from test_injury_fallbacks import InjuryFallbackTests
 
 if __name__ == "__main__":
     unittest.main()

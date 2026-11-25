@@ -127,7 +127,8 @@ h2,h3 {color:#f5f8ff!important;letter-spacing:-.025em!important}
 .se-net {font-size:1.04rem;color:#d9e4f3}.se-red {color:#ff5266;font-weight:800}.se-green {color:#00e9a4;font-weight:800}
 .se-recap-heading {display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .se-recap-heading h3 {font-size:.92rem!important;margin:0!important}
-.se-recap-pill {border:1px solid #c2384b;border-radius:20px;padding:2px 9px;color:#ff576b;font-weight:750;font-size:.83rem}
+.se-recap-pill {border:1px solid currentColor;border-radius:20px;padding:2px 9px;color:#adc5d9;font-weight:750;font-size:.83rem}
+.se-recap-pill.se-recap-positive {color:#00e9a4}.se-recap-pill.se-recap-negative {color:#ff576b}
 .se-recap-list {margin-top:8px;display:grid;gap:4px}.se-recap-row {display:grid;grid-template-columns:24px minmax(0,1fr) 24px 75px;gap:7px;font-size:.88rem;align-items:center}.se-recap-row .se-result {font-weight:800}
 .se-sports {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:9px}.se-sport {border:1px solid #245578;border-radius:11px;text-align:center;padding:7px 3px;background:#082238;font-size:.86rem}.se-sport strong {display:block;font-size:1.02rem;font-weight:500;margin-top:2px}
 .se-section-head {margin:14px 0 16px 15px}.se-section-head h2 {font-size:2rem!important;margin:0!important}.se-section-head p {margin:3px 0;color:#dce6f1}
@@ -462,6 +463,15 @@ def esc(value):
 def signed_units(value):
     n=number(value)
     return f'{n:+.2f}u'
+
+
+def recap_profit_class(net):
+    """Color by displayed net units, not by win count; neutral at zero."""
+    if net is None or not math.isfinite(net):
+        return 'se-recap-neutral'
+    rounded = float(f'{net:.2f}')
+    return ('se-recap-positive' if rounded > 0 else
+            'se-recap-negative' if rounded < 0 else 'se-recap-neutral')
 
 
 def signed_class(value):
@@ -1641,6 +1651,7 @@ def render_live_dashboard():
         sport_record = format_record(stats(df[df['sport'] == name]))
         sport_html += f'<div class="se-sport">{esc(short_names.get(name, name))}<strong>{esc(sport_record)}</strong></div>'
     recap_label = f'{format_record(ys)} ({signed_units(yn)})' if not y.empty else 'No picks'
+    recap_cls = recap_profit_class(yn if not y.empty else None)
     roi_text = f'{roi:+.1f}%' if roi is not None else '—'
     st.markdown(f'''<div class="se-brand"><div class="se-mark"><i></i><i></i><i></i></div>
       <div><h1>Sports Edge Analytics</h1><p>Model-Driven Sports Betting</p></div>
@@ -1649,7 +1660,7 @@ def render_live_dashboard():
         <div class="se-board-col"><h3>Overall Record</h3><div class="se-big-record">{esc(format_record(summary))}</div>
           <div class="se-net">Net: <span class="{'se-green' if net>=0 else 'se-red'}">{signed_units(net)}</span>
           &nbsp; | &nbsp; ROI: <span class="{'se-green' if roi is not None and roi>=0 else 'se-red'}">{roi_text}</span></div></div>
-        <div class="se-board-col"><div class="se-recap-heading"><h3>Yesterday's Recap — {ordinal_date(yesterday)}</h3><span class="se-recap-pill">{esc(recap_label)}</span></div>
+        <div class="se-board-col"><div class="se-recap-heading"><h3>Yesterday's Recap — {ordinal_date(yesterday)}</h3><span class="se-recap-pill {recap_cls}">{esc(recap_label)}</span></div>
           <div class="se-recap-list">{recap_html}</div></div>
         <div class="se-board-col"><h3>Record by Sport</h3><div class="se-sports">{sport_html}</div></div>
       </section>''', unsafe_allow_html=True)

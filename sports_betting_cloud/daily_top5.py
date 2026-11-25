@@ -14,6 +14,7 @@ from psycopg.rows import dict_row
 import requests
 
 import matchup_research as mr
+import injury_fallbacks as injury_extra
 from espn_event_match import scoreboard_params
 
 PT = ZoneInfo('America/Los_Angeles')
@@ -469,6 +470,7 @@ def refresh_existing_card_research(conn, today):
         by_sport.setdefault(row['sport'], []).append(dict(row))
 
     updated = matched = missing = 0
+    summary_cache = {}
     for sport, sport_rows in by_sport.items():
         if sport not in ESPN_LEAGUES:
             logging.warning('Research: unsupported sport %s (%s saved picks)', sport, len(sport_rows))
@@ -506,7 +508,11 @@ def refresh_existing_card_research(conn, today):
             home, away = _espn_event_teams(event)
             try:
                 start = datetime.fromisoformat(event['date'].replace('Z', '+00:00'))
-                event_injuries = mr.injury_reports_for_event(event, league_injuries, home, away)
+                event_injuries = mr.supplement_event_injuries(
+                    event, sport, league_injuries, home, away, summary_cache)
+                if sport == 'College Football':
+                    event_injuries = injury_extra.supplement_college_football(
+                        event, event_injuries, home, away, start)
                 why, risks = mr.research(event, sport, home, away, recent, start,
                                          injury_reports=event_injuries)
             except (ValueError, KeyError, TypeError, requests.RequestException) as exc:

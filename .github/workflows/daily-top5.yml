@@ -180,4 +180,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           REQUIRE_SIX_AM: '0'
+          # Only the existing scheduled publisher, on its first attempt, may use
+          # PropLine. Manual reruns and the legacy workflow never receive the key.
+          PROPLINE_API_KEY: ${{ github.event_name == 'schedule' && github.run_attempt == '1' && secrets.PROPLINE_API_KEY || '' }}
         run: python sports_betting_cloud/daily_top5.py

@@ -10,7 +10,12 @@ import urllib.error
 
 PRO_SPORTS = frozenset(("NFL", "NBA", "MLB", "NHL"))
 SUMMARY_CAP = 5
-PROPLINE_URL = "https://api.prop-line.com/v1/sports/football_ncaaf/injuries"
+PROPLINE_URLS = {
+    "College Football": "https://api.prop-line.com/v1/sports/football_ncaaf/injuries",
+    "College Basketball": "https://api.prop-line.com/v1/sports/basketball_ncaab/injuries",
+}
+# Shared circuit breaker across both college sports for this publisher process.
+_propline_blocked = False
 MAX_BYTES = 2 * 1024 * 1024
 QUOTA_RESERVE = 100
 MAX_AGE = dt.timedelta(hours=72)
@@ -36,41 +41,52 @@ def parse_timestamp(value):
     except (AttributeError, TypeError, ValueError, OverflowError):
         return None
 
-@functools.lru_cache(maxsize=1)
-def fetch_college_football():
-    """Exactly one attempt per publisher process, including failures. Never retry.
+@functools.cache
+def fetch_college(sport):
+    """At most one attempt per supported sport, two total per process. Never retry.
 
     The primary workflow grants credentials only to first-attempt scheduled
     publishing runs; its pre-existing daily gate suppresses duplicate publishing.
     PropLine enforces its account-wide cap. Quota headers are available after
     the request, so this cannot pre-check other clients' usage.
     """
+    global _propline_blocked
+    if _propline_blocked or sport not in PROPLINE_URLS:
+        return ()
     key = os.environ.get("PROPLINE_API_KEY", "").strip()
     if not key or os.environ.get("GITHUB_EVENT_NAME") != "schedule" or os.environ.get("GITHUB_RUN_ATTEMPT") != "1":
         return ()
     try:
-        req = urllib.request.Request(PROPLINE_URL, headers={
+        req = urllib.request.Request(PROPLINE_URLS[sport], headers={
             "X-API-Key": key, "Accept": "application/json",
             "User-Agent": "SportsEdge-availability/1.0"})
         with urllib.request.build_opener(NoRedirect()).open(req, timeout=10) as response:
             limit = int(response.headers.get("X-Daily-Limit", "-1"))
             used = int(response.headers.get("X-Daily-Used", "-1"))
             remaining = int(response.headers.get("X-Daily-Remaining", "-1"))
-            logging.info("PropLine quota: limit=%d used=%d remaining=%d", limit, used, remaining)
+            logging.info("PropLine quota: sport=%s limit=%d used=%d remaining=%d", sport, limit, used, remaining)
             if not (0 < limit <= 1000 and 0 <= used <= limit and remaining == limit-used and remaining >= QUOTA_RESERVE):
-                logging.warning("PropLine quota guard: discard optional data; no retries")
+                _propline_blocked = True
+                logging.warning("PropLine quota guard: discard optional data; stop both sports")
                 return ()
+            if remaining == QUOTA_RESERVE:
+                _propline_blocked = True  # Accept this response, but never spend another request.
             raw = response.read(MAX_BYTES + 1)
         if len(raw) > MAX_BYTES:
+            _propline_blocked = True
             return ()
         data = json.loads(raw)
         if not isinstance(data, dict) or not isinstance(data.get("players"), list):
+            _propline_blocked = True
             return ()
-        return tuple(row for row in data["players"] if isinstance(row, dict))
+        rows = tuple(row for row in data["players"] if isinstance(row, dict))
+        logging.info("PropLine availability: sport=%s returned_rows=%d", sport, len(rows))
+        return rows
     except urllib.error.HTTPError as exc:
-        logging.warning("PropLine request stopped: HTTP %d; no retries", exc.code)
+        logging.warning("PropLine request stopped: HTTP %d; no retries for either sport", exc.code)
     except (OSError, ValueError, TypeError):
-        logging.warning("PropLine request unavailable; no retries")
+        logging.warning("PropLine request unavailable; no retries for either sport")
+    _propline_blocked = True
     return ()
 
 def conference_event_eligible(event, start, now):
@@ -138,12 +154,12 @@ def college_reports(event, rows, start, now):
                        key=lambda v: (order.get(v[2], 6), -v[0].timestamp(), v[1]["player"]))[:8]]
             for team, group in by_team.items()}
 
-def supplement_college_football(event, existing, home, away, start, now=None):
+def supplement_college(sport, event, existing, home, away, start, now=None):
     now = now or dt.datetime.now(dt.timezone.utc)
     out = {team: list((existing or {}).get(team) or [])[:8] for team in (home, away)}
-    if not conference_event_eligible(event, start, now):
+    if sport not in PROPLINE_URLS or not conference_event_eligible(event, start, now):
         return out
-    reports = college_reports(event, fetch_college_football(), start, now)
+    reports = college_reports(event, fetch_college(sport), start, now)
     for team in (home, away):
         # Primary ESPN evidence wins conflicts; never duplicate a player.
         seen = {norm(x.get("player")) for x in out[team]}

@@ -16,7 +16,8 @@ QUOTA_RESERVE = 100
 MAX_AGE = dt.timedelta(hours=72)
 STATUS_CODES = frozenset(("out", "out_first_half", "doubtful", "questionable",
                           "probable", "game_time_decision", "day_to_day", "injured_list", "suspended"))
-PT = __import__("zoneinfo").ZoneInfo("America/Los_Angeles")
+from zoneinfo import ZoneInfo
+PT = ZoneInfo("America/Los_Angeles")
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
@@ -108,15 +109,19 @@ def college_reports(event, rows, start, now):
         if len(matches) != 1:
             continue
         t = matches[0]
-        if norm(row.get("team_abbr")) and norm(t.get("abbreviation")) and norm(row.get("team_abbr")) != norm(t.get("abbreviation")):
+        source_abbr, team_abbr = norm(row.get("team_abbr")), norm(t.get("abbreviation"))
+        if source_abbr and team_abbr and source_abbr != team_abbr:
+            continue
+        if norm(row.get("team")) != norm(t.get("displayName")) and not (source_abbr and source_abbr == team_abbr):
             continue
         player, status = clean(row.get("player_name"), 100), clean(row.get("status"), 60)
         if not player or not status:
             continue
         # The provider reports availability; do not infer a medical injury reason.
-        note = "Team availability report; specific matchup not independently verified"
+        source_time = updated.astimezone(PT).strftime("%Y-%m-%d %I:%M %p PT")
+        note = f"Team availability report; source updated {source_time}; specific matchup not independently verified"
         entry = {"player": player, "status": status, "source": "PropLine official conference report",
-                 "checked_at": updated.astimezone(PT).strftime("%Y-%m-%d %I:%M %p PT"),
+                 "checked_at": now.astimezone(PT).strftime("%Y-%m-%d %I:%M %p PT"),
                  "note": note}
         group = by_team[clean(t.get("displayName"))]
         identity = norm(player)

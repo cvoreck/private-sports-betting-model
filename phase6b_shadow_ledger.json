@@ -24274,8 +24274,25 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "8bfe7267749c5b285b56af5871046a052e61d47dd558faddc42b5f164ba2266e",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 15.2568,
+          "baseline": 12.8886,
+          "market": 15.5,
+          "trained": 13.0677
+        },
+        "actual_value": -18.0,
+        "away_score": 104,
+        "canonical_played_at": "2026-11-25T00:00:00+00:00",
+        "final_event_id": "401909314",
+        "graded_at": "2026-11-26T04:59:29.570904+00:00",
+        "home_score": 86,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "cd89b8795b1b87d62d86954c1ffca6806d83eee5efaea5f848b4df382931d3ae",
       "key": "basketball_nba|42f48a4769eab3d1472d76aac0fd0fa7|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -24322,8 +24339,25 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "eb06d6dbf2d1c72f16fbc48c33450220b9141ed76e91acb3b7348e4cfe74bb68",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 23.0516,
+          "baseline": 32.4718,
+          "market": 22.5,
+          "trained": 33.5311
+        },
+        "actual_value": 190.0,
+        "away_score": 104,
+        "canonical_played_at": "2026-11-25T00:00:00+00:00",
+        "final_event_id": "401909314",
+        "graded_at": "2026-11-26T04:59:29.570904+00:00",
+        "home_score": 86,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "d3fe39d43418d52bb1d72ef979ddeffbedd7fdd15be44da5f982ace6f71c45d6",
       "key": "basketball_nba|42f48a4769eab3d1472d76aac0fd0fa7|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -24370,8 +24404,25 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "e68a56efb6971daa874455cfcb4bc291032ff867a695889c9d56ad383919558a",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 4.3518,
+          "baseline": 3.8059,
+          "market": 4.5,
+          "trained": 3.0182
+        },
+        "actual_value": -15.0,
+        "away_score": 131,
+        "canonical_played_at": "2026-11-25T01:00:00+00:00",
+        "final_event_id": "401909315",
+        "graded_at": "2026-11-26T04:59:29.570904+00:00",
+        "home_score": 116,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "739538da2ef8ad37a3aea88f5f871ae4468d9400febc61f5c51807dcb2d17178",
       "key": "basketball_nba|3167a4072c65c9314c71d0fe49be8e28|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -24418,8 +24469,25 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "ed319edd1d81595673327356cbc51f841d4334e78ab4ffa1cc0c1772d68df72d",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 29.3426,
+          "baseline": 27.4856,
+          "market": 29.5,
+          "trained": 26.3513
+        },
+        "actual_value": 247.0,
+        "away_score": 131,
+        "canonical_played_at": "2026-11-25T01:00:00+00:00",
+        "final_event_id": "401909315",
+        "graded_at": "2026-11-26T04:59:29.570904+00:00",
+        "home_score": 116,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "2ab204d82209375567bc36a8539a684d42cde2d0c90a4551be46e7792def04f8",
       "key": "basketball_nba|3167a4072c65c9314c71d0fe49be8e28|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -24466,8 +24534,25 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "521f7e355020d805eb76881ad070384ce4ef08c29fa550fa4868b0859d5bc323",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 0.5868,
+          "baseline": 2.0371,
+          "market": 0.5,
+          "trained": 2.2359
+        },
+        "actual_value": -2.0,
+        "away_score": 5,
+        "canonical_played_at": "2026-11-25T01:00:00+00:00",
+        "final_event_id": "401892780",
+        "graded_at": "2026-11-26T04:59:29.570904+00:00",
+        "home_score": 3,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "82faad96d5749e5f55a35aaecc33ac459d3d942b007fa6b74e7a91e6ea48e85f",
       "key": "icehockey_nhl|155fbdda10b6474a41649023baadfdf3|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -24514,8 +24599,25 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "8baf6b6bf66774c02660912496c1b73785492bc83530e02a11d958c9772cec18",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 1.521,
+          "baseline": 2.1496,
+          "market": 1.5,
+          "trained": 1.9196
+        },
+        "actual_value": 8.0,
+        "away_score": 5,
+        "canonical_played_at": "2026-11-25T01:00:00+00:00",
+        "final_event_id": "401892780",
+        "graded_at": "2026-11-26T04:59:29.570904+00:00",
+        "home_score": 3,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "dc4a3d210a4f15cf4d666e3944b56dc9f7b9f45b92a098b60f362f410881922f",
       "key": "icehockey_nhl|155fbdda10b6474a41649023baadfdf3|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -24562,8 +24664,25 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "169cab47fde6f69348404fd1476d5228bb7a40d69c56d0cc34f69e12df2ef191",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 26.0154,
+          "baseline": 18.6033,
+          "market": 26.5,
+          "trained": 21.6545
+        },
+        "actual_value": -19.0,
+        "away_score": 120,
+        "canonical_played_at": "2026-11-25T03:00:00+00:00",
+        "final_event_id": "401909316",
+        "graded_at": "2026-11-26T04:59:29.570904+00:00",
+        "home_score": 101,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "799a949cb91857ed54df497f360daacae8fdea67235e141f48bd239c478733ae",
       "key": "basketball_nba|6bfadbd22ed8a054cf82ec1b12b78243|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -24610,8 +24729,25 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "b2c074c52bdd807ef18238e917950bdd21cde52e6650b2a00bcbe66cef06c2ac",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 12.371,
+          "baseline": 10.4857,
+          "market": 12.5,
+          "trained": 9.9195
+        },
+        "actual_value": 221.0,
+        "away_score": 120,
+        "canonical_played_at": "2026-11-25T03:00:00+00:00",
+        "final_event_id": "401909316",
+        "graded_at": "2026-11-26T04:59:29.570904+00:00",
+        "home_score": 101,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "50729ff859ad4c6e8c458c14039513aad516ab1553f74e13a06ea1e42b9cdf73",
       "key": "basketball_nba|6bfadbd22ed8a054cf82ec1b12b78243|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -25865,5 +26001,5 @@
     }
   ],
   "schema_version": 1,
-  "updated_at": "2026-11-25T17:00:33.437590+00:00"
+  "updated_at": "2026-11-26T04:59:29.570904+00:00"
 }

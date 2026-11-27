@@ -1,24 +1,25 @@
 {
   "accuracy_comparisons_exclude_abstentions": true,
   "candidate_screening": {
-    "valid_capture_candidates": 54
+    "outside_capture_window": 2,
+    "valid_capture_candidates": 46
   },
   "capture_this_run": {
     "already_frozen": 34,
     "duplicate_matchup_filtered": 0,
-    "new": 20
+    "new": 12
   },
   "capture_window_hours_before_start": 72,
   "database_writes": 0,
   "evaluation_mode": "IMMUTABLE_PROSPECTIVE_SHADOW_GRADING",
   "first_capture_per_sport_event_market_version": true,
-  "generated_at": "2026-11-27T04:59:53.471595+00:00",
+  "generated_at": "2026-11-27T23:56:37.045671+00:00",
   "github_branch_write": true,
   "grading_database_read_counts": {
     "americanfootball_nfl": {
-      "espn_snapshot_candidates": 27,
+      "espn_snapshot_candidates": 30,
       "rows": 0,
-      "snapshot_finals_added": 27,
+      "snapshot_finals_added": 29,
       "windows": 4
     },
     "basketball_nba": {
@@ -36,10 +37,10 @@
   },
   "grading_this_run": {
     "counts": {
-      "already_graded": 378,
-      "awaiting_result_lag": 58,
-      "later_quote_observed": 40,
-      "newly_graded": 20
+      "already_graded": 398,
+      "awaiting_result_lag": 68,
+      "later_quote_observed": 42,
+      "newly_graded": 2
     },
     "pending_reasons": {}
   },
@@ -64,9 +65,9 @@
   "publisher_changed": false,
   "read_only_database": true,
   "real_bets_selected": 0,
-  "records_graded": 398,
-  "records_pending": 58,
-  "records_total": 456,
+  "records_graded": 400,
+  "records_pending": 68,
+  "records_total": 468,
   "returns_or_ev_reported": false,
   "sports": {
     "americanfootball_nfl": {
@@ -75,9 +76,9 @@
         "calibration_bins": [
           {
             "bin": 4,
-            "mean_shadow_probability": 0.4904,
-            "n": 15,
-            "observed_rate": 0.5333
+            "mean_shadow_probability": 0.4899,
+            "n": 16,
+            "observed_rate": 0.5
           },
           {
             "bin": 5,
@@ -87,31 +88,31 @@
           }
         ],
         "captured": 40,
-        "graded": 27,
-        "graded_non_abstained": 27,
-        "line_movement_sample": 15,
+        "graded": 28,
+        "graded_non_abstained": 28,
+        "line_movement_sample": 16,
         "mean_absolute_error": {
-          "anchored": 9.4603,
-          "baseline": 10.871,
-          "market": 9.4444,
-          "trained": 9.7675
+          "anchored": 9.1993,
+          "baseline": 10.5737,
+          "market": 9.1786,
+          "trained": 9.544
         },
-        "mean_later_observed_line_shift": -0.0333,
+        "mean_later_observed_line_shift": -0.0312,
         "nonpush_conditional_brier": {
-          "market_no_vig": 0.250501,
-          "shadow_heuristic": 0.250933
+          "market_no_vig": 0.249723,
+          "shadow_heuristic": 0.250296
         },
-        "nonpush_sample": 27,
-        "pending": 13
+        "nonpush_sample": 28,
+        "pending": 12
       },
       "totals": {
         "abstained": 0,
         "calibration_bins": [
           {
             "bin": 4,
-            "mean_shadow_probability": 0.4935,
-            "n": 9,
-            "observed_rate": 0.4444
+            "mean_shadow_probability": 0.493,
+            "n": 10,
+            "observed_rate": 0.5
           },
           {
             "bin": 5,
@@ -121,22 +122,22 @@
           }
         ],
         "captured": 40,
-        "graded": 27,
-        "graded_non_abstained": 27,
-        "line_movement_sample": 15,
+        "graded": 28,
+        "graded_non_abstained": 28,
+        "line_movement_sample": 16,
         "mean_absolute_error": {
-          "anchored": 9.8835,
-          "baseline": 9.4433,
-          "market": 9.9444,
-          "trained": 9.4258
+          "anchored": 10.2046,
+          "baseline": 10.0509,
+          "market": 10.25,
+          "trained": 10.0175
         },
-        "mean_later_observed_line_shift": 0.3333,
+        "mean_later_observed_line_shift": 0.2812,
         "nonpush_conditional_brier": {
-          "market_no_vig": 0.249908,
-          "shadow_heuristic": 0.248088
+          "market_no_vig": 0.249912,
+          "shadow_heuristic": 0.248561
         },
-        "nonpush_sample": 27,
-        "pending": 13
+        "nonpush_sample": 28,
+        "pending": 12
       }
     },
     "basketball_nba": {
@@ -156,7 +157,7 @@
             "observed_rate": 0.5319
           }
         ],
-        "captured": 101,
+        "captured": 107,
         "graded": 96,
         "graded_non_abstained": 96,
         "line_movement_sample": 4,
@@ -172,7 +173,7 @@
           "shadow_heuristic": 0.249914
         },
         "nonpush_sample": 96,
-        "pending": 5
+        "pending": 11
       },
       "totals": {
         "abstained": 0,
@@ -190,7 +191,7 @@
             "observed_rate": 0.5517
           }
         ],
-        "captured": 101,
+        "captured": 107,
         "graded": 96,
         "graded_non_abstained": 96,
         "line_movement_sample": 4,
@@ -206,7 +207,7 @@
           "shadow_heuristic": 0.249124
         },
         "nonpush_sample": 96,
-        "pending": 5
+        "pending": 11
       }
     },
     "icehockey_nhl": {

@@ -73,6 +73,39 @@ def teams_and_scores(event):
     return home_names, away_names, home_score, away_score, completed
 
 
+def _neutral_college_reverse_match(row, event, home, away):
+    """Permit reversed designated sides only for exact, same-day neutral CBB games."""
+    if row.get('sport') != 'College Basketball':
+        return False
+    competitions = event.get('competitions') or []
+    if len(competitions) != 1 or competitions[0].get('neutralSite') is not True:
+        return False
+    competitors = competitions[0].get('competitors') or []
+    if len(competitors) != 2:
+        return False
+    eh = next((c.get('team') or {} for c in competitors if c.get('homeAway') == 'home'), {})
+    ea = next((c.get('team') or {} for c in competitors if c.get('homeAway') == 'away'), {})
+    if not eh.get('id') or not ea.get('id') or str(eh['id']) == str(ea['id']):
+        return False
+    def full_names(team):
+        names = [team.get('displayName')]
+        if team.get('location') and team.get('name'):
+            names.append(f"{team['location']} {team['name']}")
+        return {norm(n) for n in names if n}
+    eh_names, ea_names = full_names(eh), full_names(ea)
+    if not norm(home) or not norm(away) or norm(home) == norm(away):
+        return False
+    if eh_names & ea_names or norm(home) not in ea_names or norm(away) not in eh_names:
+        return False
+    try:
+        pick_day = date.fromisoformat(str(row['date'])[:10])
+        raw = event.get('date') or competitions[0].get('date')
+        start = datetime.fromisoformat(str(raw).replace('Z', '+00:00'))
+        return start.tzinfo is not None and start.astimezone(PT).date() == pick_day
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
 def event_match(row, events):
     matchup = str(row.get('matchup') or '')
     if ' @ ' not in matchup:
@@ -86,6 +119,10 @@ def event_match(row, events):
         hn, an, *_ = parsed
         if norm(home) in hn and norm(away) in an:
             matches.append((event, parsed))
+        elif _neutral_college_reverse_match(row, event, home, away):
+            # Keep ESPN's actual score-to-team mapping for grading, not saved orientation.
+            matches.append((event, parsed))
+            LOG.info('MATCH_NEUTRAL_REVERSED id=%s event=%s', row.get('id'), event.get('id'))
     # ESPN scoreboards for adjacent UTC dates can contain separate games
     # between the same teams. Use the saved Pacific pick date to disambiguate.
     # Never choose by list order or assume the latest matching game is correct.

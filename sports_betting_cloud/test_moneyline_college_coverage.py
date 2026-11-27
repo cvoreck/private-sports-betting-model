@@ -78,7 +78,7 @@ class SettlementCoverageTests(unittest.TestCase):
         # Load actual settlement functions without importing DB/network drivers.
         source = Path(__file__).with_name("settle_picks.py").read_text()
         tree = ast.parse(source)
-        names = {"norm", "scoreboard", "teams_and_scores", "event_match", "grade_pick"}
+        names = {"norm", "scoreboard", "teams_and_scores", "_neutral_college_reverse_match", "event_match", "grade_pick"}
         nodes = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in names]
         assert {n.name for n in nodes} == names
         cls.ns = {"re": re, "date": date, "datetime": datetime,
@@ -99,7 +99,7 @@ class SettlementCoverageTests(unittest.TestCase):
 
     @staticmethod
     def pick():
-        return {"id": 125, "date": "2026-11-26", "matchup": "Utah State Aggies @ USC Trojans",
+        return {"id": 125, "date": "2026-11-26", "sport": "College Basketball", "matchup": "Utah State Aggies @ USC Trojans",
                 "market": "h2h", "selection": "USC Trojans"}
 
     def test_full_college_scoreboard_settles_omitted_game(self):
@@ -139,6 +139,39 @@ class SettlementCoverageTests(unittest.TestCase):
         match = self.ns["event_match"](self.pick(), [next_day, same])
         self.assertEqual(match[0]["id"], same["id"])
         self.assertIsNone(self.ns["event_match"](self.pick(), [same, self.game("fixture-3")]))
+
+    @staticmethod
+    def reversed_game(eid="fixture-neutral", start="2026-11-26T21:30:00Z", neutral=True, completed=True):
+        result = event(eid, "Utah State Aggies", "USC Trojans", start)
+        result["status"] = {"type": {"completed": completed}}
+        comp = result["competitions"][0]
+        comp["neutralSite"] = neutral
+        comp["competitors"][0].update({"score": "78", "team": {"id": "328", "displayName": "Utah State Aggies", "location": "Utah State", "name": "Aggies"}})
+        comp["competitors"][1].update({"score": "74", "team": {"id": "30", "displayName": "USC Trojans", "location": "USC", "name": "Trojans"}})
+        return result
+
+    def test_neutral_reversal_grades_actual_team_scores(self):
+        matched = self.ns["event_match"](self.pick(), [self.reversed_game()])
+        self.assertIsNotNone(matched)
+        self.assertEqual(self.ns["grade_pick"](self.pick(), matched[1]), "Loss")
+        self.assertEqual(self.ns["grade_pick"](dict(self.pick(), selection="Utah State Aggies"), matched[1]), "Win")
+
+    def test_neutral_reversal_rejects_wrong_date_sport_names_and_non_neutral(self):
+        match = self.ns["event_match"]
+        for game in (self.reversed_game(neutral=False), self.reversed_game(neutral=None),
+                     self.reversed_game(start="2026-11-27T21:30:00Z"),
+                     self.reversed_game(start="2026-11-26T21:30:00")):
+            self.assertIsNone(match(self.pick(), [game]))
+        self.assertIsNone(match(dict(self.pick(), sport="NBA"), [self.reversed_game()]))
+        self.assertIsNone(match(dict(self.pick(), matchup="Aggies @ Trojans"), [self.reversed_game()]))
+
+    def test_neutral_reversal_rejects_ambiguity_and_nonfinal(self):
+        match = self.ns["event_match"]
+        self.assertIsNone(match(self.pick(), [self.reversed_game(), self.game()]))
+        self.assertIsNone(match(self.pick(), [self.reversed_game(), self.reversed_game(eid="fixture-2")]))
+        pending = match(self.pick(), [self.reversed_game(completed=False)])
+        self.assertIsNotNone(pending)
+        self.assertIsNone(self.ns["grade_pick"](self.pick(), pending[1]))
 
 
 if __name__ == "__main__":

@@ -24794,10 +24794,33 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "c206897c1c46905ba0130958851c81cdc759e3bbc647d99a834643c765f409e9",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 3.4896,
+          "baseline": 6.8807,
+          "market": 3.5,
+          "trained": 3.3963
+        },
+        "actual_value": 7.0,
+        "away_score": 104,
+        "canonical_played_at": "2026-11-25T22:00:00+00:00",
+        "final_event_id": "401909317",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 111,
+        "side_results": {
+          "away": "L",
+          "home": "W"
+        }
+      },
+      "grade_sha256": "68f49c858b9ca5a9621328d0f4af5dab1f6625ab42c690f1676d174eeb01f484",
       "key": "basketball_nba|4f6d199bb67cf3a517a3880fd2f00b26|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "betmgm",
+        "captured_at": "2026-11-25T14:18:30.592934+00:00",
+        "delta_from_frozen_reference": -2.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 1.5
+      }
     },
     {
       "first_recorded_at": "2026-11-24T16:59:03.961333+00:00",
@@ -24842,10 +24865,33 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "167fd7588db983ec30e5d70a1f7fb76d35b875c5503aa56a1040f8b2fd2b3c4b",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 23.9622,
+          "baseline": 14.1181,
+          "market": 24.5,
+          "trained": 13.7439
+        },
+        "actual_value": 215.0,
+        "away_score": 104,
+        "canonical_played_at": "2026-11-25T22:00:00+00:00",
+        "final_event_id": "401909317",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 111,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "c7263d3503feb13e7cde4ef4f2b4d7418880b8aacd8026b88caaed8ab5e9989b",
       "key": "basketball_nba|4f6d199bb67cf3a517a3880fd2f00b26|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "betmgm",
+        "captured_at": "2026-11-25T14:18:30.592934+00:00",
+        "delta_from_frozen_reference": -2.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 237.5
+      }
     },
     {
       "first_recorded_at": "2026-11-25T17:00:33.437590+00:00",
@@ -24890,8 +24936,25 @@
         "training_latest_eligible_start": "2026-11-24T14:18:30.592934+00:00"
       },
       "forecast_sha256": "8da093eec958eca65be77fb32759a9f7efe1dac2f79249c7b2c7f8e116174d2b",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 5.6599,
+          "baseline": 4.1124,
+          "market": 5.5,
+          "trained": 7.0993
+        },
+        "actual_value": -2.0,
+        "away_score": 107,
+        "canonical_played_at": "2026-11-26T00:00:00+00:00",
+        "final_event_id": "401909318",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 105,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "4f8c1d1534b3a3f4cec15cd792bc959bede18c3529a21cd7cb12c758e984ec0c",
       "key": "basketball_nba|87ce247fb83685389ca8ffb21be6cd3e|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -24938,8 +25001,25 @@
         "training_latest_eligible_start": "2026-11-24T14:18:30.592934+00:00"
       },
       "forecast_sha256": "c70d92c3de8935471364e41def84ca28c9920d83a920e9dea9aa64b037cda5c8",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 10.6834,
+          "baseline": 14.6892,
+          "market": 10.5,
+          "trained": 14.1684
+        },
+        "actual_value": 212.0,
+        "away_score": 107,
+        "canonical_played_at": "2026-11-26T00:00:00+00:00",
+        "final_event_id": "401909318",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 105,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "55c2e5b4ce151ec8ce50fff74acb3c51872bc0414cf02aaad063aef40497ae2f",
       "key": "basketball_nba|87ce247fb83685389ca8ffb21be6cd3e|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -24986,10 +25066,33 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "ad62a5eadb757c5a780b8f9354c584d0d34d434d758b42f1955f9e9a3465759b",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 9.2452,
+          "baseline": 4.4636,
+          "market": 9.5,
+          "trained": 6.9525
+        },
+        "actual_value": -7.0,
+        "away_score": 113,
+        "canonical_played_at": "2026-11-26T00:30:00+00:00",
+        "final_event_id": "401909320",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 106,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "e9fc5c71b53648d58971f91b438037ba1ec7969c36cc318fdb504501285e6315",
       "key": "basketball_nba|07421d1675d6bc51bb5fa91f84a09eb3|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "betmgm",
+        "captured_at": "2026-11-25T14:18:30.592934+00:00",
+        "delta_from_frozen_reference": -1.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 1.5
+      }
     },
     {
       "first_recorded_at": "2026-11-24T16:59:03.961333+00:00",
@@ -25034,10 +25137,33 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "746fa15e5d8edd683346705df84839b0d6f07736e99d551f729ac504a55dd588",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 4.5963,
+          "baseline": 6.3527,
+          "market": 4.5,
+          "trained": 6.4269
+        },
+        "actual_value": 219.0,
+        "away_score": 113,
+        "canonical_played_at": "2026-11-26T00:30:00+00:00",
+        "final_event_id": "401909320",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 106,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "28570d9be4f35ddd037745342d7638ec8357996960d823901fc65fb39a1f7f9e",
       "key": "basketball_nba|07421d1675d6bc51bb5fa91f84a09eb3|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "betmgm",
+        "captured_at": "2026-11-25T14:18:30.592934+00:00",
+        "delta_from_frozen_reference": -1.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 222.5
+      }
     },
     {
       "first_recorded_at": "2026-11-24T16:59:03.961333+00:00",
@@ -25082,10 +25208,33 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "159ea995a4ed0f556218360d57a4e17a29325d82653ea1d8fdb3937b8252f0cf",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 13.3478,
+          "baseline": 15.3386,
+          "market": 13.5,
+          "trained": 11.9785
+        },
+        "actual_value": 19.0,
+        "away_score": 102,
+        "canonical_played_at": "2026-11-26T00:30:00+00:00",
+        "final_event_id": "401909319",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 121,
+        "side_results": {
+          "away": "L",
+          "home": "W"
+        }
+      },
+      "grade_sha256": "4146bcc2e3036c846414ca604489e4205f04ff0aa3028f1c013b242540afce07",
       "key": "basketball_nba|f08629281f1510f47d91cc408f86a2a8|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "betmgm",
+        "captured_at": "2026-11-25T14:18:30.592934+00:00",
+        "delta_from_frozen_reference": -2.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 3.5
+      }
     },
     {
       "first_recorded_at": "2026-11-24T16:59:03.961333+00:00",
@@ -25130,10 +25279,33 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "30004fd2f44186a83f603343a82f2434aa17fbf33f1f18e065383be6f425c301",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 2.3933,
+          "baseline": 0.2405,
+          "market": 2.5,
+          "trained": 0.3657
+        },
+        "actual_value": 223.0,
+        "away_score": 102,
+        "canonical_played_at": "2026-11-26T00:30:00+00:00",
+        "final_event_id": "401909319",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 121,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "366cef4b528e56001370d6937b55813d62af3c99adac51a7e3486812b80b2cc0",
       "key": "basketball_nba|f08629281f1510f47d91cc408f86a2a8|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "betmgm",
+        "captured_at": "2026-11-25T14:18:30.592934+00:00",
+        "delta_from_frozen_reference": -2.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 218.5
+      }
     },
     {
       "first_recorded_at": "2026-11-23T05:10:59.336851+00:00",
@@ -25178,10 +25350,33 @@
         "training_latest_eligible_start": "2026-11-21T14:46:25.383408+00:00"
       },
       "forecast_sha256": "294b4633914a8d04dbe6fe61f68f25c7994f903c1aaa177a479277d4a9c2a510",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 9.5099,
+          "baseline": 8.2277,
+          "market": 10.0,
+          "trained": 5.0988
+        },
+        "actual_value": 13.0,
+        "away_score": 13,
+        "canonical_played_at": "2026-11-26T01:00:00+00:00",
+        "final_event_id": "401873079",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 26,
+        "side_results": {
+          "away": "L",
+          "home": "W"
+        }
+      },
+      "grade_sha256": "f8216a546e42187b98f11d758fed68647a062bc811c5732c67162a8c743f9ea8",
       "key": "americanfootball_nfl|5b612899d6dcdf998107f2c6c6e49a58|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "draftkings",
+        "captured_at": "2026-11-25T14:18:30.592934+00:00",
+        "delta_from_frozen_reference": -0.5,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 2.5
+      }
     },
     {
       "first_recorded_at": "2026-11-23T05:10:59.336851+00:00",
@@ -25226,10 +25421,33 @@
         "training_latest_eligible_start": "2026-11-21T14:46:25.383408+00:00"
       },
       "forecast_sha256": "b2c91d6e6439a564a300be812a6c047bb2579f36939bd4f350f3d0e4fdf7f03c",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 6.7423,
+          "baseline": 9.3647,
+          "market": 6.5,
+          "trained": 11.3463
+        },
+        "actual_value": 39.0,
+        "away_score": 13,
+        "canonical_played_at": "2026-11-26T01:00:00+00:00",
+        "final_event_id": "401873079",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 26,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "8e48425d486b44a8c2b8accc7cde845b29a8e8a4c48f12710060c71b5453582b",
       "key": "americanfootball_nfl|5b612899d6dcdf998107f2c6c6e49a58|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "draftkings",
+        "captured_at": "2026-11-25T14:18:30.592934+00:00",
+        "delta_from_frozen_reference": -1.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 44.5
+      }
     },
     {
       "first_recorded_at": "2026-11-25T17:00:33.437590+00:00",
@@ -25274,8 +25492,25 @@
         "training_latest_eligible_start": "2026-11-24T14:18:30.592934+00:00"
       },
       "forecast_sha256": "cacb7fb21577f02de460df27bc86295c716497746faa1f0679dbf30e0831f35e",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 11.7833,
+          "baseline": 15.9376,
+          "market": 11.5,
+          "trained": 14.3332
+        },
+        "actual_value": 18.0,
+        "away_score": 97,
+        "canonical_played_at": "2026-11-26T01:00:00+00:00",
+        "final_event_id": "401909321",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 115,
+        "side_results": {
+          "away": "L",
+          "home": "W"
+        }
+      },
+      "grade_sha256": "0fce2c4ab40a9fbe1c1140ec5f69acb45bf47fe5c61ca08c499ecdf53b52d67d",
       "key": "basketball_nba|698d6d78acf30f4ff4e4aaf6670249ee|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -25322,8 +25557,25 @@
         "training_latest_eligible_start": "2026-11-24T14:18:30.592934+00:00"
       },
       "forecast_sha256": "8ea01af090fa253d864cdaa67ebf794d120cbe3c19f441354357392a9befd6b1",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 17.6511,
+          "baseline": 20.6984,
+          "market": 17.5,
+          "trained": 20.5211
+        },
+        "actual_value": 212.0,
+        "away_score": 97,
+        "canonical_played_at": "2026-11-26T01:00:00+00:00",
+        "final_event_id": "401909321",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 115,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "eddfa9ef8a462911d66f65c31c4f0b143a5da8740a28ab60e825838973a29056",
       "key": "basketball_nba|698d6d78acf30f4ff4e4aaf6670249ee|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -25370,8 +25622,25 @@
         "training_latest_eligible_start": "2026-11-24T14:18:30.592934+00:00"
       },
       "forecast_sha256": "48044aecee959491d32bd656b84a0d424c330f8007666ee3a5011fb277910eb3",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 8.1039,
+          "baseline": 2.5752,
+          "market": 8.5,
+          "trained": 4.5389
+        },
+        "actual_value": -7.0,
+        "away_score": 104,
+        "canonical_played_at": "2026-11-26T01:00:00+00:00",
+        "final_event_id": "401909322",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 97,
+        "side_results": {
+          "away": "W",
+          "home": "L"
+        }
+      },
+      "grade_sha256": "dcb6178a9fe0e3067e4388e4f70d29f9f0f96567e231e1a6c6a222d74ae88017",
       "key": "basketball_nba|9e203cbbc6d37b7b0d9c08cb89fe0b28|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -25418,8 +25687,25 @@
         "training_latest_eligible_start": "2026-11-24T14:18:30.592934+00:00"
       },
       "forecast_sha256": "8673a47323c2d723dc321cea11fb228ce1aa730e15cb33352e7d36ae9df16968",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 31.168,
+          "baseline": 24.5402,
+          "market": 31.5,
+          "trained": 24.8599
+        },
+        "actual_value": 201.0,
+        "away_score": 104,
+        "canonical_played_at": "2026-11-26T01:00:00+00:00",
+        "final_event_id": "401909322",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 97,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "002e8934c46daa18f0723c05e3d4e38774ba4dd52fafe702a8ae302528fb019d",
       "key": "basketball_nba|9e203cbbc6d37b7b0d9c08cb89fe0b28|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -25466,10 +25752,33 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "fa45aad1babd0c824c3703d95207939d98621c30296d743d0accf6eb62f6ca99",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 1.5585,
+          "baseline": 6.1678,
+          "market": 1.5,
+          "trained": 2.0847
+        },
+        "actual_value": 12.0,
+        "away_score": 104,
+        "canonical_played_at": "2026-11-26T01:30:00+00:00",
+        "final_event_id": "401909323",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 116,
+        "side_results": {
+          "away": "L",
+          "home": "W"
+        }
+      },
+      "grade_sha256": "ad42f2f87cb2ff458abc89b24d83921dd5533a240bdc8122c546121b8353d1cd",
       "key": "basketball_nba|60fd73164f7b0d1848f998d922155d87|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "betmgm",
+        "captured_at": "2026-11-25T14:18:30.592934+00:00",
+        "delta_from_frozen_reference": -1.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 9.5
+      }
     },
     {
       "first_recorded_at": "2026-11-24T16:59:03.961333+00:00",
@@ -25514,10 +25823,33 @@
         "training_latest_eligible_start": "2026-11-23T14:16:44.381328+00:00"
       },
       "forecast_sha256": "b11ac4ca7b8cda99e80fa0410349a5351cf9b187f7ebea361f5ea719238f01b9",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 4.4904,
+          "baseline": 4.7289,
+          "market": 4.5,
+          "trained": 4.3083
+        },
+        "actual_value": 220.0,
+        "away_score": 104,
+        "canonical_played_at": "2026-11-26T01:30:00+00:00",
+        "final_event_id": "401909323",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 116,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "0d921ff38cf99bb899a03a74a6f537f0815bd55305d1fd44be879b941dd43e45",
       "key": "basketball_nba|60fd73164f7b0d1848f998d922155d87|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "betmgm",
+        "captured_at": "2026-11-25T14:18:30.592934+00:00",
+        "delta_from_frozen_reference": -1.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 223.5
+      }
     },
     {
       "first_recorded_at": "2026-11-25T17:00:33.437590+00:00",
@@ -25562,8 +25894,25 @@
         "training_latest_eligible_start": "2026-11-24T14:18:30.592934+00:00"
       },
       "forecast_sha256": "c0d6eaa54a8a5469e27d407cd9608c3da7a8d19b7bdb926181660f0f5e0ed9aa",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 7.3171,
+          "baseline": 8.1432,
+          "market": 7.5,
+          "trained": 5.6707
+        },
+        "actual_value": 5.0,
+        "away_score": 111,
+        "canonical_played_at": "2026-11-26T03:00:00+00:00",
+        "final_event_id": "401909325",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 116,
+        "side_results": {
+          "away": "L",
+          "home": "W"
+        }
+      },
+      "grade_sha256": "334bafcb49efaccf54f9a4495b78cf4c4f1f63281291a29583af7b73695d84a1",
       "key": "basketball_nba|9aa9f220709533d70d11f85fae886771|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -25610,8 +25959,25 @@
         "training_latest_eligible_start": "2026-11-24T14:18:30.592934+00:00"
       },
       "forecast_sha256": "67fb184d40c15f42ed1e8c507c2e82c4e11dbce37469f4849d6d2892216c7369",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 1.1991,
+          "baseline": 3.8394,
+          "market": 1.5,
+          "trained": 4.5174
+        },
+        "actual_value": 227.0,
+        "away_score": 111,
+        "canonical_played_at": "2026-11-26T03:00:00+00:00",
+        "final_event_id": "401909325",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 116,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "e4e757e5b3729b61762bb1cbda319cb10226d3239718ddbecf15d0fadefa931b",
       "key": "basketball_nba|9aa9f220709533d70d11f85fae886771|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -25658,8 +26024,25 @@
         "training_latest_eligible_start": "2026-11-24T14:18:30.592934+00:00"
       },
       "forecast_sha256": "c4bbd3b231bb062e135b132a683ba09f19d0677bb021f158cbf6c570a8fa9d3c",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 11.7375,
+          "baseline": 9.5571,
+          "market": 12.5,
+          "trained": 4.8748
+        },
+        "actual_value": 19.0,
+        "away_score": 110,
+        "canonical_played_at": "2026-11-26T03:00:00+00:00",
+        "final_event_id": "401909324",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 129,
+        "side_results": {
+          "away": "L",
+          "home": "W"
+        }
+      },
+      "grade_sha256": "05e19a8c933d40764d67f065585f9333c4fff241d13d34c5445eb5ea0674a9ca",
       "key": "basketball_nba|e6df92326adb480e427bb7c10f445c60|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -25706,8 +26089,25 @@
         "training_latest_eligible_start": "2026-11-24T14:18:30.592934+00:00"
       },
       "forecast_sha256": "7f59bf7e04635727bea4109f4e021b9643798130419e75ece2ba3777ed6ce6cf",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 19.9652,
+          "baseline": 10.0376,
+          "market": 20.5,
+          "trained": 9.8048
+        },
+        "actual_value": 239.0,
+        "away_score": 110,
+        "canonical_played_at": "2026-11-26T03:00:00+00:00",
+        "final_event_id": "401909324",
+        "graded_at": "2026-11-27T04:59:53.471595+00:00",
+        "home_score": 129,
+        "side_results": {
+          "over": "W",
+          "under": "L"
+        }
+      },
+      "grade_sha256": "c870e31eb9768d9605133d1bb69dbd50013afb22a4063df051a99e59c457b66a",
       "key": "basketball_nba|e6df92326adb480e427bb7c10f445c60|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
     },
@@ -27534,8 +27934,968 @@
       "grade_sha256": null,
       "key": "basketball_nba|428050645d1dc8b16d84287e21de55fa|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": -3.5,
+        "anchored_shift": 1.0,
+        "away_team": "new york jets",
+        "baseline_forecast": 5.0518,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T18:00:00+00:00",
+        "home_team": "miami dolphins",
+        "market": "spreads",
+        "market_reference": -4.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "5ea0e3ea5944b0ad5169f21c0787b331",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -104,
+            "market_no_vig_conditional": 0.487997,
+            "point": -4.5,
+            "shadow_conditional_nonpush": 0.467997,
+            "shadow_unconditional_win": 0.467997
+          },
+          "home": {
+            "american_odds": -115,
+            "market_no_vig_conditional": 0.512003,
+            "point": 4.5,
+            "shadow_conditional_nonpush": 0.532003,
+            "shadow_unconditional_win": 0.532003
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 7.055,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "c72a8b40297dc2c0fa5c231fbbce00f209b22db1ba701836b160f71f9dd52fef",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|5ea0e3ea5944b0ad5169f21c0787b331|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 40.7545,
+        "anchored_shift": 0.2545,
+        "away_team": "new york jets",
+        "baseline_forecast": 46.2251,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T18:00:00+00:00",
+        "home_team": "miami dolphins",
+        "market": "totals",
+        "market_reference": 40.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "5ea0e3ea5944b0ad5169f21c0787b331",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -104,
+            "market_no_vig_conditional": 0.487997,
+            "point": 40.5,
+            "shadow_conditional_nonpush": 0.49562,
+            "shadow_unconditional_win": 0.49562
+          },
+          "under": {
+            "american_odds": -115,
+            "market_no_vig_conditional": 0.512003,
+            "point": 40.5,
+            "shadow_conditional_nonpush": 0.50438,
+            "shadow_unconditional_win": 0.50438
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 45.5904,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "5b95479272d6dc0b71bcd3455a8ca3d5cc6b41df909c07f2d5a12c746b54e354",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|5ea0e3ea5944b0ad5169f21c0787b331|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.9563,
+        "anchored_shift": 0.4563,
+        "away_team": "baltimore ravens",
+        "baseline_forecast": 6.4467,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T18:00:00+00:00",
+        "home_team": "houston texans",
+        "market": "spreads",
+        "market_reference": 6.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "60d0c074801985c1062795362a24200e",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -107,
+            "market_no_vig_conditional": 0.49455,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.480803,
+            "shadow_unconditional_win": 0.480803
+          },
+          "home": {
+            "american_odds": -112,
+            "market_no_vig_conditional": 0.50545,
+            "point": -6.5,
+            "shadow_conditional_nonpush": 0.519197,
+            "shadow_unconditional_win": 0.519197
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 11.0633,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "5c9b0046fcc28c470edcb4741acedf26701033aea9eaeee1f38e6a135d4cfc43",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|60d0c074801985c1062795362a24200e|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 47.4689,
+        "anchored_shift": -0.0311,
+        "away_team": "baltimore ravens",
+        "baseline_forecast": 46.1445,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T18:00:00+00:00",
+        "home_team": "houston texans",
+        "market": "totals",
+        "market_reference": 47.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "60d0c074801985c1062795362a24200e",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -106,
+            "market_no_vig_conditional": 0.492367,
+            "point": 47.5,
+            "shadow_conditional_nonpush": 0.491435,
+            "shadow_unconditional_win": 0.491435
+          },
+          "under": {
+            "american_odds": -113,
+            "market_no_vig_conditional": 0.507633,
+            "point": 47.5,
+            "shadow_conditional_nonpush": 0.508565,
+            "shadow_unconditional_win": 0.508565
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 46.8775,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "e8efeffb13a89a710a36bea4da88627bf8a9b9f1c330f6474f509eab4d769dbc",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|60d0c074801985c1062795362a24200e|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 6.6859,
+        "anchored_shift": -0.3141,
+        "away_team": "atlanta falcons",
+        "baseline_forecast": 1.7542,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T18:00:00+00:00",
+        "home_team": "minnesota vikings",
+        "market": "spreads",
+        "market_reference": 7.0,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "6a05021bdb6bab24b9bb381ffff10f0c",
+        "push_probability_status": "NOT_ESTIMATED",
+        "selections": {
+          "away": {
+            "american_odds": -119,
+            "market_no_vig_conditional": 0.519549,
+            "point": 7.0,
+            "shadow_conditional_nonpush": 0.529013,
+            "shadow_unconditional_win": null
+          },
+          "home": {
+            "american_odds": -101,
+            "market_no_vig_conditional": 0.480451,
+            "point": -7.0,
+            "shadow_conditional_nonpush": 0.470987,
+            "shadow_unconditional_win": null
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 3.8586,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "ff188b344fd13f3ec481adf5deb53e85bc6ff5f7c460dda63a4f3fa0efe6a037",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|6a05021bdb6bab24b9bb381ffff10f0c|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 41.3643,
+        "anchored_shift": -0.1357,
+        "away_team": "atlanta falcons",
+        "baseline_forecast": 38.9932,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T18:00:00+00:00",
+        "home_team": "minnesota vikings",
+        "market": "totals",
+        "market_reference": 41.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "6a05021bdb6bab24b9bb381ffff10f0c",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -109,
+            "market_no_vig_conditional": 0.49891,
+            "point": 41.5,
+            "shadow_conditional_nonpush": 0.494845,
+            "shadow_unconditional_win": 0.494845
+          },
+          "under": {
+            "american_odds": -110,
+            "market_no_vig_conditional": 0.50109,
+            "point": 41.5,
+            "shadow_conditional_nonpush": 0.505155,
+            "shadow_unconditional_win": 0.505155
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 38.7854,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "69206a1bf5b99cc2bf2ee36a6f09f32141caf749d0fb97a6fd3d793a8a1f84f1",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|6a05021bdb6bab24b9bb381ffff10f0c|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 14.6562,
+        "anchored_shift": 0.1562,
+        "away_team": "tennessee titans",
+        "baseline_forecast": 12.4586,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T18:00:00+00:00",
+        "home_team": "jacksonville jaguars",
+        "market": "spreads",
+        "market_reference": 14.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "81a8fee5b649a3ad5ad59e9528f2f376",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -116,
+            "market_no_vig_conditional": 0.513007,
+            "point": 14.5,
+            "shadow_conditional_nonpush": 0.5083,
+            "shadow_unconditional_win": 0.5083
+          },
+          "home": {
+            "american_odds": -104,
+            "market_no_vig_conditional": 0.486993,
+            "point": -14.5,
+            "shadow_conditional_nonpush": 0.4917,
+            "shadow_unconditional_win": 0.4917
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 16.0622,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "09f5f1b3bd94fba219c546badf01a54212d2537f0839c2f2a88ba2aed9732468",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|81a8fee5b649a3ad5ad59e9528f2f376|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 49.5308,
+        "anchored_shift": 0.0308,
+        "away_team": "tennessee titans",
+        "baseline_forecast": 49.3684,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T18:00:00+00:00",
+        "home_team": "jacksonville jaguars",
+        "market": "totals",
+        "market_reference": 49.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "81a8fee5b649a3ad5ad59e9528f2f376",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -106,
+            "market_no_vig_conditional": 0.492367,
+            "point": 49.5,
+            "shadow_conditional_nonpush": 0.493289,
+            "shadow_unconditional_win": 0.493289
+          },
+          "under": {
+            "american_odds": -113,
+            "market_no_vig_conditional": 0.507633,
+            "point": 49.5,
+            "shadow_conditional_nonpush": 0.506711,
+            "shadow_unconditional_win": 0.506711
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 50.1151,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "2ea318ae23427f41b2453a2f9504432f6a3f610054e476e809d442733b92ce61",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|81a8fee5b649a3ad5ad59e9528f2f376|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": -5.608,
+        "anchored_shift": 0.392,
+        "away_team": "new york giants",
+        "baseline_forecast": -3.6574,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T18:00:00+00:00",
+        "home_team": "indianapolis colts",
+        "market": "spreads",
+        "market_reference": -6.0,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "e9da808e36e1b7475698a57465ad4519",
+        "push_probability_status": "NOT_ESTIMATED",
+        "selections": {
+          "away": {
+            "american_odds": -109,
+            "market_no_vig_conditional": 0.49891,
+            "point": -6.0,
+            "shadow_conditional_nonpush": 0.4871,
+            "shadow_unconditional_win": null
+          },
+          "home": {
+            "american_odds": -110,
+            "market_no_vig_conditional": 0.50109,
+            "point": 6.0,
+            "shadow_conditional_nonpush": 0.5129,
+            "shadow_unconditional_win": null
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": -2.0797,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "326d1b61fa02e450a5fa39fa851c5c6cb5d7f5785b7911b41da5b9c3da13f951",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|e9da808e36e1b7475698a57465ad4519|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 41.6851,
+        "anchored_shift": 0.1851,
+        "away_team": "new york giants",
+        "baseline_forecast": 47.6965,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T18:00:00+00:00",
+        "home_team": "indianapolis colts",
+        "market": "totals",
+        "market_reference": 41.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "e9da808e36e1b7475698a57465ad4519",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -111,
+            "market_no_vig_conditional": 0.50327,
+            "point": 41.5,
+            "shadow_conditional_nonpush": 0.508812,
+            "shadow_unconditional_win": 0.508812
+          },
+          "under": {
+            "american_odds": -108,
+            "market_no_vig_conditional": 0.49673,
+            "point": 41.5,
+            "shadow_conditional_nonpush": 0.491188,
+            "shadow_unconditional_win": 0.491188
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 45.2012,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "bd84fede0fcc179cdfee2e6dcf1a20f7faa0813de2c9425347d739079c00d1c0",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|e9da808e36e1b7475698a57465ad4519|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 9.7956,
+        "anchored_shift": -0.2044,
+        "away_team": "new orleans saints",
+        "baseline_forecast": 2.881,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T18:00:00+00:00",
+        "home_team": "cincinnati bengals",
+        "market": "spreads",
+        "market_reference": 10.0,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "f7d3ae7a8fe2438cef7d7d7bc67e31db",
+        "push_probability_status": "NOT_ESTIMATED",
+        "selections": {
+          "away": {
+            "american_odds": -113,
+            "market_no_vig_conditional": 0.507633,
+            "point": 10.0,
+            "shadow_conditional_nonpush": 0.51379,
+            "shadow_unconditional_win": null
+          },
+          "home": {
+            "american_odds": -106,
+            "market_no_vig_conditional": 0.492367,
+            "point": -10.0,
+            "shadow_conditional_nonpush": 0.48621,
+            "shadow_unconditional_win": null
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 7.9564,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "1897cab010203952be2cbb46306b33acb284fee4dc19b1620bc9e39ccd0079d8",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|f7d3ae7a8fe2438cef7d7d7bc67e31db|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 49.4041,
+        "anchored_shift": -0.0959,
+        "away_team": "new orleans saints",
+        "baseline_forecast": 47.2098,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T18:00:00+00:00",
+        "home_team": "cincinnati bengals",
+        "market": "totals",
+        "market_reference": 49.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "f7d3ae7a8fe2438cef7d7d7bc67e31db",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -111,
+            "market_no_vig_conditional": 0.50327,
+            "point": 49.5,
+            "shadow_conditional_nonpush": 0.500399,
+            "shadow_unconditional_win": 0.500399
+          },
+          "under": {
+            "american_odds": -108,
+            "market_no_vig_conditional": 0.49673,
+            "point": 49.5,
+            "shadow_conditional_nonpush": 0.499601,
+            "shadow_unconditional_win": 0.499601
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 47.5829,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "0eed6de467aa92df6950c7acaaad4ba15e3564696ef89b9e8a70e141d6ea84ad",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|f7d3ae7a8fe2438cef7d7d7bc67e31db|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": -1.8245,
+        "anchored_shift": -0.3245,
+        "away_team": "new england patriots",
+        "baseline_forecast": -5.2071,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T21:05:00+00:00",
+        "home_team": "los angeles chargers",
+        "market": "spreads",
+        "market_reference": -1.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "c64ceba13ede564e8658693e3171e7f9",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -101,
+            "market_no_vig_conditional": 0.481415,
+            "point": -1.5,
+            "shadow_conditional_nonpush": 0.491193,
+            "shadow_unconditional_win": 0.491193
+          },
+          "home": {
+            "american_odds": -118,
+            "market_no_vig_conditional": 0.518585,
+            "point": 1.5,
+            "shadow_conditional_nonpush": 0.508807,
+            "shadow_unconditional_win": 0.508807
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": -4.7454,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "687d6f44c236569988d0cf3eca670fab32e6b2a2ba4ae61ad42e5450333cae5e",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|c64ceba13ede564e8658693e3171e7f9|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 35.8569,
+        "anchored_shift": 0.3569,
+        "away_team": "new england patriots",
+        "baseline_forecast": 46.9502,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T21:05:00+00:00",
+        "home_team": "los angeles chargers",
+        "market": "totals",
+        "market_reference": 35.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "c64ceba13ede564e8658693e3171e7f9",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -109,
+            "market_no_vig_conditional": 0.49891,
+            "point": 35.5,
+            "shadow_conditional_nonpush": 0.509599,
+            "shadow_unconditional_win": 0.509599
+          },
+          "under": {
+            "american_odds": -110,
+            "market_no_vig_conditional": 0.50109,
+            "point": 35.5,
+            "shadow_conditional_nonpush": 0.490401,
+            "shadow_unconditional_win": 0.490401
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 42.6379,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "350467f6cc70b32401108677652c80354f127b00e96756324bf2f8221f132c23",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|c64ceba13ede564e8658693e3171e7f9|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": -5.9492,
+        "anchored_shift": 0.5508,
+        "away_team": "washington commanders",
+        "baseline_forecast": -3.0675,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T21:25:00+00:00",
+        "home_team": "arizona cardinals",
+        "market": "spreads",
+        "market_reference": -6.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "69a1dbe9de3d3212c3a7a55be5d204ab",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -118,
+            "market_no_vig_conditional": 0.517364,
+            "point": -6.5,
+            "shadow_conditional_nonpush": 0.500772,
+            "shadow_unconditional_win": 0.500772
+          },
+          "home": {
+            "american_odds": -102,
+            "market_no_vig_conditional": 0.482636,
+            "point": 6.5,
+            "shadow_conditional_nonpush": 0.499228,
+            "shadow_unconditional_win": 0.499228
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": -0.9916,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "a9647f09c5a798a6fd04c903aaa7918bd2a8c37ac1b0fc6a49e47ebc4f239b8b",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|69a1dbe9de3d3212c3a7a55be5d204ab|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 41.7132,
+        "anchored_shift": 0.2132,
+        "away_team": "washington commanders",
+        "baseline_forecast": 47.1368,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T21:25:00+00:00",
+        "home_team": "arizona cardinals",
+        "market": "totals",
+        "market_reference": 41.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "69a1dbe9de3d3212c3a7a55be5d204ab",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -111,
+            "market_no_vig_conditional": 0.50327,
+            "point": 41.5,
+            "shadow_conditional_nonpush": 0.509657,
+            "shadow_unconditional_win": 0.509657
+          },
+          "under": {
+            "american_odds": -108,
+            "market_no_vig_conditional": 0.49673,
+            "point": 41.5,
+            "shadow_conditional_nonpush": 0.490343,
+            "shadow_unconditional_win": 0.490343
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 45.765,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "38b7cbacf263128555c6bd5837e429997ab7d48a0641aa3656d6f4c875e64d3d",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|69a1dbe9de3d3212c3a7a55be5d204ab|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 2.3907,
+        "anchored_shift": -0.1093,
+        "away_team": "seattle seahawks",
+        "baseline_forecast": -2.0222,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T21:25:00+00:00",
+        "home_team": "san francisco 49ers",
+        "market": "spreads",
+        "market_reference": 2.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "d68dced0b26726890b9c79bd19a5ffe5",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -101,
+            "market_no_vig_conditional": 0.480451,
+            "point": 2.5,
+            "shadow_conditional_nonpush": 0.483746,
+            "shadow_unconditional_win": 0.483746
+          },
+          "home": {
+            "american_odds": -119,
+            "market_no_vig_conditional": 0.519549,
+            "point": -2.5,
+            "shadow_conditional_nonpush": 0.516254,
+            "shadow_unconditional_win": 0.516254
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 1.4065,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "ff66183d7ca3ceda5ba6d071b3a7a239241822741016ecb1f3c0c4e9f693e327",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|d68dced0b26726890b9c79bd19a5ffe5|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 44.6823,
+        "anchored_shift": 0.1823,
+        "away_team": "seattle seahawks",
+        "baseline_forecast": 45.4659,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-29T21:25:00+00:00",
+        "home_team": "san francisco 49ers",
+        "market": "totals",
+        "market_reference": 44.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "d68dced0b26726890b9c79bd19a5ffe5",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -109,
+            "market_no_vig_conditional": 0.49891,
+            "point": 44.5,
+            "shadow_conditional_nonpush": 0.50437,
+            "shadow_unconditional_win": 0.50437
+          },
+          "under": {
+            "american_odds": -110,
+            "market_no_vig_conditional": 0.50109,
+            "point": 44.5,
+            "shadow_conditional_nonpush": 0.49563,
+            "shadow_unconditional_win": 0.49563
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 48.1456,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "6123cbfd10e2c5e7e76857c5934319cef07bf653a9e3292c1a07e261577b7082",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|d68dced0b26726890b9c79bd19a5ffe5|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 4.632,
+        "anchored_shift": 0.132,
+        "away_team": "las vegas raiders",
+        "baseline_forecast": 3.5451,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-30T01:20:00+00:00",
+        "home_team": "cleveland browns",
+        "market": "spreads",
+        "market_reference": 4.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "eaa993c3d62d6b5aeb6142cdd7862fd5",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -114,
+            "market_no_vig_conditional": 0.509817,
+            "point": 4.5,
+            "shadow_conditional_nonpush": 0.505841,
+            "shadow_unconditional_win": 0.505841
+          },
+          "home": {
+            "american_odds": -105,
+            "market_no_vig_conditional": 0.490183,
+            "point": -4.5,
+            "shadow_conditional_nonpush": 0.494159,
+            "shadow_unconditional_win": 0.494159
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 5.8195,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "d1cfff4d3ba05fc1e090f901a49ae950240933683a98ada1df516f2639201548",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|eaa993c3d62d6b5aeb6142cdd7862fd5|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-27T04:59:53.471595+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 40.6153,
+        "anchored_shift": 0.1153,
+        "away_team": "las vegas raiders",
+        "baseline_forecast": 42.1552,
+        "bookmaker": "draftkings",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-11-30T01:20:00+00:00",
+        "home_team": "cleveland browns",
+        "market": "totals",
+        "market_reference": 40.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "eaa993c3d62d6b5aeb6142cdd7862fd5",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -103,
+            "market_no_vig_conditional": 0.484816,
+            "point": 40.5,
+            "shadow_conditional_nonpush": 0.488271,
+            "shadow_unconditional_win": 0.488271
+          },
+          "under": {
+            "american_odds": -117,
+            "market_no_vig_conditional": 0.515184,
+            "point": 40.5,
+            "shadow_conditional_nonpush": 0.511729,
+            "shadow_unconditional_win": 0.511729
+          }
+        },
+        "source_quote_captured_at": "2026-11-26T14:16:36.717138+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-27T04:59:53.471595+00:00",
+        "source_report_generated_at": "2026-11-27T04:59:54.504600+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 42.8065,
+        "training_latest_eligible_start": "2026-11-25T14:16:36.717138+00:00"
+      },
+      "forecast_sha256": "961a80eaf3b26b6511d41f1a43c5787392384be45fd0217e6b9cc003ac5c787a",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|eaa993c3d62d6b5aeb6142cdd7862fd5|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
     }
   ],
   "schema_version": 1,
-  "updated_at": "2026-11-26T17:00:28.528652+00:00"
+  "updated_at": "2026-11-27T04:59:53.471595+00:00"
 }

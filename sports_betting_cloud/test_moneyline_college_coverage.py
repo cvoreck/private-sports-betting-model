@@ -1,7 +1,12 @@
 """Offline regression tests for college coverage and read-only moneyline audit."""
+import ast
+import logging
+import re
 import sys
 import unittest
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from unittest.mock import MagicMock
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -65,6 +70,75 @@ class MarketAdjustmentTests(unittest.TestCase):
         row = {"market": "spreads", "result": "Win", "notes": self.NOTES,
                "odds": -110, "stake": 1}
         self.assertEqual(evaluate([row])["status"], "insufficient_annotated_picks")
+
+
+class SettlementCoverageTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Load actual settlement functions without importing DB/network drivers.
+        source = Path(__file__).with_name("settle_picks.py").read_text()
+        tree = ast.parse(source)
+        names = {"norm", "scoreboard", "teams_and_scores", "event_match", "grade_pick"}
+        nodes = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in names]
+        assert {n.name for n in nodes} == names
+        cls.ns = {"re": re, "date": date, "datetime": datetime,
+                  "PT": ZoneInfo("America/Los_Angeles"), "LOG": logging.getLogger("settlement-test"),
+                  "ESPN": {"College Basketball": ("basketball", "mens-college-basketball"),
+                           "NBA": ("basketball", "nba")},
+                  "scoreboard_params": scoreboard_params}
+        exec(compile(ast.Module(body=nodes, type_ignores=[]), "settle_picks.py", "exec"), cls.ns)
+
+    @staticmethod
+    def game(eid="fixture-1", start="2026-11-27T02:30:00Z", completed=True):
+        result = event(eid, "USC Trojans", "Utah State Aggies", start)
+        result["status"] = {"type": {"completed": completed}}
+        competitors = result["competitions"][0]["competitors"]
+        competitors[0]["score"] = "74"
+        competitors[1]["score"] = "78"
+        return result
+
+    @staticmethod
+    def pick():
+        return {"id": 125, "date": "2026-11-26", "matchup": "Utah State Aggies @ USC Trojans",
+                "market": "h2h", "selection": "USC Trojans"}
+
+    def test_full_college_scoreboard_settles_omitted_game(self):
+        session = MagicMock()
+        game = self.game()
+        def get(url, params, timeout):
+            response = MagicMock()
+            response.json.return_value = {"events": [game] if params.get("groups") == "50" else []}
+            return response
+        session.get.side_effect = get
+        events = self.ns["scoreboard"](session, "College Basketball", date(2026, 11, 26))
+        session.get.assert_called_once_with(
+            "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard",
+            params={"dates": "20261126", "limit": 500, "groups": "50"}, timeout=20)
+        matched = self.ns["event_match"](self.pick(), events)
+        self.assertIsNotNone(matched)
+        self.assertEqual(self.ns["grade_pick"](self.pick(), matched[1]), "Loss")
+
+    def test_non_college_request_unchanged(self):
+        session = MagicMock()
+        session.get.return_value.json.return_value = {"events": []}
+        self.ns["scoreboard"](session, "NBA", date(2026, 11, 26))
+        session.get.assert_called_once_with(
+            "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
+            params={"dates": "20261126", "limit": 500}, timeout=20)
+
+    def test_nonfinal_and_wrong_orientation_still_unresolved(self):
+        game = self.game(completed=False)
+        matched = self.ns["event_match"](self.pick(), [game])
+        self.assertIsNone(self.ns["grade_pick"](self.pick(), matched[1]))
+        wrong = dict(self.pick(), matchup="USC Trojans @ Utah State Aggies")
+        self.assertIsNone(self.ns["event_match"](wrong, [self.game()]))
+
+    def test_adjacent_day_disambiguation_and_same_day_ambiguity(self):
+        same = self.game()
+        next_day = self.game("fixture-2", "2026-11-28T02:30:00Z")
+        match = self.ns["event_match"](self.pick(), [next_day, same])
+        self.assertEqual(match[0]["id"], same["id"])
+        self.assertIsNone(self.ns["event_match"](self.pick(), [same, self.game("fixture-3")]))
 
 
 if __name__ == "__main__":

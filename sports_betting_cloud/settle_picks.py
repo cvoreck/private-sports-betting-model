@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 import psycopg
 import requests
 from psycopg.rows import dict_row
+from espn_event_match import scoreboard_params
 
 PT = ZoneInfo('America/Los_Angeles')
 ESPN = {
@@ -34,7 +35,7 @@ def norm(value):
 def scoreboard(session, sport, day):
     category, league = ESPN[sport]
     url = f'https://site.api.espn.com/apis/site/v2/sports/{category}/{league}/scoreboard'
-    response = session.get(url, params={'dates': day.strftime('%Y%m%d'), 'limit': 500}, timeout=20)
+    response = session.get(url, params=scoreboard_params(league, day.strftime('%Y%m%d'), limit=500), timeout=20)
     response.raise_for_status()
     events = response.json().get('events') or []
     LOG.info('ESPN %s %s: %d events', sport, day, len(events))

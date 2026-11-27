@@ -7,6 +7,7 @@ on:
       - 'sports_betting_cloud/ap_rankings_verifier.py'
       - 'sports_betting_cloud/prediction_engine.py'
       - 'sports_betting_cloud/daily_top5.py'
+      - 'sports_betting_cloud/settle_picks.py'
       - 'sports_betting_cloud/moneyline_adjustment_audit.py'
       - 'sports_betting_cloud/test_moneyline_college_coverage.py'
       - '.github/workflows/moneyline-college-audit.yml'

@@ -1,0 +1,97 @@
+name: One-time verified USC settlement
+on:
+  push:
+    branches:
+      - repair/usc-pick-125-settlement-20261127
+    paths:
+      - '.github/workflows/usc-pick-125-settlement.yml'
+permissions:
+  contents: read
+concurrency:
+  group: sports-edge-daily-top5
+  cancel-in-progress: false
+jobs:
+  settle:
+    if: github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 4af6323f08d12540aee7c50794323cf9ef5d1a66
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install settlement dependencies
+        run: python -m pip install 'psycopg[binary]>=3.1,<4' requests
+      - name: Verify ESPN and settle only pending pick 125
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python - <<'PY'
+          import datetime as dt
+          import json
+          import logging
+          import os
+          import sys
+          import psycopg
+          from psycopg.rows import dict_row
+          import requests
+          sys.path.insert(0, "sports_betting_cloud")
+          import settle_picks as settlement
+
+          logging.basicConfig(level=logging.INFO)
+          expected = {"id": 125, "date": "2026-11-26", "sport": "College Basketball",
+                      "matchup": "Utah State Aggies @ USC Trojans", "selection": "USC Trojans"}
+          event_id = "401921673"
+          evidence = "https://www.espn.com/mens-college-basketball/game/_/gameId/" + event_id
+          events = {}
+          with requests.Session() as session:
+              session.headers["User-Agent"] = "SportsEdgeOneTimeSettlement/1.0"
+              for day in (25, 26, 27):
+                  for event in settlement.scoreboard(session, expected["sport"], dt.date(2026, 11, day)):
+                      if event.get("id"):
+                          events[event["id"]] = event
+          matched = settlement.event_match(expected, list(events.values()))
+          if not matched or str(matched[0].get("id")) != event_id:
+              raise SystemExit("Verification failed: expected unique event not found; no database access")
+          event, parsed = matched
+          if parsed[2:] != (78, 74, True) or event["competitions"][0].get("neutralSite") is not True:
+              raise SystemExit("Verification failed: unexpected score or venue; no database access")
+          if ((event.get("status") or {}).get("type") or {}).get("name") != "STATUS_FINAL":
+              raise SystemExit("Verification failed: event not final; no database access")
+          if settlement.grade_pick(dict(expected, market="h2h"), parsed) != "Loss":
+              raise SystemExit("Verification failed: expected grade not confirmed; no database access")
+          print(json.dumps({"verified_event": event_id, "utah_state": 78, "usc": 74,
+                            "grade": "Loss", "espn_requests": 3, "odds_api_calls": 0,
+                            "propline_calls": 0}), flush=True)
+          with psycopg.connect(os.environ["DATABASE_URL"], row_factory=dict_row, connect_timeout=15) as conn:
+              with conn.transaction():
+                  row = conn.execute("""SELECT id, date, sport, matchup, selection, market, result, result_source
+                      FROM picks WHERE id=%s AND kind='Hypothetical' AND rank IS NOT NULL
+                      AND source LIKE 'Auto:%%' FOR UPDATE""", (125,)).fetchone()
+                  if row is None or any(str(row[k]) != str(v) for k,v in expected.items()):
+                      raise SystemExit("Pick identity mismatch; no update")
+                  if str(row["market"]).strip().casefold() not in ("h2h","moneyline"):
+                      raise SystemExit("Unexpected market; no update")
+                  if settlement.grade_pick(row, parsed) != "Loss":
+                      raise SystemExit("Saved selection did not grade as Loss; no update")
+                  if row["result"] == "Loss":
+                      print(json.dumps({"pick_id":125,"result":"Loss","updated_rows":0,
+                                        "already_settled":True}),flush=True)
+                  elif row["result"] != "Pending":
+                      raise SystemExit("Pick is not pending; existing result preserved")
+                  else:
+                      changed = conn.execute("""UPDATE picks SET result=%s, result_source=%s
+                          WHERE id=%s AND result='Pending' RETURNING id,result,result_source""",
+                          ("Loss", evidence,125)).fetchone()
+                      if not changed or changed["result"] != "Loss" or changed["result_source"] != evidence:
+                          raise SystemExit("Update verification failed; transaction rolled back")
+              saved = conn.execute("SELECT id,result,result_source FROM picks WHERE id=%s",(125,)).fetchone()
+              if not saved or saved["result"] != "Loss":
+                  raise SystemExit("Post-commit readback failed")
+              print(json.dumps({"confirmed_pick_id":saved["id"],"result":saved["result"],
+                                "source":saved["result_source"],"updated_rows":int(row["result"]=="Pending"),
+                                "paid_api_calls":0}),flush=True)
+          PY

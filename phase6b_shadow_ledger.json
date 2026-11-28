@@ -26296,10 +26296,33 @@
         "training_latest_eligible_start": "2026-11-22T14:21:40.612737+00:00"
       },
       "forecast_sha256": "740520144deff59e12c4457f0223e2e8e1f9200b262ab7b9cb9d8feecf0a4a8d",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 0.6215,
+          "baseline": 2.1596,
+          "market": 0.0,
+          "trained": 6.2153
+        },
+        "actual_value": 3.0,
+        "away_score": 10,
+        "canonical_played_at": "2026-11-27T01:20:00+00:00",
+        "final_event_id": "401873082",
+        "graded_at": "2026-11-28T12:46:58.878931+00:00",
+        "home_score": 13,
+        "side_results": {
+          "away": "P",
+          "home": "P"
+        }
+      },
+      "grade_sha256": "1cf44b6e237216d916a6f206fd968bee77433388c08866ceddb1b06adca314d8",
       "key": "americanfootball_nfl|f36f518585aec40e8cb40e071c0844aa|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "betus",
+        "captured_at": "2026-11-24T14:16:44.381328+00:00",
+        "delta_from_frozen_reference": -0.5,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 2.5
+      }
     },
     {
       "first_recorded_at": "2026-11-24T04:59:18.259018+00:00",
@@ -26344,10 +26367,33 @@
         "training_latest_eligible_start": "2026-11-22T14:21:40.612737+00:00"
       },
       "forecast_sha256": "1f3386da6d0d5494877fae041012a3c7222449dac3a5635281ec7a4295ffe2d9",
-      "grade": null,
-      "grade_sha256": null,
+      "grade": {
+        "absolute_errors": {
+          "anchored": 26.7369,
+          "baseline": 19.1414,
+          "market": 27.0,
+          "trained": 21.7387
+        },
+        "actual_value": 23.0,
+        "away_score": 10,
+        "canonical_played_at": "2026-11-27T01:20:00+00:00",
+        "final_event_id": "401873082",
+        "graded_at": "2026-11-28T12:46:58.878931+00:00",
+        "home_score": 13,
+        "side_results": {
+          "over": "L",
+          "under": "W"
+        }
+      },
+      "grade_sha256": "44d442c51c14c2685bf75f7b6f1889ea1e28d706043fb9403fe8875deea9a676",
       "key": "americanfootball_nfl|f36f518585aec40e8cb40e071c0844aa|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
-      "latest_observed_pregame_quote": null
+      "latest_observed_pregame_quote": {
+        "bookmaker": "betus",
+        "captured_at": "2026-11-24T14:16:44.381328+00:00",
+        "delta_from_frozen_reference": -2.0,
+        "description": "latest_observed_same_book_pregame_not_guaranteed_closing",
+        "reference": 48.0
+      }
     },
     {
       "first_recorded_at": "2026-11-26T17:00:28.528652+00:00",
@@ -29516,8 +29562,104 @@
       "grade_sha256": null,
       "key": "americanfootball_nfl|eaa993c3d62d6b5aeb6142cdd7862fd5|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
       "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-28T12:46:58.878931+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 3.0886,
+        "anchored_shift": 0.5886,
+        "away_team": "carolina panthers",
+        "baseline_forecast": 4.6215,
+        "bookmaker": "betrivers",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-12-01T01:15:00+00:00",
+        "home_team": "tampa bay buccaneers",
+        "market": "spreads",
+        "market_reference": 2.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "2cdaecba7c0bff9b58a48a82e6ee17a7",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "away": {
+            "american_odds": -103,
+            "market_no_vig_conditional": 0.481923,
+            "point": 2.5,
+            "shadow_conditional_nonpush": 0.464194,
+            "shadow_unconditional_win": 0.464194
+          },
+          "home": {
+            "american_odds": -120,
+            "market_no_vig_conditional": 0.518077,
+            "point": -2.5,
+            "shadow_conditional_nonpush": 0.535806,
+            "shadow_unconditional_win": 0.535806
+          }
+        },
+        "source_quote_captured_at": "2026-11-27T14:17:28.436597+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-28T12:46:58.878931+00:00",
+        "source_report_generated_at": "2026-11-28T12:46:59.275873+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 8.3858,
+        "training_latest_eligible_start": "2026-11-26T14:17:28.436597+00:00"
+      },
+      "forecast_sha256": "a550c39e4c17c60ead494fbfb54cb1a2f3893da2f25312c56d11d4d6f89a9120",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|2cdaecba7c0bff9b58a48a82e6ee17a7|spreads|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
+    },
+    {
+      "first_recorded_at": "2026-11-28T12:46:58.878931+00:00",
+      "forecast": {
+        "abstain_reason": null,
+        "anchored_forecast": 43.5632,
+        "anchored_shift": 0.0632,
+        "away_team": "carolina panthers",
+        "baseline_forecast": 42.8792,
+        "bookmaker": "betrivers",
+        "conditional_probability_status": "UNVALIDATED_HEURISTIC_NOT_FOR_PUBLISHING",
+        "event_start": "2026-12-01T01:15:00+00:00",
+        "home_team": "tampa bay buccaneers",
+        "market": "totals",
+        "market_reference": 43.5,
+        "model_version": "phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+        "odds_event_id": "2cdaecba7c0bff9b58a48a82e6ee17a7",
+        "push_probability_status": "NO_PUSH_POSSIBLE",
+        "selections": {
+          "over": {
+            "american_odds": -113,
+            "market_no_vig_conditional": 0.505375,
+            "point": 43.5,
+            "shadow_conditional_nonpush": 0.507268,
+            "shadow_unconditional_win": 0.507268
+          },
+          "under": {
+            "american_odds": -108,
+            "market_no_vig_conditional": 0.494625,
+            "point": 43.5,
+            "shadow_conditional_nonpush": 0.492732,
+            "shadow_unconditional_win": 0.492732
+          }
+        },
+        "source_quote_captured_at": "2026-11-27T14:17:28.436597+00:00",
+        "source_quote_category": "pregame_odds",
+        "source_report_asof": "2026-11-28T12:46:58.878931+00:00",
+        "source_report_generated_at": "2026-11-28T12:46:59.275873+00:00",
+        "sport": "americanfootball_nfl",
+        "status": "SHADOW_ONLY",
+        "trained_forecast": 44.7637,
+        "training_latest_eligible_start": "2026-11-26T14:17:28.436597+00:00"
+      },
+      "forecast_sha256": "9fcd390425974c931ba082ac1ceac97cc86b860314492873d57229b35210f4f8",
+      "grade": null,
+      "grade_sha256": null,
+      "key": "americanfootball_nfl|2cdaecba7c0bff9b58a48a82e6ee17a7|totals|phase6a-market-anchor-v1-SHADOW-NOT-CALIBRATED",
+      "latest_observed_pregame_quote": null
     }
   ],
   "schema_version": 1,
-  "updated_at": "2026-11-27T23:56:37.045671+00:00"
+  "updated_at": "2026-11-28T12:46:58.878931+00:00"
 }
